@@ -1,0 +1,69 @@
+from fastapi import FastAPI, Request, status
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
+from app.database import engine, Base
+from app.api import auth, reference, input1, input2, balance, cash_flow, profit_loss, cash_flow_analysis, profit_loss_analysis, realization, shipment, products, dashboard, export, import_api
+import traceback
+
+# Создаем таблицы
+Base.metadata.create_all(bind=engine)
+
+app = FastAPI(title="Financial Reporting System", version="1.0.0")
+
+# CORS настройки - ДОЛЖНО БЫТЬ ПЕРВЫМ middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+    expose_headers=["*"],
+)
+
+# Обработчик ошибок валидации
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content={"detail": exc.errors()},
+        headers={
+            "Access-Control-Allow-Origin": "http://localhost:3000",
+            "Access-Control-Allow-Credentials": "true",
+        }
+    )
+
+# Обработчик исключений для добавления CORS заголовков к ошибкам
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    traceback.print_exc()
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={"detail": str(exc)},
+        headers={
+            "Access-Control-Allow-Origin": "http://localhost:3000",
+            "Access-Control-Allow-Credentials": "true",
+        }
+    )
+
+# Подключение роутеров
+app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
+app.include_router(reference.router, prefix="/api/reference", tags=["reference"])
+app.include_router(input1.router, prefix="/api/input1", tags=["input1"])
+app.include_router(input2.router, prefix="/api/input2", tags=["input2"])
+app.include_router(balance.router, prefix="/api/balance", tags=["balance"])
+app.include_router(cash_flow.router, prefix="/api/cash-flow", tags=["cash-flow"])
+app.include_router(profit_loss.router, prefix="/api/profit-loss", tags=["profit-loss"])
+app.include_router(cash_flow_analysis.router, prefix="/api/cash-flow-analysis", tags=["cash-flow-analysis"])
+app.include_router(profit_loss_analysis.router, prefix="/api/profit-loss-analysis", tags=["profit-loss-analysis"])
+app.include_router(realization.router, prefix="/api/realization", tags=["realization"])
+app.include_router(shipment.router, prefix="/api/shipment", tags=["shipment"])
+app.include_router(products.router, prefix="/api/products", tags=["products"])
+app.include_router(dashboard.router, prefix="/api/dashboard", tags=["dashboard"])
+app.include_router(export.router, prefix="/api/export", tags=["export"])
+app.include_router(import_api.router, prefix="/api/import", tags=["import"])
+
+@app.get("/")
+async def root():
+    return {"message": "Financial Reporting System API"}
+

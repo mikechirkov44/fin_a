@@ -1,0 +1,75 @@
+from typing import List
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.orm import Session
+from datetime import date
+from app.database import get_db
+from app.models.user import User
+from app.models.shipment import Shipment
+from app.schemas.shipment import ShipmentCreate, ShipmentResponse
+from app.auth.security import get_current_user
+
+router = APIRouter()
+
+@router.get("/", response_model=List[ShipmentResponse])
+def get_shipments(
+    skip: int = 0,
+    limit: int = 100,
+    start_date: date | None = Query(None),
+    end_date: date | None = Query(None),
+    marketplace: str | None = Query(None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    query = db.query(Shipment)
+    
+    if start_date:
+        query = query.filter(Shipment.date >= start_date)
+    if end_date:
+        query = query.filter(Shipment.date <= end_date)
+    if marketplace:
+        query = query.filter(Shipment.marketplace == marketplace)
+    
+    shipments = query.order_by(Shipment.date.desc()).offset(skip).limit(limit).all()
+    return shipments
+
+@router.post("/", response_model=ShipmentResponse)
+def create_shipment(
+    shipment: ShipmentCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    db_shipment = Shipment(**shipment.dict())
+    db.add(db_shipment)
+    db.commit()
+    db.refresh(db_shipment)
+    return db_shipment
+
+@router.put("/{shipment_id}", response_model=ShipmentResponse)
+def update_shipment(
+    shipment_id: int,
+    shipment: ShipmentCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    db_shipment = db.query(Shipment).filter(Shipment.id == shipment_id).first()
+    if not db_shipment:
+        raise HTTPException(status_code=404, detail="Shipment not found")
+    for key, value in shipment.dict().items():
+        setattr(db_shipment, key, value)
+    db.commit()
+    db.refresh(db_shipment)
+    return db_shipment
+
+@router.delete("/{shipment_id}")
+def delete_shipment(
+    shipment_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    db_shipment = db.query(Shipment).filter(Shipment.id == shipment_id).first()
+    if not db_shipment:
+        raise HTTPException(status_code=404, detail="Shipment not found")
+    db.delete(db_shipment)
+    db.commit()
+    return {"message": "Shipment deleted"}
+
