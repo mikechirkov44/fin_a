@@ -304,6 +304,7 @@ const Input1 = () => {
               <input
                 type="file"
                 accept=".xlsx,.xls,.csv"
+                id="import-file-input"
                 onChange={async (e) => {
                   const file = e.target.files?.[0]
                   if (file) {
@@ -322,7 +323,7 @@ const Input1 = () => {
                 }}
                 style={{ display: 'none' }}
               />
-              <button type="button" onClick={() => (e.target as HTMLElement).parentElement?.querySelector('input')?.click()}>
+              <button type="button" onClick={() => document.getElementById('import-file-input')?.click()}>
                 Импорт
               </button>
             </label>
