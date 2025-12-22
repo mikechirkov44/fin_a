@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { referenceService } from '../services/api'
+import { useAuth } from './AuthContext'
 
 interface Company {
   id: number
@@ -32,10 +33,14 @@ interface CompanyProviderProps {
 }
 
 export const CompanyProvider: React.FC<CompanyProviderProps> = ({ children }) => {
+  const { isAuthenticated } = useAuth()
   const [selectedCompanyId, setSelectedCompanyIdState] = useState<number | null>(null)
   const [companies, setCompanies] = useState<Company[]>([])
 
   const loadCompanies = async () => {
+    if (!isAuthenticated) {
+      return
+    }
     try {
       const data = await referenceService.getCompanies()
       setCompanies(data)
@@ -63,9 +68,6 @@ export const CompanyProvider: React.FC<CompanyProviderProps> = ({ children }) =>
   }
 
   useEffect(() => {
-    // Загружаем компании при монтировании
-    loadCompanies()
-    
     // Восстанавливаем выбранную компанию из localStorage
     const savedCompanyId = localStorage.getItem('selectedCompanyId')
     if (savedCompanyId) {
@@ -75,6 +77,17 @@ export const CompanyProvider: React.FC<CompanyProviderProps> = ({ children }) =>
       }
     }
   }, [])
+
+  useEffect(() => {
+    // Загружаем компании только если пользователь авторизован
+    if (isAuthenticated) {
+      loadCompanies()
+    } else {
+      // Очищаем компании при выходе
+      setCompanies([])
+      setSelectedCompanyIdState(null)
+    }
+  }, [isAuthenticated])
 
   const selectedCompany = companies.find(c => c.id === selectedCompanyId) || null
 
