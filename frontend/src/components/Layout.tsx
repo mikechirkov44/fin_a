@@ -98,17 +98,20 @@ const Layout = () => {
         </div>
         <div className="top-bar-right" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           {companies.length > 0 && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <label style={{ fontSize: '13px', color: '#666' }}>Организация:</label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <label style={{ fontSize: '13px', color: '#666', fontWeight: '500' }}>Организация:</label>
               <select
                 value={selectedCompanyId || ''}
                 onChange={(e) => setSelectedCompanyId(e.target.value ? parseInt(e.target.value, 10) : null)}
                 style={{
-                  padding: '4px 8px',
-                  border: '1px solid #808080',
+                  padding: '8px 32px 8px 12px',
+                  border: '1.5px solid #d0d0d0',
                   fontSize: '13px',
                   backgroundColor: '#fff',
-                  minWidth: '200px'
+                  minWidth: '220px',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
                 }}
               >
                 {companies.filter(c => c.is_active).map((company) => (
