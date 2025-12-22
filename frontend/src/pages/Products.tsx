@@ -8,6 +8,8 @@ const Products = () => {
   const [searchQuery, setSearchQuery] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [editingItem, setEditingItem] = useState<any>(null)
+  const [sortColumn, setSortColumn] = useState<string | null>(null)
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
   const [formData, setFormData] = useState({
     name: '',
     sku: '',
@@ -30,25 +32,96 @@ const Products = () => {
     }
   }
 
-  // Фильтрация по поисковому запросу
+  // Сортировка данных
+  const sortData = (data: any[], column: string | null, direction: 'asc' | 'desc') => {
+    if (!column) return data
+
+    const sorted = [...data].sort((a, b) => {
+      let aVal: any
+      let bVal: any
+
+      switch (column) {
+        case 'name':
+          aVal = a.name || ''
+          bVal = b.name || ''
+          break
+        case 'sku':
+          aVal = a.sku || ''
+          bVal = b.sku || ''
+          break
+        case 'cost_price':
+          aVal = parseFloat(a.cost_price) || 0
+          bVal = parseFloat(b.cost_price) || 0
+          break
+        case 'selling_price':
+          aVal = a.selling_price ? parseFloat(a.selling_price) : 0
+          bVal = b.selling_price ? parseFloat(b.selling_price) : 0
+          break
+        case 'margin':
+          const aMargin = a.selling_price 
+            ? ((parseFloat(a.selling_price) - parseFloat(a.cost_price)) / parseFloat(a.selling_price) * 100)
+            : 0
+          const bMargin = b.selling_price 
+            ? ((parseFloat(b.selling_price) - parseFloat(b.cost_price)) / parseFloat(b.selling_price) * 100)
+            : 0
+          aVal = aMargin
+          bVal = bMargin
+          break
+        case 'description':
+          aVal = a.description || ''
+          bVal = b.description || ''
+          break
+        default:
+          return 0
+      }
+
+      if (typeof aVal === 'number' && typeof bVal === 'number') {
+        return direction === 'asc' ? aVal - bVal : bVal - aVal
+      } else {
+        const aStr = String(aVal).toLowerCase()
+        const bStr = String(bVal).toLowerCase()
+        if (direction === 'asc') {
+          return aStr.localeCompare(bStr, 'ru')
+        } else {
+          return bStr.localeCompare(aStr, 'ru')
+        }
+      }
+    })
+
+    return sorted
+  }
+
+  // Фильтрация и сортировка по поисковому запросу
   useEffect(() => {
-    if (!searchQuery.trim()) {
-      setProducts(allProducts)
-      return
+    let filtered = allProducts
+
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim()
+      filtered = allProducts.filter((product) => {
+        return (
+          product.name?.toLowerCase().includes(query) ||
+          product.sku?.toLowerCase().includes(query) ||
+          product.description?.toLowerCase().includes(query) ||
+          product.cost_price?.toString().includes(query) ||
+          product.selling_price?.toString().includes(query)
+        )
+      })
     }
 
-    const query = searchQuery.toLowerCase().trim()
-    const filtered = allProducts.filter((product) => {
-      return (
-        product.name?.toLowerCase().includes(query) ||
-        product.sku?.toLowerCase().includes(query) ||
-        product.description?.toLowerCase().includes(query) ||
-        product.cost_price?.toString().includes(query) ||
-        product.selling_price?.toString().includes(query)
-      )
-    })
-    setProducts(filtered)
-  }, [searchQuery, allProducts])
+    const sorted = sortData(filtered, sortColumn, sortDirection)
+    setProducts(sorted)
+  }, [searchQuery, allProducts, sortColumn, sortDirection])
+
+  const handleSort = (column: string) => {
+    if (sortColumn === column) {
+      // Переключаем направление сортировки
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
+    } else {
+      // Устанавливаем новый столбец и направление по умолчанию
+      setSortColumn(column)
+      setSortDirection('asc')
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -235,13 +308,46 @@ const Products = () => {
         <table>
           <thead>
             <tr>
-              <th>Наименование</th>
-              <th>Артикул</th>
-              <th className="text-right">Себестоимость</th>
-              <th className="text-right">Цена продажи</th>
-              <th className="text-right">Маржа</th>
-              <th>Описание</th>
-              <th style={{ width: '150px' }}>Действия</th>
+              <th 
+                onClick={() => handleSort('name')} 
+                style={{ cursor: 'pointer', userSelect: 'none' }}
+              >
+                Наименование {sortColumn === 'name' && (sortDirection === 'asc' ? '▲' : '▼')}
+              </th>
+              <th 
+                onClick={() => handleSort('sku')} 
+                style={{ cursor: 'pointer', userSelect: 'none' }}
+              >
+                Артикул {sortColumn === 'sku' && (sortDirection === 'asc' ? '▲' : '▼')}
+              </th>
+              <th 
+                className="text-right" 
+                onClick={() => handleSort('cost_price')} 
+                style={{ cursor: 'pointer', userSelect: 'none' }}
+              >
+                Себестоимость {sortColumn === 'cost_price' && (sortDirection === 'asc' ? '▲' : '▼')}
+              </th>
+              <th 
+                className="text-right" 
+                onClick={() => handleSort('selling_price')} 
+                style={{ cursor: 'pointer', userSelect: 'none' }}
+              >
+                Цена продажи {sortColumn === 'selling_price' && (sortDirection === 'asc' ? '▲' : '▼')}
+              </th>
+              <th 
+                className="text-right" 
+                onClick={() => handleSort('margin')} 
+                style={{ cursor: 'pointer', userSelect: 'none' }}
+              >
+                Маржа {sortColumn === 'margin' && (sortDirection === 'asc' ? '▲' : '▼')}
+              </th>
+              <th 
+                onClick={() => handleSort('description')} 
+                style={{ cursor: 'pointer', userSelect: 'none' }}
+              >
+                Описание {sortColumn === 'description' && (sortDirection === 'asc' ? '▲' : '▼')}
+              </th>
+              <th style={{ width: '100px' }}>Действия</th>
             </tr>
           </thead>
           <tbody>
@@ -255,7 +361,11 @@ const Products = () => {
                   ? ((parseFloat(product.selling_price) - parseFloat(product.cost_price)) / parseFloat(product.selling_price) * 100).toFixed(2)
                   : '-'
                 return (
-                  <tr key={product.id}>
+                  <tr 
+                    key={product.id}
+                    className="clickable"
+                    onClick={() => handleEdit(product)}
+                  >
                     <td>{product.name}</td>
                     <td>{product.sku}</td>
                     <td className="text-right">{parseFloat(product.cost_price).toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽</td>
@@ -264,9 +374,13 @@ const Products = () => {
                     </td>
                     <td className="text-right">{margin !== '-' ? margin + '%' : '-'}</td>
                     <td>{product.description || '-'}</td>
-                    <td>
-                      <button onClick={() => handleEdit(product)} style={{ marginRight: '4px' }}>Изменить</button>
-                      <button onClick={() => handleDelete(product.id)} className="danger">Удалить</button>
+                    <td onClick={(e) => e.stopPropagation()}>
+                      <button 
+                        onClick={() => handleDelete(product.id)} 
+                        className="danger" 
+                        title="Удалить"
+                        style={{ padding: '4px 6px', fontSize: '16px', lineHeight: '1', minWidth: 'auto' }}
+                      >✕</button>
                     </td>
                   </tr>
                 )

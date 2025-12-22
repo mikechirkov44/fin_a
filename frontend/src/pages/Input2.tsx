@@ -301,7 +301,7 @@ const Input2 = () => {
               <th>Категория</th>
               <th className="text-right">Стоимость</th>
               <th>Описание</th>
-              <th style={{ width: '150px' }}>Действия</th>
+              <th style={{ width: '100px' }}>Действия</th>
             </tr>
           </thead>
           <tbody>
@@ -311,15 +311,23 @@ const Input2 = () => {
               </tr>
             ) : (
               currentItems.map((item) => (
-                <tr key={item.id}>
+                <tr 
+                  key={item.id}
+                  className="clickable"
+                  onClick={() => handleEdit(item)}
+                >
                   <td>{item.date}</td>
                   <td>{item.name}</td>
                   <td>{categories.find(c => c.value === item.category)?.label || item.category}</td>
                   <td className="text-right">{parseFloat(item.value).toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽</td>
                   <td>{item.description || '-'}</td>
-                  <td>
-                    <button onClick={() => handleEdit(item)} style={{ marginRight: '4px' }}>Изменить</button>
-                    <button onClick={() => handleDelete(item.id)} className="danger">Удалить</button>
+                  <td onClick={(e) => e.stopPropagation()}>
+                    <button 
+                      onClick={() => handleDelete(item.id)} 
+                      className="danger" 
+                      title="Удалить"
+                      style={{ padding: '4px 6px', fontSize: '16px', lineHeight: '1', minWidth: 'auto' }}
+                    >✕</button>
                   </td>
                 </tr>
               ))

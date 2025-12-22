@@ -14,6 +14,8 @@ const Input1 = () => {
   const [paymentPlaces, setPaymentPlaces] = useState<any[]>([])
   const [showForm, setShowForm] = useState(false)
   const [editingItem, setEditingItem] = useState<any>(null)
+  const [sortColumn, setSortColumn] = useState<string | null>(null)
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
   const [formData, setFormData] = useState({
     date: format(new Date(), 'yyyy-MM-dd'),
     amount: '',
@@ -41,7 +43,6 @@ const Input1 = () => {
     try {
       const data = await input1Service.getMovements({ limit: 1000 })
       setAllMovements(data)
-      setMovements(data)
     } catch (error) {
       console.error('Error loading movements:', error)
     }
@@ -62,29 +63,88 @@ const Input1 = () => {
     return place?.name || '-'
   }
 
-  // Фильтрация по поисковому запросу
+  // Фильтрация и сортировка
   useEffect(() => {
-    if (!searchQuery.trim()) {
-      setMovements(allMovements)
-      return
+    let filtered = allMovements
+
+    // Фильтрация по поисковому запросу
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim()
+      filtered = allMovements.filter((movement) => {
+        const itemName = getItemName(movement)?.toLowerCase() || ''
+        const paymentPlaceName = getPaymentPlaceName(movement.payment_place_id)?.toLowerCase() || ''
+        return (
+          movement.date?.toLowerCase().includes(query) ||
+          (movement.movement_type === 'income' ? 'поступление' : 'оплата').includes(query) ||
+          itemName.includes(query) ||
+          paymentPlaceName.includes(query) ||
+          movement.amount?.toString().includes(query) ||
+          movement.description?.toLowerCase().includes(query) ||
+          (movement.is_business ? 'да' : 'нет').includes(query)
+        )
+      })
     }
 
-    const query = searchQuery.toLowerCase().trim()
-    const filtered = allMovements.filter((movement) => {
-      const itemName = getItemName(movement)?.toLowerCase() || ''
-      const paymentPlaceName = getPaymentPlaceName(movement.payment_place_id)?.toLowerCase() || ''
-      return (
-        movement.date?.toLowerCase().includes(query) ||
-        (movement.movement_type === 'income' ? 'поступление' : 'оплата').includes(query) ||
-        itemName.includes(query) ||
-        paymentPlaceName.includes(query) ||
-        movement.amount?.toString().includes(query) ||
-        movement.description?.toLowerCase().includes(query) ||
-        (movement.is_business ? 'да' : 'нет').includes(query)
-      )
-    })
+    // Сортировка данных
+    if (sortColumn) {
+      filtered = [...filtered].sort((a, b) => {
+        let aVal: any
+        let bVal: any
+
+        switch (sortColumn) {
+          case 'date':
+            aVal = a.date || ''
+            bVal = b.date || ''
+            break
+          case 'type':
+            aVal = a.movement_type === 'income' ? 'поступление' : 'оплата'
+            bVal = b.movement_type === 'income' ? 'поступление' : 'оплата'
+            break
+          case 'item':
+            aVal = getItemName(a)
+            bVal = getItemName(b)
+            break
+          case 'payment_place':
+            aVal = getPaymentPlaceName(a.payment_place_id)
+            bVal = getPaymentPlaceName(b.payment_place_id)
+            break
+          case 'amount':
+            aVal = parseFloat(String(a.amount)) || 0
+            bVal = parseFloat(String(b.amount)) || 0
+            break
+          case 'is_business':
+            aVal = a.is_business ? 1 : 0
+            bVal = b.is_business ? 1 : 0
+            break
+          default:
+            return 0
+        }
+
+        if (typeof aVal === 'number' && typeof bVal === 'number') {
+          return sortDirection === 'asc' ? aVal - bVal : bVal - aVal
+        } else {
+          const aStr = String(aVal).toLowerCase()
+          const bStr = String(bVal).toLowerCase()
+          if (sortDirection === 'asc') {
+            return aStr.localeCompare(bStr, 'ru')
+          } else {
+            return bStr.localeCompare(aStr, 'ru')
+          }
+        }
+      })
+    }
+
     setMovements(filtered)
-  }, [searchQuery, allMovements, incomeItems, expenseItems, paymentPlaces])
+  }, [searchQuery, allMovements, incomeItems, expenseItems, paymentPlaces, sortColumn, sortDirection])
+
+  const handleSort = (column: string) => {
+    if (sortColumn === column) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortColumn(column)
+      setSortDirection('asc')
+    }
+  }
 
   const loadReferences = async () => {
     try {
@@ -357,13 +417,62 @@ const Input1 = () => {
         <table>
           <thead>
             <tr>
-              <th>Дата</th>
-              <th>Тип</th>
-              <th>Статья</th>
-              <th>Место оплаты</th>
-              <th className="text-right">Сумма</th>
-              <th>Бизнес</th>
-              <th style={{ width: '150px' }}>Действия</th>
+              <th 
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleSort('date')
+                }} 
+                style={{ cursor: 'pointer', userSelect: 'none' }}
+              >
+                Дата {sortColumn === 'date' && (sortDirection === 'asc' ? '▲' : '▼')}
+              </th>
+              <th 
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleSort('type')
+                }} 
+                style={{ cursor: 'pointer', userSelect: 'none' }}
+              >
+                Тип {sortColumn === 'type' && (sortDirection === 'asc' ? '▲' : '▼')}
+              </th>
+              <th 
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleSort('item')
+                }} 
+                style={{ cursor: 'pointer', userSelect: 'none' }}
+              >
+                Статья {sortColumn === 'item' && (sortDirection === 'asc' ? '▲' : '▼')}
+              </th>
+              <th 
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleSort('payment_place')
+                }} 
+                style={{ cursor: 'pointer', userSelect: 'none' }}
+              >
+                Место оплаты {sortColumn === 'payment_place' && (sortDirection === 'asc' ? '▲' : '▼')}
+              </th>
+              <th 
+                className="text-right" 
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleSort('amount')
+                }} 
+                style={{ cursor: 'pointer', userSelect: 'none' }}
+              >
+                Сумма {sortColumn === 'amount' && (sortDirection === 'asc' ? '▲' : '▼')}
+              </th>
+              <th 
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleSort('is_business')
+                }} 
+                style={{ cursor: 'pointer', userSelect: 'none' }}
+              >
+                Бизнес {sortColumn === 'is_business' && (sortDirection === 'asc' ? '▲' : '▼')}
+              </th>
+              <th style={{ width: '100px' }}>Действия</th>
             </tr>
           </thead>
           <tbody>
@@ -373,16 +482,24 @@ const Input1 = () => {
               </tr>
             ) : (
               movements.map((movement) => (
-                <tr key={movement.id}>
+                <tr 
+                  key={movement.id}
+                  className="clickable"
+                  onClick={() => handleEdit(movement)}
+                >
                   <td>{movement.date}</td>
                   <td>{movement.movement_type === 'income' ? 'Поступление' : 'Оплата'}</td>
                   <td>{getItemName(movement)}</td>
                   <td>{getPaymentPlaceName(movement.payment_place_id)}</td>
                   <td className="text-right">{parseFloat(movement.amount).toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽</td>
                   <td>{movement.is_business ? 'Да' : 'Нет'}</td>
-                  <td>
-                    <button onClick={() => handleEdit(movement)} style={{ marginRight: '4px' }}>Изменить</button>
-                    <button onClick={() => handleDelete(movement.id)} className="danger">Удалить</button>
+                  <td onClick={(e) => e.stopPropagation()}>
+                    <button 
+                      onClick={() => handleDelete(movement.id)} 
+                      className="danger" 
+                      title="Удалить"
+                      style={{ padding: '4px 6px', fontSize: '16px', lineHeight: '1', minWidth: 'auto' }}
+                    >✕</button>
                   </td>
                 </tr>
               ))

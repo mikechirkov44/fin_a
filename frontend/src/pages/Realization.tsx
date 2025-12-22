@@ -12,6 +12,8 @@ const Realization = () => {
   const [searchQuery, setSearchQuery] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [editingItem, setEditingItem] = useState<any>(null)
+  const [sortColumn, setSortColumn] = useState<string | null>(null)
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
   const [formData, setFormData] = useState({
     date: format(new Date(), 'yyyy-MM-dd'),
     company_id: selectedCompanyId || '',
@@ -51,26 +53,87 @@ const Realization = () => {
     }
   }
 
-  // Фильтрация по поисковому запросу
+  // Сортировка данных
+  const sortData = (data: any[], column: string | null, direction: 'asc' | 'desc') => {
+    if (!column) return data
+
+    const sorted = [...data].sort((a, b) => {
+      let aVal: any
+      let bVal: any
+
+      switch (column) {
+        case 'date':
+          aVal = a.date || ''
+          bVal = b.date || ''
+          break
+        case 'marketplace':
+          const aMarketplace = marketplaces.find(m => m.id === a.marketplace_id)?.name || ''
+          const bMarketplace = marketplaces.find(m => m.id === b.marketplace_id)?.name || ''
+          aVal = aMarketplace
+          bVal = bMarketplace
+          break
+        case 'revenue':
+          aVal = parseFloat(a.revenue) || 0
+          bVal = parseFloat(b.revenue) || 0
+          break
+        case 'quantity':
+          aVal = parseInt(a.quantity) || 0
+          bVal = parseInt(b.quantity) || 0
+          break
+        case 'description':
+          aVal = a.description || ''
+          bVal = b.description || ''
+          break
+        default:
+          return 0
+      }
+
+      if (typeof aVal === 'number' && typeof bVal === 'number') {
+        return direction === 'asc' ? aVal - bVal : bVal - aVal
+      } else {
+        const aStr = String(aVal).toLowerCase()
+        const bStr = String(bVal).toLowerCase()
+        if (direction === 'asc') {
+          return aStr.localeCompare(bStr, 'ru')
+        } else {
+          return bStr.localeCompare(aStr, 'ru')
+        }
+      }
+    })
+
+    return sorted
+  }
+
+  // Фильтрация и сортировка по поисковому запросу
   useEffect(() => {
-    if (!searchQuery.trim()) {
-      setRealizations(allRealizations)
-      return
+    let filtered = allRealizations
+
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim()
+      filtered = allRealizations.filter((realization) => {
+        const marketplace = marketplaces.find(m => m.id === realization.marketplace_id)
+        return (
+          realization.date?.toLowerCase().includes(query) ||
+          marketplace?.name?.toLowerCase().includes(query) ||
+          realization.revenue?.toString().includes(query) ||
+          realization.quantity?.toString().includes(query) ||
+          realization.description?.toLowerCase().includes(query)
+        )
+      })
     }
 
-    const query = searchQuery.toLowerCase().trim()
-    const filtered = allRealizations.filter((realization) => {
-      const marketplace = marketplaces.find(m => m.id === realization.marketplace_id)
-      return (
-        realization.date?.toLowerCase().includes(query) ||
-        marketplace?.name?.toLowerCase().includes(query) ||
-        realization.revenue?.toString().includes(query) ||
-        realization.quantity?.toString().includes(query) ||
-        realization.description?.toLowerCase().includes(query)
-      )
-    })
-    setRealizations(filtered)
-  }, [searchQuery, allRealizations])
+    const sorted = sortData(filtered, sortColumn, sortDirection)
+    setRealizations(sorted)
+  }, [searchQuery, allRealizations, marketplaces, sortColumn, sortDirection])
+
+  const handleSort = (column: string) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortColumn(column)
+      setSortDirection('asc')
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -247,12 +310,39 @@ const Realization = () => {
         <table>
           <thead>
             <tr>
-              <th>Дата</th>
-              <th>Маркетплейс</th>
-              <th className="text-right">Выручка</th>
-              <th className="text-right">Количество</th>
-              <th>Описание</th>
-              <th style={{ width: '150px' }}>Действия</th>
+              <th 
+                onClick={() => handleSort('date')} 
+                style={{ cursor: 'pointer', userSelect: 'none' }}
+              >
+                Дата {sortColumn === 'date' && (sortDirection === 'asc' ? '▲' : '▼')}
+              </th>
+              <th 
+                onClick={() => handleSort('marketplace')} 
+                style={{ cursor: 'pointer', userSelect: 'none' }}
+              >
+                Маркетплейс {sortColumn === 'marketplace' && (sortDirection === 'asc' ? '▲' : '▼')}
+              </th>
+              <th 
+                className="text-right" 
+                onClick={() => handleSort('revenue')} 
+                style={{ cursor: 'pointer', userSelect: 'none' }}
+              >
+                Выручка {sortColumn === 'revenue' && (sortDirection === 'asc' ? '▲' : '▼')}
+              </th>
+              <th 
+                className="text-right" 
+                onClick={() => handleSort('quantity')} 
+                style={{ cursor: 'pointer', userSelect: 'none' }}
+              >
+                Количество {sortColumn === 'quantity' && (sortDirection === 'asc' ? '▲' : '▼')}
+              </th>
+              <th 
+                onClick={() => handleSort('description')} 
+                style={{ cursor: 'pointer', userSelect: 'none' }}
+              >
+                Описание {sortColumn === 'description' && (sortDirection === 'asc' ? '▲' : '▼')}
+              </th>
+              <th style={{ width: '100px' }}>Действия</th>
             </tr>
           </thead>
           <tbody>
@@ -262,15 +352,23 @@ const Realization = () => {
               </tr>
             ) : (
               realizations.map((realization) => (
-                <tr key={realization.id}>
+                <tr 
+                  key={realization.id}
+                  className="clickable"
+                  onClick={() => handleEdit(realization)}
+                >
                   <td>{realization.date}</td>
                   <td>{marketplaces.find(m => m.id === realization.marketplace_id)?.name || '-'}</td>
                   <td className="text-right">{parseFloat(realization.revenue).toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽</td>
                   <td className="text-right">{realization.quantity}</td>
                   <td>{realization.description || '-'}</td>
-                  <td>
-                    <button onClick={() => handleEdit(realization)} style={{ marginRight: '4px' }}>Изменить</button>
-                    <button onClick={() => handleDelete(realization.id)} className="danger">Удалить</button>
+                  <td onClick={(e) => e.stopPropagation()}>
+                    <button 
+                      onClick={() => handleDelete(realization.id)} 
+                      className="danger" 
+                      title="Удалить"
+                      style={{ padding: '4px 6px', fontSize: '16px', lineHeight: '1', minWidth: 'auto' }}
+                    >✕</button>
                   </td>
                 </tr>
               ))

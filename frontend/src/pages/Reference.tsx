@@ -322,7 +322,12 @@ const Reference = () => {
                   <td>{item.description || '-'}</td>
                   <td>
                     <button onClick={() => handleEdit(item)} style={{ marginRight: '4px' }}>Изменить</button>
-                    <button onClick={() => handleDelete(item.id)} className="danger">Удалить</button>
+                    <button 
+                      onClick={() => handleDelete(item.id)} 
+                      className="danger" 
+                      title="Удалить"
+                      style={{ padding: '4px 6px', fontSize: '16px', lineHeight: '1', minWidth: 'auto' }}
+                    >✕</button>
                   </td>
                 </tr>
               ))

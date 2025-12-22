@@ -78,6 +78,19 @@ table tr:hover td {
   background-color: #f0f7ff;
 }
 
+table tr.clickable {
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+table tr.clickable:hover td {
+  background-color: #e0f0ff;
+}
+
+table tr.clickable:active td {
+  background-color: #d0e8ff;
+}
+
 /* Кнопки */
 button {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
