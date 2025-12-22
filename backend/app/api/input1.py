@@ -17,6 +17,7 @@ def get_money_movements(
     start_date: date | None = Query(None),
     end_date: date | None = Query(None),
     movement_type: str | None = Query(None),
+    company_id: int | None = Query(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -28,6 +29,8 @@ def get_money_movements(
         query = query.filter(MoneyMovement.date <= end_date)
     if movement_type:
         query = query.filter(MoneyMovement.movement_type == movement_type)
+    if company_id:
+        query = query.filter(MoneyMovement.company_id == company_id)
     
     movements = query.order_by(MoneyMovement.date.desc()).offset(skip).limit(limit).all()
     return movements

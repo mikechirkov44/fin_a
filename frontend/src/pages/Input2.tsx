@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
 import { input2Service } from '../services/api'
+import { useCompany } from '../contexts/CompanyContext'
 import { format } from 'date-fns'
 
 const Input2 = () => {
+  const { selectedCompanyId, companies } = useCompany()
   const [activeTab, setActiveTab] = useState<'assets' | 'liabilities'>('assets')
   const [assets, setAssets] = useState<any[]>([])
   const [liabilities, setLiabilities] = useState<any[]>([])
@@ -16,6 +18,7 @@ const Input2 = () => {
     category: '',
     value: '',
     date: format(new Date(), 'yyyy-MM-dd'),
+    company_id: selectedCompanyId || '',
     description: '',
   })
 
@@ -82,6 +85,7 @@ const Input2 = () => {
     try {
       const submitData = {
         ...formData,
+        company_id: parseInt(formData.company_id),
         value: parseFloat(formData.value),
       }
       if (activeTab === 'assets') {
@@ -112,6 +116,7 @@ const Input2 = () => {
       category: '',
       value: '',
       date: format(new Date(), 'yyyy-MM-dd'),
+      company_id: selectedCompanyId || '',
       description: '',
     })
   }
@@ -123,10 +128,17 @@ const Input2 = () => {
       category: item.category,
       value: item.value.toString(),
       date: item.date,
+      company_id: item.company_id?.toString() || selectedCompanyId || '',
       description: item.description || '',
     })
     setShowForm(true)
   }
+
+  useEffect(() => {
+    if (selectedCompanyId && !formData.company_id) {
+      setFormData(prev => ({ ...prev, company_id: selectedCompanyId }))
+    }
+  }, [selectedCompanyId])
 
   const handleDelete = async (id: number) => {
     if (!confirm('Удалить запись?')) return
@@ -218,6 +230,19 @@ const Input2 = () => {
                   onChange={(e) => setFormData({ ...formData, date: e.target.value })}
                   required
                 />
+              </div>
+              <div className="form-group">
+                <label>Организация *</label>
+                <select
+                  value={formData.company_id}
+                  onChange={(e) => setFormData({ ...formData, company_id: e.target.value })}
+                  required
+                >
+                  <option value="">Выберите...</option>
+                  {companies.filter(c => c.is_active).map(company => (
+                    <option key={company.id} value={company.id}>{company.name}</option>
+                  ))}
+                </select>
               </div>
             </div>
             <div className="form-group">

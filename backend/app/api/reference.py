@@ -3,11 +3,13 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.user import User
-from app.models.reference import IncomeItem, ExpenseItem, PaymentPlace
+from app.models.reference import IncomeItem, ExpenseItem, PaymentPlace, Company, Marketplace
 from app.schemas.reference import (
     IncomeItemCreate, IncomeItemResponse,
     ExpenseItemCreate, ExpenseItemResponse,
-    PaymentPlaceCreate, PaymentPlaceResponse
+    PaymentPlaceCreate, PaymentPlaceResponse,
+    CompanyCreate, CompanyResponse,
+    MarketplaceCreate, MarketplaceResponse
 )
 from app.auth.security import get_current_user
 
@@ -114,4 +116,72 @@ def delete_payment_place(item_id: int, db: Session = Depends(get_db), current_us
     db_item.is_active = False
     db.commit()
     return {"message": "Payment place deleted"}
+
+# Companies
+@router.get("/companies", response_model=List[CompanyResponse])
+def get_companies(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    items = db.query(Company).filter(Company.is_active == True).offset(skip).limit(limit).all()
+    return items
+
+@router.post("/companies", response_model=CompanyResponse)
+def create_company(item: CompanyCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    db_item = Company(**item.dict())
+    db.add(db_item)
+    db.commit()
+    db.refresh(db_item)
+    return db_item
+
+@router.put("/companies/{item_id}", response_model=CompanyResponse)
+def update_company(item_id: int, item: CompanyCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    db_item = db.query(Company).filter(Company.id == item_id).first()
+    if not db_item:
+        raise HTTPException(status_code=404, detail="Company not found")
+    for key, value in item.dict().items():
+        setattr(db_item, key, value)
+    db.commit()
+    db.refresh(db_item)
+    return db_item
+
+@router.delete("/companies/{item_id}")
+def delete_company(item_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    db_item = db.query(Company).filter(Company.id == item_id).first()
+    if not db_item:
+        raise HTTPException(status_code=404, detail="Company not found")
+    db_item.is_active = False
+    db.commit()
+    return {"message": "Company deleted"}
+
+# Marketplaces
+@router.get("/marketplaces", response_model=List[MarketplaceResponse])
+def get_marketplaces(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    items = db.query(Marketplace).filter(Marketplace.is_active == True).offset(skip).limit(limit).all()
+    return items
+
+@router.post("/marketplaces", response_model=MarketplaceResponse)
+def create_marketplace(item: MarketplaceCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    db_item = Marketplace(**item.dict())
+    db.add(db_item)
+    db.commit()
+    db.refresh(db_item)
+    return db_item
+
+@router.put("/marketplaces/{item_id}", response_model=MarketplaceResponse)
+def update_marketplace(item_id: int, item: MarketplaceCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    db_item = db.query(Marketplace).filter(Marketplace.id == item_id).first()
+    if not db_item:
+        raise HTTPException(status_code=404, detail="Marketplace not found")
+    for key, value in item.dict().items():
+        setattr(db_item, key, value)
+    db.commit()
+    db.refresh(db_item)
+    return db_item
+
+@router.delete("/marketplaces/{item_id}")
+def delete_marketplace(item_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    db_item = db.query(Marketplace).filter(Marketplace.id == item_id).first()
+    if not db_item:
+        raise HTTPException(status_code=404, detail="Marketplace not found")
+    db_item.is_active = False
+    db.commit()
+    return {"message": "Marketplace deleted"}
 

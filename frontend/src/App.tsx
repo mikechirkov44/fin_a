@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
+import { CompanyProvider } from './contexts/CompanyContext'
 import PrivateRoute from './components/PrivateRoute'
 import Login from './pages/Login'
 import Layout from './components/Layout'
@@ -19,7 +20,8 @@ import Products from './pages/Products'
 function App() {
   return (
     <AuthProvider>
-      <Router future={{ v7_relativeSplatPath: true, v7_startTransition: true }}>
+      <CompanyProvider>
+        <Router future={{ v7_relativeSplatPath: true, v7_startTransition: true }}>
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route
@@ -46,6 +48,7 @@ function App() {
           </Route>
         </Routes>
       </Router>
+      </CompanyProvider>
     </AuthProvider>
   )
 }

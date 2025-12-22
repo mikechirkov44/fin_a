@@ -1,5 +1,11 @@
 from .user import UserCreate, UserResponse, Token
-from .reference import IncomeItemCreate, IncomeItemResponse, ExpenseItemCreate, ExpenseItemResponse, PaymentPlaceCreate, PaymentPlaceResponse
+from .reference import (
+    IncomeItemCreate, IncomeItemResponse, 
+    ExpenseItemCreate, ExpenseItemResponse, 
+    PaymentPlaceCreate, PaymentPlaceResponse,
+    CompanyCreate, CompanyResponse,
+    MarketplaceCreate, MarketplaceResponse
+)
 from .input1 import MoneyMovementCreate, MoneyMovementResponse
 from .input2 import AssetCreate, AssetResponse, LiabilityCreate, LiabilityResponse
 from .realization import RealizationCreate, RealizationResponse
@@ -16,6 +22,10 @@ __all__ = [
     "ExpenseItemResponse",
     "PaymentPlaceCreate",
     "PaymentPlaceResponse",
+    "CompanyCreate",
+    "CompanyResponse",
+    "MarketplaceCreate",
+    "MarketplaceResponse",
     "MoneyMovementCreate",
     "MoneyMovementResponse",
     "AssetCreate",

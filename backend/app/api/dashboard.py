@@ -15,6 +15,7 @@ router = APIRouter()
 def get_dashboard(
     start_date: date | None = Query(None),
     end_date: date | None = Query(None),
+    company_id: int | None = Query(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -34,17 +35,23 @@ def get_dashboard(
         if month_end > end_date:
             month_end = end_date
         
-        income = db.query(func.sum(MoneyMovement.amount)).filter(
+        income_query = db.query(func.sum(MoneyMovement.amount)).filter(
             MoneyMovement.movement_type == "income",
             MoneyMovement.is_business == True,
             MoneyMovement.date <= month_end
-        ).scalar() or 0
+        )
+        if company_id:
+            income_query = income_query.filter(MoneyMovement.company_id == company_id)
+        income = income_query.scalar() or 0
         
-        expense = db.query(func.sum(MoneyMovement.amount)).filter(
+        expense_query = db.query(func.sum(MoneyMovement.amount)).filter(
             MoneyMovement.movement_type == "expense",
             MoneyMovement.is_business == True,
             MoneyMovement.date <= month_end
-        ).scalar() or 0
+        )
+        if company_id:
+            expense_query = expense_query.filter(MoneyMovement.company_id == company_id)
+        expense = expense_query.scalar() or 0
         
         cash_balance_by_month.append({
             "period": current_date.strftime("%Y-%m"),
@@ -67,22 +74,31 @@ def get_dashboard(
         if month_end > end_date:
             month_end = end_date
         
-        revenue = db.query(func.sum(Realization.revenue)).filter(
+        revenue_query = db.query(func.sum(Realization.revenue)).filter(
             Realization.date >= month_start,
             Realization.date <= month_end
-        ).scalar() or 0
+        )
+        if company_id:
+            revenue_query = revenue_query.filter(Realization.company_id == company_id)
+        revenue = revenue_query.scalar() or 0
         
-        cost_of_goods = db.query(func.sum(Shipment.cost_price * Shipment.quantity)).filter(
+        cost_query = db.query(func.sum(Shipment.cost_price * Shipment.quantity)).filter(
             Shipment.date >= month_start,
             Shipment.date <= month_end
-        ).scalar() or 0
+        )
+        if company_id:
+            cost_query = cost_query.filter(Shipment.company_id == company_id)
+        cost_of_goods = cost_query.scalar() or 0
         
-        expenses = db.query(func.sum(MoneyMovement.amount)).filter(
+        expenses_query = db.query(func.sum(MoneyMovement.amount)).filter(
             MoneyMovement.movement_type == "expense",
             MoneyMovement.is_business == True,
             MoneyMovement.date >= month_start,
             MoneyMovement.date <= month_end
-        ).scalar() or 0
+        )
+        if company_id:
+            expenses_query = expenses_query.filter(MoneyMovement.company_id == company_id)
+        expenses = expenses_query.scalar() or 0
         
         net_profit = float(revenue) - float(cost_of_goods) - float(expenses)
         net_margin = (net_profit / float(revenue) * 100) if revenue > 0 else 0
@@ -108,15 +124,21 @@ def get_dashboard(
         if month_end > end_date:
             month_end = end_date
         
-        revenue = db.query(func.sum(Realization.revenue)).filter(
+        revenue_query = db.query(func.sum(Realization.revenue)).filter(
             Realization.date >= month_start,
             Realization.date <= month_end
-        ).scalar() or 0
+        )
+        if company_id:
+            revenue_query = revenue_query.filter(Realization.company_id == company_id)
+        revenue = revenue_query.scalar() or 0
         
-        cost_of_goods = db.query(func.sum(Shipment.cost_price * Shipment.quantity)).filter(
+        cost_query = db.query(func.sum(Shipment.cost_price * Shipment.quantity)).filter(
             Shipment.date >= month_start,
             Shipment.date <= month_end
-        ).scalar() or 0
+        )
+        if company_id:
+            cost_query = cost_query.filter(Shipment.company_id == company_id)
+        cost_of_goods = cost_query.scalar() or 0
         
         gross_profit = float(revenue) - float(cost_of_goods)
         gross_margin = (gross_profit / float(revenue) * 100) if revenue > 0 else 0
@@ -134,22 +156,31 @@ def get_dashboard(
             current_date = current_date.replace(month=current_date.month + 1)
     
     # Текущие показатели
-    total_revenue = db.query(func.sum(Realization.revenue)).filter(
+    total_revenue_query = db.query(func.sum(Realization.revenue)).filter(
         Realization.date >= start_date,
         Realization.date <= end_date
-    ).scalar() or 0
+    )
+    if company_id:
+        total_revenue_query = total_revenue_query.filter(Realization.company_id == company_id)
+    total_revenue = total_revenue_query.scalar() or 0
     
-    total_cost = db.query(func.sum(Shipment.cost_price * Shipment.quantity)).filter(
+    total_cost_query = db.query(func.sum(Shipment.cost_price * Shipment.quantity)).filter(
         Shipment.date >= start_date,
         Shipment.date <= end_date
-    ).scalar() or 0
+    )
+    if company_id:
+        total_cost_query = total_cost_query.filter(Shipment.company_id == company_id)
+    total_cost = total_cost_query.scalar() or 0
     
-    total_expenses = db.query(func.sum(MoneyMovement.amount)).filter(
+    total_expenses_query = db.query(func.sum(MoneyMovement.amount)).filter(
         MoneyMovement.movement_type == "expense",
         MoneyMovement.is_business == True,
         MoneyMovement.date >= start_date,
         MoneyMovement.date <= end_date
-    ).scalar() or 0
+    )
+    if company_id:
+        total_expenses_query = total_expenses_query.filter(MoneyMovement.company_id == company_id)
+    total_expenses = total_expenses_query.scalar() or 0
     
     current_gross_profit = float(total_revenue) - float(total_cost)
     current_net_profit = current_gross_profit - float(total_expenses)

@@ -18,6 +18,7 @@ def get_assets(
     start_date: date | None = Query(None),
     end_date: date | None = Query(None),
     category: str | None = Query(None),
+    company_id: int | None = Query(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -29,6 +30,8 @@ def get_assets(
         query = query.filter(Asset.date <= end_date)
     if category:
         query = query.filter(Asset.category == category)
+    if company_id:
+        query = query.filter(Asset.company_id == company_id)
     
     assets = query.order_by(Asset.date.desc()).offset(skip).limit(limit).all()
     return assets
@@ -82,6 +85,7 @@ def get_liabilities(
     start_date: date | None = Query(None),
     end_date: date | None = Query(None),
     category: str | None = Query(None),
+    company_id: int | None = Query(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -93,6 +97,8 @@ def get_liabilities(
         query = query.filter(Liability.date <= end_date)
     if category:
         query = query.filter(Liability.category == category)
+    if company_id:
+        query = query.filter(Liability.company_id == company_id)
     
     liabilities = query.order_by(Liability.date.desc()).offset(skip).limit(limit).all()
     return liabilities

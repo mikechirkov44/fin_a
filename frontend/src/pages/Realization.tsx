@@ -1,17 +1,21 @@
 import { useState, useEffect } from 'react'
-import { realizationService } from '../services/api'
+import { realizationService, referenceService } from '../services/api'
 import { exportService } from '../services/exportService'
+import { useCompany } from '../contexts/CompanyContext'
 import { format } from 'date-fns'
 
 const Realization = () => {
+  const { selectedCompanyId, companies } = useCompany()
   const [realizations, setRealizations] = useState<any[]>([])
   const [allRealizations, setAllRealizations] = useState<any[]>([])
+  const [marketplaces, setMarketplaces] = useState<any[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [editingItem, setEditingItem] = useState<any>(null)
   const [formData, setFormData] = useState({
     date: format(new Date(), 'yyyy-MM-dd'),
-    marketplace: '',
+    company_id: selectedCompanyId || '',
+    marketplace_id: '',
     revenue: '',
     quantity: '',
     description: '',
@@ -19,7 +23,23 @@ const Realization = () => {
 
   useEffect(() => {
     loadData()
+    loadMarketplaces()
   }, [])
+
+  useEffect(() => {
+    if (selectedCompanyId && !formData.company_id) {
+      setFormData(prev => ({ ...prev, company_id: selectedCompanyId }))
+    }
+  }, [selectedCompanyId])
+
+  const loadMarketplaces = async () => {
+    try {
+      const data = await referenceService.getMarketplaces()
+      setMarketplaces(data)
+    } catch (error) {
+      console.error('Error loading marketplaces:', error)
+    }
+  }
 
   const loadData = async () => {
     try {
@@ -40,9 +60,10 @@ const Realization = () => {
 
     const query = searchQuery.toLowerCase().trim()
     const filtered = allRealizations.filter((realization) => {
+      const marketplace = marketplaces.find(m => m.id === realization.marketplace_id)
       return (
         realization.date?.toLowerCase().includes(query) ||
-        realization.marketplace?.toLowerCase().includes(query) ||
+        marketplace?.name?.toLowerCase().includes(query) ||
         realization.revenue?.toString().includes(query) ||
         realization.quantity?.toString().includes(query) ||
         realization.description?.toLowerCase().includes(query)
@@ -56,6 +77,8 @@ const Realization = () => {
     try {
       const submitData = {
         ...formData,
+        company_id: parseInt(formData.company_id),
+        marketplace_id: parseInt(formData.marketplace_id),
         revenue: parseFloat(formData.revenue),
         quantity: parseInt(formData.quantity) || 0,
       }
@@ -122,17 +145,29 @@ const Realization = () => {
                 />
               </div>
               <div className="form-group">
-                <label>Маркетплейс *</label>
+                <label>Организация *</label>
                 <select
-                  value={formData.marketplace}
-                  onChange={(e) => setFormData({ ...formData, marketplace: e.target.value })}
+                  value={formData.company_id}
+                  onChange={(e) => setFormData({ ...formData, company_id: e.target.value })}
                   required
                 >
                   <option value="">Выберите...</option>
-                  <option value="ozon">Ozon</option>
-                  <option value="wb">Wildberries</option>
-                  <option value="yandex">Яндекс.Маркет</option>
-                  <option value="other">Другое</option>
+                  {companies.filter(c => c.is_active).map(company => (
+                    <option key={company.id} value={company.id}>{company.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Маркетплейс *</label>
+                <select
+                  value={formData.marketplace_id}
+                  onChange={(e) => setFormData({ ...formData, marketplace_id: e.target.value })}
+                  required
+                >
+                  <option value="">Выберите...</option>
+                  {marketplaces.filter(m => m.is_active).map(marketplace => (
+                    <option key={marketplace.id} value={marketplace.id}>{marketplace.name}</option>
+                  ))}
                 </select>
               </div>
               <div className="form-group">
@@ -229,7 +264,7 @@ const Realization = () => {
               realizations.map((realization) => (
                 <tr key={realization.id}>
                   <td>{realization.date}</td>
-                  <td>{realization.marketplace}</td>
+                  <td>{marketplaces.find(m => m.id === realization.marketplace_id)?.name || '-'}</td>
                   <td className="text-right">{parseFloat(realization.revenue).toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽</td>
                   <td className="text-right">{realization.quantity}</td>
                   <td>{realization.description || '-'}</td>

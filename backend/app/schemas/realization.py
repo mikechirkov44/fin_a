@@ -4,7 +4,8 @@ from decimal import Decimal
 
 class RealizationCreate(BaseModel):
     date: date
-    marketplace: str
+    company_id: int
+    marketplace_id: int
     revenue: Decimal
     quantity: int = 0
     description: str | None = None
@@ -12,7 +13,8 @@ class RealizationCreate(BaseModel):
 class RealizationResponse(BaseModel):
     id: int
     date: date
-    marketplace: str
+    company_id: int
+    marketplace_id: int
     revenue: Decimal
     quantity: int
     description: str | None

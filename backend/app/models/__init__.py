@@ -1,5 +1,5 @@
 from .user import User
-from .reference import IncomeItem, ExpenseItem, PaymentPlace
+from .reference import IncomeItem, ExpenseItem, PaymentPlace, Company, Marketplace
 from .input1 import MoneyMovement
 from .input2 import Asset, Liability
 from .realization import Realization
@@ -11,6 +11,8 @@ __all__ = [
     "IncomeItem",
     "ExpenseItem",
     "PaymentPlace",
+    "Company",
+    "Marketplace",
     "MoneyMovement",
     "Asset",
     "Liability",

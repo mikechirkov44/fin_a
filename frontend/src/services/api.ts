@@ -88,6 +88,14 @@ export const referenceService = {
   createPaymentPlace: (data: any) => apiService.post('/api/reference/payment-places', data),
   updatePaymentPlace: (id: number, data: any) => apiService.put(`/api/reference/payment-places/${id}`, data),
   deletePaymentPlace: (id: number) => apiService.delete(`/api/reference/payment-places/${id}`),
+  getCompanies: () => apiService.get('/api/reference/companies'),
+  createCompany: (data: any) => apiService.post('/api/reference/companies', data),
+  updateCompany: (id: number, data: any) => apiService.put(`/api/reference/companies/${id}`, data),
+  deleteCompany: (id: number) => apiService.delete(`/api/reference/companies/${id}`),
+  getMarketplaces: () => apiService.get('/api/reference/marketplaces'),
+  createMarketplace: (data: any) => apiService.post('/api/reference/marketplaces', data),
+  updateMarketplace: (id: number, data: any) => apiService.put(`/api/reference/marketplaces/${id}`, data),
+  deleteMarketplace: (id: number) => apiService.delete(`/api/reference/marketplaces/${id}`),
 }
 
 export const input1Service = {

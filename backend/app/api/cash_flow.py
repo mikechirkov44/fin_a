@@ -15,6 +15,7 @@ def get_cash_flow_report(
     start_date: date | None = Query(None),
     end_date: date | None = Query(None),
     group_by: str = Query("month", regex="^(month|quarter|year)$"),
+    company_id: int | None = Query(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -27,11 +28,14 @@ def get_cash_flow_report(
         end_date = date.today()
     
     # Получаем все движения денег в периоде
-    movements = db.query(MoneyMovement).filter(
+    query = db.query(MoneyMovement).filter(
         MoneyMovement.date >= start_date,
         MoneyMovement.date <= end_date,
         MoneyMovement.is_business == True
-    ).order_by(MoneyMovement.date).all()
+    )
+    if company_id:
+        query = query.filter(MoneyMovement.company_id == company_id)
+    movements = query.order_by(MoneyMovement.date).all()
     
     # Группировка по периодам
     periods = {}
@@ -88,6 +92,7 @@ def get_cash_flow_by_category(
     start_date: date | None = Query(None),
     end_date: date | None = Query(None),
     movement_type: str = Query(..., regex="^(income|expense)$"),
+    company_id: int | None = Query(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -105,12 +110,15 @@ def get_cash_flow_by_category(
         items = db.query(IncomeItem).filter(IncomeItem.is_active == True).all()
         result = []
         for item in items:
-            total = db.query(func.sum(MoneyMovement.amount)).filter(
+            query = db.query(func.sum(MoneyMovement.amount)).filter(
                 MoneyMovement.income_item_id == item.id,
                 MoneyMovement.date >= start_date,
                 MoneyMovement.date <= end_date,
                 MoneyMovement.is_business == True
-            ).scalar() or 0
+            )
+            if company_id:
+                query = query.filter(MoneyMovement.company_id == company_id)
+            total = query.scalar() or 0
             if total > 0:
                 result.append({
                     "id": item.id,
@@ -121,12 +129,15 @@ def get_cash_flow_by_category(
         items = db.query(ExpenseItem).filter(ExpenseItem.is_active == True).all()
         result = []
         for item in items:
-            total = db.query(func.sum(MoneyMovement.amount)).filter(
+            query = db.query(func.sum(MoneyMovement.amount)).filter(
                 MoneyMovement.expense_item_id == item.id,
                 MoneyMovement.date >= start_date,
                 MoneyMovement.date <= end_date,
                 MoneyMovement.is_business == True
-            ).scalar() or 0
+            )
+            if company_id:
+                query = query.filter(MoneyMovement.company_id == company_id)
+            total = query.scalar() or 0
             if total > 0:
                 result.append({
                     "id": item.id,

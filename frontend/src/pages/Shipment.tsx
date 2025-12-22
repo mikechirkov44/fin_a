@@ -1,18 +1,22 @@
 import { useState, useEffect } from 'react'
-import { shipmentService, productsService } from '../services/api'
+import { shipmentService, productsService, referenceService } from '../services/api'
+import { useCompany } from '../contexts/CompanyContext'
 import { format } from 'date-fns'
 
 const Shipment = () => {
+  const { selectedCompanyId, companies } = useCompany()
   const [shipments, setShipments] = useState<any[]>([])
   const [allShipments, setAllShipments] = useState<any[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [products, setProducts] = useState<any[]>([])
+  const [marketplaces, setMarketplaces] = useState<any[]>([])
   const [showForm, setShowForm] = useState(false)
   const [editingItem, setEditingItem] = useState<any>(null)
   const [formData, setFormData] = useState({
     date: format(new Date(), 'yyyy-MM-dd'),
+    company_id: selectedCompanyId || '',
     product_id: '',
-    marketplace: '',
+    marketplace_id: '',
     quantity: '',
     cost_price: '',
     description: '',
@@ -21,7 +25,23 @@ const Shipment = () => {
   useEffect(() => {
     loadData()
     loadProducts()
+    loadMarketplaces()
   }, [])
+
+  useEffect(() => {
+    if (selectedCompanyId && !formData.company_id) {
+      setFormData(prev => ({ ...prev, company_id: selectedCompanyId }))
+    }
+  }, [selectedCompanyId])
+
+  const loadMarketplaces = async () => {
+    try {
+      const data = await referenceService.getMarketplaces()
+      setMarketplaces(data)
+    } catch (error) {
+      console.error('Error loading marketplaces:', error)
+    }
+  }
 
   const loadData = async () => {
     try {
@@ -49,10 +69,11 @@ const Shipment = () => {
     const query = searchQuery.toLowerCase().trim()
     const filtered = allShipments.filter((shipment) => {
       const productName = getProductName(shipment.product_id)?.toLowerCase() || ''
+      const marketplace = marketplaces.find(m => m.id === shipment.marketplace_id)
       return (
         shipment.date?.toLowerCase().includes(query) ||
         productName.includes(query) ||
-        shipment.marketplace?.toLowerCase().includes(query) ||
+        marketplace?.name?.toLowerCase().includes(query) ||
         shipment.quantity?.toString().includes(query) ||
         shipment.cost_price?.toString().includes(query) ||
         shipment.description?.toLowerCase().includes(query)
@@ -75,7 +96,9 @@ const Shipment = () => {
     try {
       const submitData = {
         ...formData,
+        company_id: parseInt(formData.company_id),
         product_id: formData.product_id ? parseInt(formData.product_id) : null,
+        marketplace_id: parseInt(formData.marketplace_id),
         quantity: parseInt(formData.quantity),
         cost_price: parseFloat(formData.cost_price),
       }
@@ -96,8 +119,9 @@ const Shipment = () => {
   const resetForm = () => {
     setFormData({
       date: format(new Date(), 'yyyy-MM-dd'),
+      company_id: selectedCompanyId || '',
       product_id: '',
-      marketplace: '',
+      marketplace_id: '',
       quantity: '',
       cost_price: '',
       description: '',
@@ -108,8 +132,9 @@ const Shipment = () => {
     setEditingItem(item)
     setFormData({
       date: item.date,
+      company_id: item.company_id?.toString() || selectedCompanyId || '',
       product_id: item.product_id?.toString() || '',
-      marketplace: item.marketplace,
+      marketplace_id: item.marketplace_id?.toString() || '',
       quantity: item.quantity.toString(),
       cost_price: item.cost_price.toString(),
       description: item.description || '',
@@ -156,17 +181,29 @@ const Shipment = () => {
                 </select>
               </div>
               <div className="form-group">
-                <label>Маркетплейс *</label>
+                <label>Организация *</label>
                 <select
-                  value={formData.marketplace}
-                  onChange={(e) => setFormData({ ...formData, marketplace: e.target.value })}
+                  value={formData.company_id}
+                  onChange={(e) => setFormData({ ...formData, company_id: e.target.value })}
                   required
                 >
                   <option value="">Выберите...</option>
-                  <option value="ozon">Ozon</option>
-                  <option value="wb">Wildberries</option>
-                  <option value="yandex">Яндекс.Маркет</option>
-                  <option value="other">Другое</option>
+                  {companies.filter(c => c.is_active).map(company => (
+                    <option key={company.id} value={company.id}>{company.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Маркетплейс *</label>
+                <select
+                  value={formData.marketplace_id}
+                  onChange={(e) => setFormData({ ...formData, marketplace_id: e.target.value })}
+                  required
+                >
+                  <option value="">Выберите...</option>
+                  {marketplaces.filter(m => m.is_active).map(marketplace => (
+                    <option key={marketplace.id} value={marketplace.id}>{marketplace.name}</option>
+                  ))}
                 </select>
               </div>
             </div>
@@ -263,7 +300,7 @@ const Shipment = () => {
                   <tr key={shipment.id}>
                     <td>{shipment.date}</td>
                     <td>{getProductName(shipment.product_id)}</td>
-                    <td>{shipment.marketplace}</td>
+                    <td>{marketplaces.find(m => m.id === shipment.marketplace_id)?.name || '-'}</td>
                     <td className="text-right">{shipment.quantity}</td>
                     <td className="text-right">{parseFloat(shipment.cost_price).toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽</td>
                     <td className="text-right">{total.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽</td>

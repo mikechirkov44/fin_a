@@ -4,8 +4,9 @@ from decimal import Decimal
 
 class ShipmentCreate(BaseModel):
     date: date
+    company_id: int
     product_id: int | None = None
-    marketplace: str
+    marketplace_id: int
     quantity: int
     cost_price: Decimal
     description: str | None = None
@@ -13,8 +14,9 @@ class ShipmentCreate(BaseModel):
 class ShipmentResponse(BaseModel):
     id: int
     date: date
+    company_id: int
     product_id: int | None
-    marketplace: str
+    marketplace_id: int
     quantity: int
     cost_price: Decimal
     description: str | None

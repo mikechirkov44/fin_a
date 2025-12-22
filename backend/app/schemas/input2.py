@@ -7,6 +7,7 @@ class AssetCreate(BaseModel):
     category: str  # 'current', 'fixed', 'intangible'
     value: Decimal
     date: date
+    company_id: int
     description: str | None = None
 
 class AssetResponse(BaseModel):
@@ -15,6 +16,7 @@ class AssetResponse(BaseModel):
     category: str
     value: Decimal
     date: date
+    company_id: int
     description: str | None
     created_at: datetime
 
@@ -26,6 +28,7 @@ class LiabilityCreate(BaseModel):
     category: str  # 'short_term', 'long_term'
     value: Decimal
     date: date
+    company_id: int
     description: str | None = None
 
 class LiabilityResponse(BaseModel):
@@ -34,6 +37,7 @@ class LiabilityResponse(BaseModel):
     category: str
     value: Decimal
     date: date
+    company_id: int
     description: str | None
     created_at: datetime
 

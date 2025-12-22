@@ -1,5 +1,6 @@
 import { Outlet, Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { useCompany } from '../contexts/CompanyContext'
 import { useState, useEffect } from 'react'
 import './Layout.css'
 
@@ -12,6 +13,7 @@ interface MenuItem {
 
 const Layout = () => {
   const { user, logout } = useAuth()
+  const { selectedCompanyId, setSelectedCompanyId, companies, selectedCompany } = useCompany()
   const location = useLocation()
   
   // Автоматически раскрываем раздел, если открыта его страница
@@ -93,6 +95,30 @@ const Layout = () => {
       <header className="top-bar">
         <div className="top-bar-left">
           <div className="app-title">Финансовый анализ предприятия</div>
+        </div>
+        <div className="top-bar-right" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          {companies.length > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <label style={{ fontSize: '13px', color: '#666' }}>Организация:</label>
+              <select
+                value={selectedCompanyId || ''}
+                onChange={(e) => setSelectedCompanyId(e.target.value ? parseInt(e.target.value, 10) : null)}
+                style={{
+                  padding: '4px 8px',
+                  border: '1px solid #808080',
+                  fontSize: '13px',
+                  backgroundColor: '#fff',
+                  minWidth: '200px'
+                }}
+              >
+                {companies.filter(c => c.is_active).map((company) => (
+                  <option key={company.id} value={company.id}>
+                    {company.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
       </header>
 

@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
 import { input1Service, referenceService } from '../services/api'
 import { exportService, importService } from '../services/exportService'
+import { useCompany } from '../contexts/CompanyContext'
 import { format } from 'date-fns'
 
 const Input1 = () => {
+  const { selectedCompanyId, companies } = useCompany()
   const [movements, setMovements] = useState<any[]>([])
   const [allMovements, setAllMovements] = useState<any[]>([])
   const [searchQuery, setSearchQuery] = useState('')
@@ -16,6 +18,7 @@ const Input1 = () => {
     date: format(new Date(), 'yyyy-MM-dd'),
     amount: '',
     movement_type: 'income',
+    company_id: selectedCompanyId || '',
     income_item_id: '',
     expense_item_id: '',
     payment_place_id: '',
@@ -27,6 +30,12 @@ const Input1 = () => {
     loadData()
     loadReferences()
   }, [])
+
+  useEffect(() => {
+    if (selectedCompanyId && !formData.company_id) {
+      setFormData(prev => ({ ...prev, company_id: selectedCompanyId }))
+    }
+  }, [selectedCompanyId])
 
   const loadData = async () => {
     try {
@@ -98,6 +107,7 @@ const Input1 = () => {
       const submitData = {
         ...formData,
         amount: parseFloat(formData.amount),
+        company_id: parseInt(formData.company_id),
         income_item_id: formData.movement_type === 'income' ? parseInt(formData.income_item_id) : null,
         expense_item_id: formData.movement_type === 'expense' ? parseInt(formData.expense_item_id) : null,
         payment_place_id: parseInt(formData.payment_place_id),
@@ -122,6 +132,7 @@ const Input1 = () => {
       date: format(new Date(), 'yyyy-MM-dd'),
       amount: '',
       movement_type: 'income',
+      company_id: selectedCompanyId || '',
       income_item_id: '',
       expense_item_id: '',
       payment_place_id: '',
@@ -136,6 +147,7 @@ const Input1 = () => {
       date: item.date,
       amount: item.amount.toString(),
       movement_type: item.movement_type,
+      company_id: item.company_id?.toString() || selectedCompanyId || '',
       income_item_id: item.income_item_id?.toString() || '',
       expense_item_id: item.expense_item_id?.toString() || '',
       payment_place_id: item.payment_place_id.toString(),
@@ -233,6 +245,19 @@ const Input1 = () => {
                   <option value="">Выберите...</option>
                   {paymentPlaces.map(place => (
                     <option key={place.id} value={place.id}>{place.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Организация *</label>
+                <select
+                  value={formData.company_id}
+                  onChange={(e) => setFormData({ ...formData, company_id: e.target.value })}
+                  required
+                >
+                  <option value="">Выберите...</option>
+                  {companies.filter(c => c.is_active).map(company => (
+                    <option key={company.id} value={company.id}>{company.name}</option>
                   ))}
                 </select>
               </div>
