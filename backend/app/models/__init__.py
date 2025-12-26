@@ -1,4 +1,5 @@
-from .user import User
+from .user import User, UserRole
+from .user_company import UserCompany
 from .reference import (
     IncomeGroup, IncomeItem, 
     ExpenseGroup, ExpenseItem, 
@@ -14,9 +15,15 @@ from .marketplace_integration import MarketplaceIntegration
 from .audit import AuditLog
 from .budget import Budget
 from .notification import Notification
+from .warehouse import Warehouse
+from .inventory import Inventory
+from .inventory_transaction import InventoryTransaction
+from .product_cost import ProductCost
 
 __all__ = [
     "User",
+    "UserRole",
+    "UserCompany",
     "IncomeGroup",
     "IncomeItem",
     "ExpenseGroup",
@@ -36,5 +43,9 @@ __all__ = [
     "AuditLog",
     "Budget",
     "Notification",
+    "Warehouse",
+    "Inventory",
+    "InventoryTransaction",
+    "ProductCost",
 ]
 

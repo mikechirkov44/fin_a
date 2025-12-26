@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from app.database import engine, Base
-from app.api import auth, reference, input1, input2, balance, cash_flow, profit_loss, cash_flow_analysis, profit_loss_analysis, realization, shipment, products, dashboard, export, import_api, marketplace_integration, audit, budget, notification
+from app.api import auth, users, reference, input1, input2, balance, cash_flow, profit_loss, cash_flow_analysis, profit_loss_analysis, realization, shipment, products, dashboard, export, import_api, marketplace_integration, audit, budget, notification, warehouses, inventory
 import traceback
 
 # Создаем таблицы
@@ -48,6 +48,7 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 # Подключение роутеров
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
+app.include_router(users.router, prefix="/api/users", tags=["users"])
 app.include_router(reference.router, prefix="/api/reference", tags=["reference"])
 app.include_router(input1.router, prefix="/api/input1", tags=["input1"])
 app.include_router(input2.router, prefix="/api/input2", tags=["input2"])
@@ -59,6 +60,8 @@ app.include_router(profit_loss_analysis.router, prefix="/api/profit-loss-analysi
 app.include_router(realization.router, prefix="/api/realization", tags=["realization"])
 app.include_router(shipment.router, prefix="/api/shipment", tags=["shipment"])
 app.include_router(products.router, prefix="/api/products", tags=["products"])
+app.include_router(warehouses.router, prefix="/api/warehouses", tags=["warehouses"])
+app.include_router(inventory.router, prefix="/api/inventory", tags=["inventory"])
 app.include_router(dashboard.router, prefix="/api/dashboard", tags=["dashboard"])
 app.include_router(export.router, prefix="/api/export", tags=["export"])
 app.include_router(import_api.router, prefix="/api/import", tags=["import"])

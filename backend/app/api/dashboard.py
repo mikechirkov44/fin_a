@@ -8,6 +8,8 @@ from app.models.input1 import MoneyMovement
 from app.models.realization import Realization
 from app.models.shipment import Shipment
 from app.auth.security import get_current_user
+from app.auth.permissions import get_user_companies
+from app.services.inventory_service import get_low_stock_alerts
 
 router = APIRouter()
 
@@ -185,6 +187,34 @@ def get_dashboard(
     current_gross_profit = float(total_revenue) - float(total_cost)
     current_net_profit = current_gross_profit - float(total_expenses)
     
+    # Получаем рекомендации (алерты на низкие остатки)
+    recommendations = []
+    if company_id:
+        alerts = get_low_stock_alerts(company_id, db)
+        for alert in alerts:
+            recommendations.append({
+                "type": "low_stock",
+                "title": f"Низкий остаток: {alert['product_name']}",
+                "message": f"Товар '{alert['product_name']}' на складе '{alert['warehouse_name']}' имеет остаток {alert['current_quantity']}, что ниже минимального уровня {alert['min_stock_level']}. Необходимо пополнить на {alert['deficit']} единиц.",
+                "product_id": alert['product_id'],
+                "warehouse_id": alert['warehouse_id'],
+                "priority": "high"
+            })
+    else:
+        # Получаем алерты для всех доступных организаций
+        user_companies = get_user_companies(current_user.id, db)
+        for comp_id in user_companies:
+            alerts = get_low_stock_alerts(comp_id, db)
+            for alert in alerts:
+                recommendations.append({
+                    "type": "low_stock",
+                    "title": f"Низкий остаток: {alert['product_name']}",
+                    "message": f"Товар '{alert['product_name']}' на складе '{alert['warehouse_name']}' имеет остаток {alert['current_quantity']}, что ниже минимального уровня {alert['min_stock_level']}. Необходимо пополнить на {alert['deficit']} единиц.",
+                    "product_id": alert['product_id'],
+                    "warehouse_id": alert['warehouse_id'],
+                    "priority": "high"
+                })
+    
     return {
         "start_date": start_date,
         "end_date": end_date,
@@ -199,6 +229,7 @@ def get_dashboard(
             "gross_margin": round((current_gross_profit / float(total_revenue) * 100) if total_revenue > 0 else 0, 2),
             "net_profit": current_net_profit,
             "net_margin": round((current_net_profit / float(total_revenue) * 100) if total_revenue > 0 else 0, 2)
-        }
+        },
+        "recommendations": recommendations
     }
 
