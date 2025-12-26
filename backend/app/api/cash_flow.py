@@ -27,6 +27,11 @@ def get_cash_flow_report(
     if not end_date:
         end_date = date.today()
     
+    # Логирование для отладки
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"Cash flow request: start_date={start_date}, end_date={end_date}, group_by={group_by}, user={current_user.username}")
+    
     # Получаем все движения денег в периоде
     query = db.query(MoneyMovement).filter(
         MoneyMovement.date >= start_date,
@@ -37,13 +42,32 @@ def get_cash_flow_report(
         query = query.filter(MoneyMovement.company_id == company_id)
     movements = query.order_by(MoneyMovement.date).all()
     
+    logger.info(f"Found {len(movements)} movements in period")
+    
+    if len(movements) == 0:
+        logger.warning(f"No movements found for period {start_date} to {end_date}")
+        return {
+            "start_date": start_date,
+            "end_date": end_date,
+            "group_by": group_by,
+            "periods": [],
+            "totals": {
+                "income": 0,
+                "expense": 0,
+                "net": 0
+            }
+        }
+    
     # Группировка по периодам
     periods = {}
     
     for movement in movements:
         if group_by == "month":
             period_key = movement.date.strftime("%Y-%m")
-            period_label = movement.date.strftime("%B %Y")
+            # Используем русские названия месяцев
+            months_ru = ["январь", "февраль", "март", "апрель", "май", "июнь",
+                        "июль", "август", "сентябрь", "октябрь", "ноябрь", "декабрь"]
+            period_label = f"{months_ru[movement.date.month - 1].capitalize()} {movement.date.year}"
         elif group_by == "quarter":
             quarter = (movement.date.month - 1) // 3 + 1
             period_key = f"{movement.date.year}-Q{quarter}"
@@ -67,19 +91,24 @@ def get_cash_flow_report(
             periods[period_key]["expense"] += amount
         periods[period_key]["net"] = periods[period_key]["income"] - periods[period_key]["expense"]
     
-    # Преобразуем в список и сортируем
-    result = sorted([v for v in periods.values()], key=lambda x: x["period"])
+    # Преобразуем в список и сортируем по period_key (для правильной сортировки)
+    # Создаем список с period_key для сортировки
+    result_list = []
+    for period_key in sorted(periods.keys()):
+        result_list.append(periods[period_key])
     
     # Общие итоги
-    total_income = sum(p["income"] for p in result)
-    total_expense = sum(p["expense"] for p in result)
+    total_income = sum(p["income"] for p in result_list)
+    total_expense = sum(p["expense"] for p in result_list)
     total_net = total_income - total_expense
+    
+    logger.info(f"Returning {len(result_list)} periods, totals: income={total_income}, expense={total_expense}, net={total_net}")
     
     return {
         "start_date": start_date,
         "end_date": end_date,
         "group_by": group_by,
-        "periods": result,
+        "periods": result_list,
         "totals": {
             "income": total_income,
             "expense": total_expense,

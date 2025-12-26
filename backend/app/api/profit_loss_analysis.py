@@ -7,6 +7,7 @@ from app.models.user import User
 from app.models.input1 import MoneyMovement
 from app.models.realization import Realization
 from app.models.shipment import Shipment
+from app.models.reference import Marketplace
 from app.auth.security import get_current_user
 
 router = APIRouter()
@@ -15,6 +16,7 @@ router = APIRouter()
 def get_profit_loss_analysis(
     start_date: date | None = Query(None),
     end_date: date | None = Query(None),
+    company_id: int | None = Query(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -22,225 +24,259 @@ def get_profit_loss_analysis(
     Детальный анализ прибылей и убытков (Анализ ОПУ)
     Разбивка по каналам, валовая прибыль по направлениям, производственные расходы
     """
-    if not start_date:
-        start_date = date.today().replace(day=1)
-    if not end_date:
-        end_date = date.today()
-    
-    # Определяем каналы продаж
-    channels = ['WB', 'Ozon', 'WB Gold', 'Яндекс', 'Частные заказы', 'Аренда']
-    
-    # Выручка по каналам из реализации
-    revenue_by_channel = {}
-    for channel in channels:
-        if channel == 'WB':
-            marketplace_filter = case(
-                (func.lower(Realization.marketplace).like('%wb%'), True),
-                (func.lower(Realization.marketplace).like('%wildberries%'), True),
-                else_=False
-            )
-        elif channel == 'WB Gold':
-            marketplace_filter = func.lower(Realization.marketplace).like('%gold%')
-        elif channel == 'Ozon':
-            marketplace_filter = func.lower(Realization.marketplace).like('%ozon%')
-        elif channel == 'Яндекс':
-            marketplace_filter = func.lower(Realization.marketplace).like('%яндекс%')
-        elif channel == 'Частные заказы':
-            marketplace_filter = func.lower(Realization.marketplace).like('%частн%')
-        elif channel == 'Аренда':
-            marketplace_filter = func.lower(Realization.marketplace).like('%аренд%')
-        else:
-            marketplace_filter = func.lower(Realization.marketplace) == channel.lower()
+    try:
+        if not start_date:
+            start_date = date.today().replace(day=1)
+        if not end_date:
+            end_date = date.today()
         
-        revenue = db.query(func.sum(Realization.revenue)).filter(
-            Realization.date >= start_date,
-            Realization.date <= end_date,
-            marketplace_filter
-        ).scalar() or 0
+        # Определяем каналы продаж
+        channels = ['WB', 'Ozon', 'WB Gold', 'Яндекс', 'Частные заказы', 'Аренда']
         
-        revenue_by_channel[channel] = float(revenue)
-    
-    # Производственные расходы по каналам
-    # Затраты на маркетплейсах
-    marketplace_costs_by_channel = {}
-    for channel in channels:
-        if channel == 'WB':
-            marketplace_filter = case(
-                (func.lower(Shipment.marketplace).like('%wb%'), True),
-                (func.lower(Shipment.marketplace).like('%wildberries%'), True),
-                else_=False
-            )
-        elif channel == 'WB Gold':
-            marketplace_filter = func.lower(Shipment.marketplace).like('%gold%')
-        elif channel == 'Ozon':
-            marketplace_filter = func.lower(Shipment.marketplace).like('%ozon%')
-        elif channel == 'Яндекс':
-            marketplace_filter = func.lower(Shipment.marketplace).like('%яндекс%')
-        elif channel == 'Частные заказы':
-            marketplace_filter = func.lower(Shipment.marketplace).like('%частн%')
-        elif channel == 'Аренда':
-            marketplace_filter = func.lower(Shipment.marketplace).like('%аренд%')
-        else:
-            marketplace_filter = func.lower(Shipment.marketplace) == channel.lower()
+        # Выручка по каналам из реализации (используем marketplace_id через join)
+        revenue_by_channel = {}
+        for channel in channels:
+            # Определяем фильтр по названию маркетплейса через join
+            marketplace_name_filter = None
+            if channel == 'WB' or channel == 'Wildberries':
+                marketplace_name_filter = func.lower(Marketplace.name).like('%wildberries%')
+            elif channel == 'WB Gold':
+                marketplace_name_filter = func.lower(Marketplace.name).like('%gold%')
+            elif channel == 'Ozon':
+                marketplace_name_filter = func.lower(Marketplace.name).like('%ozon%')
+            elif channel == 'Яндекс':
+                marketplace_name_filter = func.lower(Marketplace.name).like('%яндекс%')
+            elif channel == 'Частные заказы':
+                marketplace_name_filter = func.lower(Marketplace.name).like('%частн%')
+            elif channel == 'Аренда':
+                marketplace_name_filter = func.lower(Marketplace.name).like('%аренд%')
+            else:
+                marketplace_name_filter = func.lower(Marketplace.name) == channel.lower()
+            
+            try:
+                revenue_query = db.query(func.sum(Realization.revenue)).join(
+                    Marketplace, Realization.marketplace_id == Marketplace.id
+                ).filter(
+                    Realization.date >= start_date,
+                    Realization.date <= end_date,
+                    marketplace_name_filter
+                )
+                if company_id:
+                    revenue_query = revenue_query.filter(Realization.company_id == company_id)
+                revenue = revenue_query.scalar() or 0
+            except Exception as e:
+                print(f"Error querying revenue for channel {channel}: {e}")
+                revenue = 0
+            
+            revenue_by_channel[channel] = float(revenue)
         
-        cost = db.query(func.sum(Shipment.cost_price * Shipment.quantity)).filter(
-            Shipment.date >= start_date,
-            Shipment.date <= end_date,
-            marketplace_filter
-        ).scalar() or 0
+        # Производственные расходы по каналам
+        # Затраты на маркетплейсах
+        marketplace_costs_by_channel = {}
+        for channel in channels:
+            # Определяем фильтр по названию маркетплейса через join
+            marketplace_name_filter = None
+            if channel == 'WB' or channel == 'Wildberries':
+                marketplace_name_filter = func.lower(Marketplace.name).like('%wildberries%')
+            elif channel == 'WB Gold':
+                marketplace_name_filter = func.lower(Marketplace.name).like('%gold%')
+            elif channel == 'Ozon':
+                marketplace_name_filter = func.lower(Marketplace.name).like('%ozon%')
+            elif channel == 'Яндекс':
+                marketplace_name_filter = func.lower(Marketplace.name).like('%яндекс%')
+            elif channel == 'Частные заказы':
+                marketplace_name_filter = func.lower(Marketplace.name).like('%частн%')
+            elif channel == 'Аренда':
+                marketplace_name_filter = func.lower(Marketplace.name).like('%аренд%')
+            else:
+                marketplace_name_filter = func.lower(Marketplace.name) == channel.lower()
+            
+            try:
+                cost_query = db.query(func.sum(Shipment.cost_price * Shipment.quantity)).join(
+                    Marketplace, Shipment.marketplace_id == Marketplace.id
+                ).filter(
+                    Shipment.date >= start_date,
+                    Shipment.date <= end_date,
+                    marketplace_name_filter
+                )
+                if company_id:
+                    cost_query = cost_query.filter(Shipment.company_id == company_id)
+                cost = cost_query.scalar() or 0
+            except Exception as e:
+                print(f"Error querying costs for channel {channel}: {e}")
+                cost = 0
+            
+            marketplace_costs_by_channel[channel] = float(cost)
         
-        marketplace_costs_by_channel[channel] = float(cost)
-    
-    # Прямые производственные расходы по каналам
-    # ЗП производство, ЗП аутсорс, Сырьевые затраты
-    from app.models.reference import ExpenseItem
-    
-    # Получаем статьи расходов для производства
-    production_items = db.query(ExpenseItem).filter(
-        ExpenseItem.is_active == True
-    ).all()
-    
-    # Для упрощения считаем все расходы как производственные
-    # В реальности нужно будет добавить категории или теги к статьям расходов
-    direct_production_costs_total = db.query(func.sum(MoneyMovement.amount)).filter(
-        MoneyMovement.movement_type == "expense",
-        MoneyMovement.date >= start_date,
-        MoneyMovement.date <= end_date,
-        MoneyMovement.is_business == True
-    ).scalar() or 0
-    
-    # Распределяем производственные расходы пропорционально выручке
-    total_revenue = sum(revenue_by_channel.values())
-    direct_production_by_channel = {}
-    for channel in channels:
-        revenue = revenue_by_channel.get(channel, 0)
-        if total_revenue > 0:
-            direct_production_by_channel[channel] = float(direct_production_costs_total) * (revenue / total_revenue)
-        else:
-            direct_production_by_channel[channel] = 0
-    
-    # Валовая прибыль по направлениям (ВП1) = Выручка - Затраты на MP - Прямые производственные
-    gross_profit_by_channel = {}
-    gross_margin_by_channel = {}
-    
-    for channel in channels:
-        revenue = revenue_by_channel.get(channel, 0)
-        marketplace_cost = marketplace_costs_by_channel.get(channel, 0)
-        direct_production = direct_production_by_channel.get(channel, 0)
+        # Прямые производственные расходы по каналам
+        # ЗП производство, ЗП аутсорс, Сырьевые затраты
+        from app.models.reference import ExpenseItem
         
-        gross_profit = revenue - marketplace_cost - direct_production
-        gross_profit_by_channel[channel] = gross_profit
+        # Получаем статьи расходов для производства
+        production_items = db.query(ExpenseItem).filter(
+            ExpenseItem.is_active == True
+        ).all()
         
-        margin = (gross_profit / revenue * 100) if revenue > 0 else 0
-        gross_margin_by_channel[channel] = round(margin, 2)
-    
-    # Общая валовая прибыль
-    total_gross_profit = sum(gross_profit_by_channel.values())
-    
-    # Косвенные расходы
-    # Административные расходы
-    admin_expense_items = db.query(ExpenseItem).filter(
-        ExpenseItem.is_active == True,
-        func.lower(ExpenseItem.name).in_([
-            'аренда', 'зарплата управляющий', 'бухгалтер', 'офис', 'коммунальные',
-            'административные', 'управленческие', 'бонусы'
-        ])
-    ).all()
-    
-    admin_expense_ids = [item.id for item in admin_expense_items]
-    
-    administrative_expenses = db.query(func.sum(MoneyMovement.amount)).filter(
-        MoneyMovement.movement_type == "expense",
-        MoneyMovement.date >= start_date,
-        MoneyMovement.date <= end_date,
-        MoneyMovement.is_business == True,
-        MoneyMovement.expense_item_id.in_(admin_expense_ids) if admin_expense_ids else True
-    ).scalar() or 0
-    
-    # Коммерческие расходы
-    commercial_expense_items = db.query(ExpenseItem).filter(
-        ExpenseItem.is_active == True,
-        func.lower(ExpenseItem.name).in_([
-            'маркетинг', 'реклама', 'доставка', 'продажи', 'коммерческие', 'упаковка'
-        ])
-    ).all()
-    
-    commercial_expense_ids = [item.id for item in commercial_expense_items]
-    
-    commercial_expenses = db.query(func.sum(MoneyMovement.amount)).filter(
-        MoneyMovement.movement_type == "expense",
-        MoneyMovement.date >= start_date,
-        MoneyMovement.date <= end_date,
-        MoneyMovement.is_business == True,
-        MoneyMovement.expense_item_id.in_(commercial_expense_ids) if commercial_expense_ids else True
-    ).scalar() or 0
-    
-    # Если нет специальных статей, делим расходы пополам
-    if administrative_expenses == 0 and commercial_expenses == 0:
-        all_expenses = db.query(func.sum(MoneyMovement.amount)).filter(
+        # Для упрощения считаем все расходы как производственные
+        # В реальности нужно будет добавить категории или теги к статьям расходов
+        direct_production_costs_query = db.query(func.sum(MoneyMovement.amount)).filter(
             MoneyMovement.movement_type == "expense",
             MoneyMovement.date >= start_date,
             MoneyMovement.date <= end_date,
             MoneyMovement.is_business == True
-        ).scalar() or 0
-        # Вычитаем уже учтенные производственные расходы
-        remaining = float(all_expenses) - float(direct_production_costs_total)
-        if remaining > 0:
-            administrative_expenses = remaining * 0.5
-            commercial_expenses = remaining * 0.5
-    
-    total_indirect_expenses = float(administrative_expenses) + float(commercial_expenses)
-    
-    # Операционная прибыль (EBITDA)
-    operating_profit = total_gross_profit - total_indirect_expenses
-    
-    # Налоги и прочие расходы ниже EBITDA
-    taxes = 0  # Можно добавить позже
-    other_expenses_below_ebitda = 0  # Амортизация и т.д.
-    
-    # Чистая прибыль
-    net_profit = operating_profit - float(taxes) - float(other_expenses_below_ebitda)
-    
-    # Рентабельность
-    total_revenue_sum = sum(revenue_by_channel.values())
-    total_gross_margin = (total_gross_profit / total_revenue_sum * 100) if total_revenue_sum > 0 else 0
-    operating_margin = (operating_profit / total_revenue_sum * 100) if total_revenue_sum > 0 else 0
-    net_margin = (net_profit / total_revenue_sum * 100) if total_revenue_sum > 0 else 0
-    
-    # Формируем результат по каналам
-    channels_data = []
-    for channel in channels:
-        revenue = revenue_by_channel.get(channel, 0)
-        marketplace_cost = marketplace_costs_by_channel.get(channel, 0)
-        direct_production = direct_production_by_channel.get(channel, 0)
-        gross_profit = gross_profit_by_channel.get(channel, 0)
-        gross_margin = gross_margin_by_channel.get(channel, 0)
+        )
+        if company_id:
+            direct_production_costs_query = direct_production_costs_query.filter(MoneyMovement.company_id == company_id)
+        direct_production_costs_total = direct_production_costs_query.scalar() or 0
         
-        channels_data.append({
-            "channel": channel,
-            "revenue": revenue,
-            "marketplace_costs": marketplace_cost,
-            "direct_production_costs": direct_production,
-            "gross_profit": gross_profit,
-            "gross_margin": gross_margin
-        })
-    
-    return {
-        "start_date": start_date,
-        "end_date": end_date,
-        "total_revenue": total_revenue_sum,
-        "total_marketplace_costs": sum(marketplace_costs_by_channel.values()),
-        "total_direct_production_costs": float(direct_production_costs_total),
-        "total_gross_profit": total_gross_profit,
-        "gross_margin": round(total_gross_margin, 2),
-        "administrative_expenses": float(administrative_expenses),
-        "commercial_expenses": float(commercial_expenses),
-        "total_indirect_expenses": total_indirect_expenses,
-        "operating_profit": operating_profit,
-        "operating_margin": round(operating_margin, 2),
-        "taxes": float(taxes),
-        "other_expenses_below_ebitda": float(other_expenses_below_ebitda),
-        "net_profit": net_profit,
-        "net_margin": round(net_margin, 2),
-        "channels": channels_data
-    }
+        # Распределяем производственные расходы пропорционально выручке
+        total_revenue = sum(revenue_by_channel.values())
+        direct_production_by_channel = {}
+        for channel in channels:
+            revenue = revenue_by_channel.get(channel, 0)
+            if total_revenue > 0:
+                direct_production_by_channel[channel] = float(direct_production_costs_total) * (revenue / total_revenue)
+            else:
+                direct_production_by_channel[channel] = 0
+        
+        # Валовая прибыль по направлениям (ВП1) = Выручка - Затраты на MP - Прямые производственные
+        gross_profit_by_channel = {}
+        gross_margin_by_channel = {}
+        
+        for channel in channels:
+            revenue = revenue_by_channel.get(channel, 0)
+            marketplace_cost = marketplace_costs_by_channel.get(channel, 0)
+            direct_production = direct_production_by_channel.get(channel, 0)
+            
+            gross_profit = revenue - marketplace_cost - direct_production
+            gross_profit_by_channel[channel] = gross_profit
+            
+            margin = (gross_profit / revenue * 100) if revenue > 0 else 0
+            gross_margin_by_channel[channel] = round(margin, 2)
+        
+        # Общая валовая прибыль
+        total_gross_profit = sum(gross_profit_by_channel.values())
+        
+        # Косвенные расходы
+        # Административные расходы
+        admin_expense_items = db.query(ExpenseItem).filter(
+            ExpenseItem.is_active == True,
+            func.lower(ExpenseItem.name).in_([
+                'аренда', 'зарплата управляющий', 'бухгалтер', 'офис', 'коммунальные',
+                'административные', 'управленческие', 'бонусы'
+            ])
+        ).all()
+        
+        admin_expense_ids = [item.id for item in admin_expense_items]
+        
+        administrative_expenses_query = db.query(func.sum(MoneyMovement.amount)).filter(
+            MoneyMovement.movement_type == "expense",
+            MoneyMovement.date >= start_date,
+            MoneyMovement.date <= end_date,
+            MoneyMovement.is_business == True,
+            MoneyMovement.expense_item_id.in_(admin_expense_ids) if admin_expense_ids else True
+        )
+        if company_id:
+            administrative_expenses_query = administrative_expenses_query.filter(MoneyMovement.company_id == company_id)
+        administrative_expenses = administrative_expenses_query.scalar() or 0
+        
+        # Коммерческие расходы
+        commercial_expense_items = db.query(ExpenseItem).filter(
+            ExpenseItem.is_active == True,
+            func.lower(ExpenseItem.name).in_([
+                'маркетинг', 'реклама', 'доставка', 'продажи', 'коммерческие', 'упаковка'
+            ])
+        ).all()
+        
+        commercial_expense_ids = [item.id for item in commercial_expense_items]
+        
+        commercial_expenses_query = db.query(func.sum(MoneyMovement.amount)).filter(
+            MoneyMovement.movement_type == "expense",
+            MoneyMovement.date >= start_date,
+            MoneyMovement.date <= end_date,
+            MoneyMovement.is_business == True,
+            MoneyMovement.expense_item_id.in_(commercial_expense_ids) if commercial_expense_ids else True
+        )
+        if company_id:
+            commercial_expenses_query = commercial_expenses_query.filter(MoneyMovement.company_id == company_id)
+        commercial_expenses = commercial_expenses_query.scalar() or 0
+        
+        # Если нет специальных статей, делим расходы пополам
+        if administrative_expenses == 0 and commercial_expenses == 0:
+            all_expenses_query = db.query(func.sum(MoneyMovement.amount)).filter(
+                MoneyMovement.movement_type == "expense",
+                MoneyMovement.date >= start_date,
+                MoneyMovement.date <= end_date,
+                MoneyMovement.is_business == True
+            )
+            if company_id:
+                all_expenses_query = all_expenses_query.filter(MoneyMovement.company_id == company_id)
+            all_expenses = all_expenses_query.scalar() or 0
+            # Вычитаем уже учтенные производственные расходы
+            remaining = float(all_expenses) - float(direct_production_costs_total)
+            if remaining > 0:
+                administrative_expenses = remaining * 0.5
+                commercial_expenses = remaining * 0.5
+        
+        total_indirect_expenses = float(administrative_expenses) + float(commercial_expenses)
+        
+        # Операционная прибыль (EBITDA)
+        operating_profit = total_gross_profit - total_indirect_expenses
+        
+        # Налоги и прочие расходы ниже EBITDA
+        taxes = 0  # Можно добавить позже
+        other_expenses_below_ebitda = 0  # Амортизация и т.д.
+        
+        # Чистая прибыль
+        net_profit = operating_profit - float(taxes) - float(other_expenses_below_ebitda)
+        
+        # Рентабельность
+        total_revenue_sum = sum(revenue_by_channel.values())
+        total_gross_margin = (total_gross_profit / total_revenue_sum * 100) if total_revenue_sum > 0 else 0
+        operating_margin = (operating_profit / total_revenue_sum * 100) if total_revenue_sum > 0 else 0
+        net_margin = (net_profit / total_revenue_sum * 100) if total_revenue_sum > 0 else 0
+        
+        # Формируем результат по каналам
+        channels_data = []
+        for channel in channels:
+            revenue = revenue_by_channel.get(channel, 0)
+            marketplace_cost = marketplace_costs_by_channel.get(channel, 0)
+            direct_production = direct_production_by_channel.get(channel, 0)
+            gross_profit = gross_profit_by_channel.get(channel, 0)
+            gross_margin = gross_margin_by_channel.get(channel, 0)
+            
+            channels_data.append({
+                "channel": channel,
+                "revenue": revenue,
+                "marketplace_costs": marketplace_cost,
+                "direct_production_costs": direct_production,
+                "gross_profit": gross_profit,
+                "gross_margin": gross_margin
+            })
+        
+        return {
+            "start_date": start_date,
+            "end_date": end_date,
+            "total_revenue": total_revenue_sum,
+            "total_marketplace_costs": sum(marketplace_costs_by_channel.values()),
+            "total_direct_production_costs": float(direct_production_costs_total),
+            "total_gross_profit": total_gross_profit,
+            "gross_margin": round(total_gross_margin, 2),
+            "administrative_expenses": float(administrative_expenses),
+            "commercial_expenses": float(commercial_expenses),
+            "total_indirect_expenses": total_indirect_expenses,
+            "operating_profit": operating_profit,
+            "operating_margin": round(operating_margin, 2),
+            "taxes": float(taxes),
+            "other_expenses_below_ebitda": float(other_expenses_below_ebitda),
+            "net_profit": net_profit,
+            "net_margin": round(net_margin, 2),
+            "channels": channels_data
+        }
+    except Exception as e:
+        import traceback
+        error_detail = traceback.format_exc()
+        print(f"Error in profit_loss_analysis: {str(e)}")
+        print(error_detail)
+        from fastapi import HTTPException
+        raise HTTPException(status_code=500, detail=f"Ошибка при расчете анализа ОПУ: {str(e)}")
