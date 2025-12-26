@@ -1,6 +1,6 @@
 import axios, { AxiosInstance } from 'axios'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8001'
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 class ApiService {
   private client: AxiosInstance
@@ -218,6 +218,32 @@ export const notificationService = {
   markAsRead: (id: number) => apiService.put(`/api/notifications/${id}/read`),
   markAllAsRead: () => apiService.put('/api/notifications/read-all'),
   deleteNotification: (id: number) => apiService.delete(`/api/notifications/${id}`),
+}
+
+export const usersService = {
+  getUsers: (params?: any) => apiService.get('/api/users/', { params }),
+  createUser: (data: any) => apiService.post('/api/users/', data),
+  updateUser: (id: number, data: any) => apiService.put(`/api/users/${id}`, data),
+  getUserCompanies: (userId: number) => apiService.get(`/api/users/${userId}/companies`),
+  addUserToCompany: (userId: number, data: any) => apiService.post(`/api/users/${userId}/companies`, data),
+  removeUserFromCompany: (userId: number, companyId: number) => 
+    apiService.delete(`/api/users/${userId}/companies/${companyId}`),
+}
+
+export const warehousesService = {
+  getWarehouses: (params?: any) => apiService.get('/api/warehouses/', { params }),
+  createWarehouse: (data: any) => apiService.post('/api/warehouses/', data),
+  updateWarehouse: (id: number, data: any) => apiService.put(`/api/warehouses/${id}`, data),
+  deleteWarehouse: (id: number) => apiService.delete(`/api/warehouses/${id}`),
+}
+
+export const inventoryService = {
+  getInventory: (params?: any) => apiService.get('/api/inventory/', { params }),
+  createInventory: (data: any) => apiService.post('/api/inventory/', data),
+  getTransactions: (params?: any) => apiService.get('/api/inventory/transactions', { params }),
+  createTransaction: (data: any) => apiService.post('/api/inventory/transactions', data),
+  getTurnover: (params?: any) => apiService.get('/api/inventory/turnover', { params }),
+  getAlerts: (params?: any) => apiService.get('/api/inventory/alerts', { params }),
 }
 
 export default apiService

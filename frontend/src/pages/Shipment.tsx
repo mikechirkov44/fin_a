@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
 import { shipmentService, productsService, referenceService } from '../services/api'
 import { exportService, importService } from '../services/exportService'
-import { useCompany } from '../contexts/CompanyContext'
+import { useAuth } from '../contexts/AuthContext'
 import { format } from 'date-fns'
 
 const Shipment = () => {
-  const { selectedCompanyId, companies } = useCompany()
+  const { selectedCompanyId, companies } = useAuth()
   const [shipments, setShipments] = useState<any[]>([])
   const [allShipments, setAllShipments] = useState<any[]>([])
   const [searchQuery, setSearchQuery] = useState('')

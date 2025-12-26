@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
 import { input1Service, referenceService } from '../services/api'
 import { exportService, importService } from '../services/exportService'
-import { useCompany } from '../contexts/CompanyContext'
+import { useAuth } from '../contexts/AuthContext'
 import { format } from 'date-fns'
 
 const Input1 = () => {
-  const { selectedCompanyId, companies } = useCompany()
+  const { selectedCompanyId, companies } = useAuth()
   const [movements, setMovements] = useState<any[]>([])
   const [allMovements, setAllMovements] = useState<any[]>([])
   const [searchQuery, setSearchQuery] = useState('')

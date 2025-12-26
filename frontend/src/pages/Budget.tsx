@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react'
 import { budgetService, referenceService } from '../services/api'
-import { useCompany } from '../contexts/CompanyContext'
+import { useAuth } from '../contexts/AuthContext'
 import { format } from 'date-fns'
 import { ru } from 'date-fns/locale'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts'
 
 const Budget = () => {
-  const { selectedCompanyId, companies } = useCompany()
+  const { selectedCompanyId, companies } = useAuth()
   const [budgets, setBudgets] = useState<any[]>([])
   const [comparison, setComparison] = useState<any[]>([])
   const [incomeItems, setIncomeItems] = useState<any[]>([])

@@ -1,15 +1,17 @@
 import { useEffect, useState } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar } from 'recharts'
 import { dashboardService } from '../services/api'
+import { useAuth } from '../contexts/AuthContext'
 import { format } from 'date-fns'
 
 const Dashboard = () => {
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const { selectedCompanyId } = useAuth()
 
   useEffect(() => {
     loadData()
-  }, [])
+  }, [selectedCompanyId])
 
   const loadData = async () => {
     try {
@@ -19,6 +21,7 @@ const Dashboard = () => {
       const result = await dashboardService.getDashboard({
         start_date: format(startDate, 'yyyy-MM-dd'),
         end_date: format(endDate, 'yyyy-MM-dd'),
+        company_id: selectedCompanyId || undefined,
       })
       setData(result)
     } catch (error) {
@@ -126,6 +129,29 @@ const Dashboard = () => {
           </LineChart>
         </ResponsiveContainer>
       </div>
+
+      {data.recommendations && data.recommendations.length > 0 && (
+        <div className="card">
+          <div className="card-header">Рекомендации</div>
+          <div style={{ padding: '16px' }}>
+            {data.recommendations.map((rec: any, index: number) => (
+              <div
+                key={index}
+                style={{
+                  padding: '12px',
+                  marginBottom: '8px',
+                  backgroundColor: rec.priority === 'high' ? '#fff3cd' : '#d1ecf1',
+                  borderLeft: `4px solid ${rec.priority === 'high' ? '#ffc107' : '#17a2b8'}`,
+                  borderRadius: '4px',
+                }}
+              >
+                <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>{rec.title}</div>
+                <div style={{ fontSize: '14px', color: '#666' }}>{rec.message}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

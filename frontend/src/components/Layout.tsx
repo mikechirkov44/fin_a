@@ -1,9 +1,10 @@
 import { Outlet, Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { useCompany } from '../contexts/CompanyContext'
 import { useTheme } from '../contexts/ThemeContext'
 import { useState, useEffect } from 'react'
 import Notifications from './Notifications'
+import CompanySelector from './CompanySelector'
+import { referenceService } from '../services/api'
 import './Layout.css'
 
 interface MenuItem {
@@ -14,10 +15,10 @@ interface MenuItem {
 }
 
 const Layout = () => {
-  const { user, logout } = useAuth()
-  const { selectedCompanyId, setSelectedCompanyId, companies, selectedCompany } = useCompany()
+  const { user, logout, selectedCompanyId, setSelectedCompany, isAdmin } = useAuth()
   const { theme, toggleTheme } = useTheme()
   const location = useLocation()
+  const [companies, setCompanies] = useState<any[]>([])
   
   // Автоматически раскрываем раздел, если открыта его страница
   const getInitialExpanded = () => {
@@ -29,6 +30,28 @@ const Layout = () => {
   }
   
   const [expandedItems, setExpandedItems] = useState<string[]>(getInitialExpanded())
+  
+  // Загружаем организации
+  useEffect(() => {
+    loadCompanies()
+  }, [user])
+  
+  const loadCompanies = async () => {
+    try {
+      if (user?.role === 'ADMIN') {
+        const allCompanies = await referenceService.getCompanies()
+        setCompanies(allCompanies.filter((c: any) => c.is_active))
+      } else if (user?.companies && user.companies.length > 0) {
+        const allCompanies = await referenceService.getCompanies()
+        const userCompanyIds = user.companies.map(uc => uc.company_id)
+        setCompanies(allCompanies.filter((c: any) => 
+          c.is_active && userCompanyIds.includes(c.id)
+        ))
+      }
+    } catch (error) {
+      console.error('Error loading companies:', error)
+    }
+  }
   
   // Обновляем раскрытые разделы при изменении пути
   useEffect(() => {
@@ -45,6 +68,15 @@ const Layout = () => {
     { path: '/input2', label: 'Активы/Пассивы', icon: '📊' },
     { path: '/products', label: 'Товарные запасы', icon: '📦' },
     { 
+      path: '/warehouses', 
+      label: 'Склады и остатки', 
+      icon: '🏭',
+      children: [
+        { path: '/warehouses', label: 'Склады' },
+        { path: '/inventory', label: 'Остатки' },
+      ]
+    },
+    { 
       path: '/cash-flow', 
       label: 'Финансы', 
       icon: '💰',
@@ -60,6 +92,7 @@ const Layout = () => {
     { path: '/marketplace-integration', label: 'Интеграции', icon: '🔌' },
     { path: '/budget', label: 'Бюджетирование', icon: '📈' },
     { path: '/audit-log', label: 'История изменений', icon: '📋' },
+    ...(isAdmin ? [{ path: '/users', label: 'Пользователи', icon: '👥' }] : []),
   ]
 
   const toggleExpanded = (path: string) => {
@@ -89,10 +122,13 @@ const Layout = () => {
     '/profit-loss-analysis': 'Анализ ОПУ',
     '/shipment': 'ОТГРУЗКА',
     '/products': 'Товарные запасы',
+    '/warehouses': 'Управление складами',
+    '/inventory': 'Управление остатками',
     '/reference': 'Предприятие',
     '/marketplace-integration': 'Интеграции с маркетплейсами',
     '/budget': 'Бюджетирование',
     '/audit-log': 'История изменений',
+    '/users': 'Управление пользователями',
   }
 
   const getPageTitle = () => {
@@ -107,6 +143,37 @@ const Layout = () => {
           <div className="app-title">Финансовый анализ предприятия</div>
         </div>
         <div className="top-bar-right" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          {user && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontWeight: 'bold', fontSize: '14px' }}>
+                {user.username} ({user.role === 'ADMIN' ? 'Администратор' : user.role === 'ACCOUNTANT' ? 'Бухгалтер' : user.role === 'MANAGER' ? 'Менеджер' : 'Просмотр'})
+              </span>
+              <button 
+                onClick={logout} 
+                style={{
+                  padding: '6px 12px',
+                  border: '1px solid var(--input-border)',
+                  borderRadius: '4px',
+                  backgroundColor: 'var(--input-bg)',
+                  color: 'var(--text-primary)',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  fontWeight: 'bold',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = 'var(--danger-color, #dc3545)'
+                  e.currentTarget.style.color = 'white'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'var(--input-bg)'
+                  e.currentTarget.style.color = 'var(--text-primary)'
+                }}
+              >
+                Выход
+              </button>
+            </div>
+          )}
           <Notifications />
           <button 
             className="theme-toggle" 
@@ -120,7 +187,7 @@ const Layout = () => {
               <label style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: '500' }}>Организация:</label>
               <select
                 value={selectedCompanyId || ''}
-                onChange={(e) => setSelectedCompanyId(e.target.value ? parseInt(e.target.value, 10) : null)}
+                onChange={(e) => setSelectedCompany(e.target.value ? parseInt(e.target.value, 10) : null)}
                 style={{
                   padding: '8px 32px 8px 12px',
                   border: '1.5px solid var(--input-border)',
@@ -133,6 +200,9 @@ const Layout = () => {
                   transition: 'all 0.2s ease'
                 }}
               >
+                {user?.role === 'ADMIN' && (
+                  <option value="">Все организации</option>
+                )}
                 {companies.filter(c => c.is_active).map((company) => (
                   <option key={company.id} value={company.id}>
                     {company.name}
@@ -217,14 +287,6 @@ const Layout = () => {
             <Outlet />
           </div>
         </main>
-      </div>
-
-      {/* Информация о пользователе */}
-      <div className="user-info-overlay">
-        <span>{user?.username}</span>
-        <button onClick={logout} className="logout-btn">
-          Выход
-        </button>
       </div>
     </div>
   )

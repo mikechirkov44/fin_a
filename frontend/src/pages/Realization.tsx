@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
 import { realizationService, referenceService } from '../services/api'
 import { exportService, importService } from '../services/exportService'
-import { useCompany } from '../contexts/CompanyContext'
+import { useAuth } from '../contexts/AuthContext'
 import { format } from 'date-fns'
 
 const Realization = () => {
-  const { selectedCompanyId, companies } = useCompany()
+  const { selectedCompanyId, companies } = useAuth()
   const [realizations, setRealizations] = useState<any[]>([])
   const [allRealizations, setAllRealizations] = useState<any[]>([])
   const [marketplaces, setMarketplaces] = useState<any[]>([])

@@ -2,10 +2,10 @@ import { useState, useEffect } from 'react'
 import { profitLossAnalysisService } from '../services/api'
 import { format, subMonths } from 'date-fns'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
-import { useCompany } from '../contexts/CompanyContext'
+import { useAuth } from '../contexts/AuthContext'
 
 const ProfitLossAnalysis = () => {
-  const { companies } = useCompany()
+  const { companies } = useAuth()
   const [report, setReport] = useState<any>(null)
   const [startDate, setStartDate] = useState(format(subMonths(new Date(), 1), 'yyyy-MM-dd'))
   const [endDate, setEndDate] = useState(format(new Date(), 'yyyy-MM-dd'))

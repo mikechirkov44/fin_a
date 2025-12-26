@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
 import { marketplaceIntegrationService } from '../services/api'
-import { useCompany } from '../contexts/CompanyContext'
+import { useAuth } from '../contexts/AuthContext'
 import { format, subDays } from 'date-fns'
 
 const MarketplaceIntegration = () => {
-  const { selectedCompanyId, companies } = useCompany()
+  const { selectedCompanyId, companies } = useAuth()
   const [integrations, setIntegrations] = useState<any[]>([])
   const [showForm, setShowForm] = useState(false)
   const [editingIntegration, setEditingIntegration] = useState<any>(null)

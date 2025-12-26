@@ -1,6 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
-import { CompanyProvider } from './contexts/CompanyContext'
 import { ThemeProvider } from './contexts/ThemeContext'
 import PrivateRoute from './components/PrivateRoute'
 import Login from './pages/Login'
@@ -20,12 +19,14 @@ import Products from './pages/Products'
 import MarketplaceIntegration from './pages/MarketplaceIntegration'
 import AuditLog from './pages/AuditLog'
 import Budget from './pages/Budget'
+import Users from './pages/Users'
+import Warehouses from './pages/Warehouses'
+import Inventory from './pages/Inventory'
 
 function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <CompanyProvider>
           <Router future={{ v7_relativeSplatPath: true, v7_startTransition: true }}>
         <Routes>
           <Route path="/login" element={<Login />} />
@@ -53,10 +54,12 @@ function App() {
             <Route path="marketplace-integration" element={<MarketplaceIntegration />} />
             <Route path="audit-log" element={<AuditLog />} />
             <Route path="budget" element={<Budget />} />
+            <Route path="users" element={<Users />} />
+            <Route path="warehouses" element={<Warehouses />} />
+            <Route path="inventory" element={<Inventory />} />
           </Route>
         </Routes>
       </Router>
-        </CompanyProvider>
       </AuthProvider>
     </ThemeProvider>
   )

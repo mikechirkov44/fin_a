@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
 import { input2Service } from '../services/api'
 import { exportService, importService } from '../services/exportService'
-import { useCompany } from '../contexts/CompanyContext'
+import { useAuth } from '../contexts/AuthContext'
 import { format } from 'date-fns'
 
 const Input2 = () => {
-  const { selectedCompanyId, companies } = useCompany()
+  const { selectedCompanyId, companies } = useAuth()
   const [activeTab, setActiveTab] = useState<'assets' | 'liabilities'>('assets')
   const [assets, setAssets] = useState<any[]>([])
   const [liabilities, setLiabilities] = useState<any[]>([])
