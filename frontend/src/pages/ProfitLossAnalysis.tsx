@@ -2,21 +2,28 @@ import { useState, useEffect } from 'react'
 import { profitLossAnalysisService } from '../services/api'
 import { format, subMonths } from 'date-fns'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
+import { useCompany } from '../contexts/CompanyContext'
 
 const ProfitLossAnalysis = () => {
+  const { companies } = useCompany()
   const [report, setReport] = useState<any>(null)
   const [startDate, setStartDate] = useState(format(subMonths(new Date(), 1), 'yyyy-MM-dd'))
   const [endDate, setEndDate] = useState(format(new Date(), 'yyyy-MM-dd'))
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string>('')
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     loadData()
-  }, [startDate, endDate])
+  }, [startDate, endDate, selectedCompanyId])
 
   const loadData = async () => {
     setLoading(true)
     try {
-      const data = await profitLossAnalysisService.getAnalysis({ start_date: startDate, end_date: endDate })
+      const params: any = { start_date: startDate, end_date: endDate }
+      if (selectedCompanyId) {
+        params.company_id = parseInt(selectedCompanyId)
+      }
+      const data = await profitLossAnalysisService.getAnalysis(params)
       setReport(data)
     } catch (error) {
       console.error('Error loading profit loss analysis:', error)
@@ -34,6 +41,18 @@ const ProfitLossAnalysis = () => {
     <div>
       <div className="card" style={{ marginBottom: '16px' }}>
         <div className="form-row">
+          <div className="form-group">
+            <label>Организация</label>
+            <select
+              value={selectedCompanyId}
+              onChange={(e) => setSelectedCompanyId(e.target.value)}
+            >
+              <option value="">Все организации</option>
+              {companies.filter(c => c.is_active).map(company => (
+                <option key={company.id} value={company.id}>{company.name}</option>
+              ))}
+            </select>
+          </div>
           <div className="form-group">
             <label>Начало периода</label>
             <input

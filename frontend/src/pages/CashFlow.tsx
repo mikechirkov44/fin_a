@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react'
 import { cashFlowService } from '../services/api'
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import { format, subMonths } from 'date-fns'
 
 const CashFlow = () => {
   const [report, setReport] = useState<any>(null)
   const [byCategory, setByCategory] = useState<any>(null)
-  const [startDate, setStartDate] = useState(format(subMonths(new Date(), 3), 'yyyy-MM-dd'))
+  const [startDate, setStartDate] = useState(format(subMonths(new Date(), 4), 'yyyy-MM-dd'))
   const [endDate, setEndDate] = useState(format(new Date(), 'yyyy-MM-dd'))
   const [groupBy, setGroupBy] = useState('month')
   const [loading, setLoading] = useState(false)
@@ -18,15 +18,28 @@ const CashFlow = () => {
   const loadData = async () => {
     setLoading(true)
     try {
+      console.log('Запрос данных ДДС:', { startDate, endDate, groupBy })
       const [reportData, incomeData, expenseData] = await Promise.all([
         cashFlowService.getReport({ start_date: startDate, end_date: endDate, group_by: groupBy }),
         cashFlowService.getByCategory({ start_date: startDate, end_date: endDate, movement_type: 'income' }),
         cashFlowService.getByCategory({ start_date: startDate, end_date: endDate, movement_type: 'expense' }),
       ])
+      console.log('Получены данные ДДС:', { reportData, incomeData, expenseData })
       setReport(reportData)
       setByCategory({ income: incomeData, expense: expenseData })
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading cash flow:', error)
+      console.error('Error details:', error.response?.data, error.response?.status)
+      setReport(null)
+      setByCategory(null)
+      // Показываем сообщение об ошибке
+      if (error.response) {
+        const errorMsg = error.response.data?.detail || error.message || 'Неизвестная ошибка'
+        console.error('Ошибка API:', errorMsg)
+        alert(`Ошибка загрузки данных: ${errorMsg}`)
+      } else {
+        console.error('Ошибка сети:', error.message)
+      }
     } finally {
       setLoading(false)
     }
@@ -35,7 +48,46 @@ const CashFlow = () => {
   const COLORS = ['#4a90e2', '#27ae60', '#e74c3c', '#f39c12', '#9b59b6', '#1abc9c', '#34495e']
 
   if (loading) return <div>Загрузка...</div>
-  if (!report) return <div>Нет данных</div>
+  if (!report || !report.periods || report.periods.length === 0) {
+    return (
+      <div>
+        <div className="card" style={{ marginBottom: '16px' }}>
+          <div className="form-row">
+            <div className="form-group">
+              <label>Начало периода</label>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+              />
+            </div>
+            <div className="form-group">
+              <label>Конец периода</label>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+              />
+            </div>
+            <div className="form-group">
+              <label>Группировка</label>
+              <select value={groupBy} onChange={(e) => setGroupBy(e.target.value)}>
+                <option value="month">По месяцам</option>
+                <option value="quarter">По кварталам</option>
+                <option value="year">По годам</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div className="card">
+          <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+            <p>Нет данных за выбранный период ({startDate} - {endDate})</p>
+            <p style={{ fontSize: '14px', marginTop: '10px' }}>Попробуйте изменить период или добавьте данные в разделе "Движения денежных средств"</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div>
@@ -134,7 +186,7 @@ const CashFlow = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {byCategory.income.categories.map((cat: any, index: number) => (
+                    {byCategory.income.categories.map((cat: any) => (
                       <tr key={cat.id}>
                         <td>{cat.name}</td>
                         <td className="text-right">{cat.amount.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽</td>
@@ -155,7 +207,7 @@ const CashFlow = () => {
                       outerRadius={100}
                       label
                     >
-                      {byCategory.income.categories.map((entry: any, index: number) => (
+                      {byCategory.income.categories.map((_entry: any, index: number) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
@@ -179,7 +231,7 @@ const CashFlow = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {byCategory.expense.categories.map((cat: any, index: number) => (
+                    {byCategory.expense.categories.map((cat: any) => (
                       <tr key={cat.id}>
                         <td>{cat.name}</td>
                         <td className="text-right">{cat.amount.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽</td>
@@ -200,7 +252,7 @@ const CashFlow = () => {
                       outerRadius={100}
                       label
                     >
-                      {byCategory.expense.categories.map((entry: any, index: number) => (
+                      {byCategory.expense.categories.map((_entry: any, index: number) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>

@@ -1,6 +1,7 @@
 import { Outlet, Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useCompany } from '../contexts/CompanyContext'
+import { useTheme } from '../contexts/ThemeContext'
 import { useState, useEffect } from 'react'
 import './Layout.css'
 
@@ -14,6 +15,7 @@ interface MenuItem {
 const Layout = () => {
   const { user, logout } = useAuth()
   const { selectedCompanyId, setSelectedCompanyId, companies, selectedCompany } = useCompany()
+  const { theme, toggleTheme } = useTheme()
   const location = useLocation()
   
   // Автоматически раскрываем раздел, если открыта его страница
@@ -97,17 +99,25 @@ const Layout = () => {
           <div className="app-title">Финансовый анализ предприятия</div>
         </div>
         <div className="top-bar-right" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <button 
+            className="theme-toggle" 
+            onClick={toggleTheme}
+            title={theme === 'light' ? 'Переключить на темную тему' : 'Переключить на светлую тему'}
+          >
+            {theme === 'light' ? '🌙' : '☀️'}
+          </button>
           {companies.length > 0 && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <label style={{ fontSize: '13px', color: '#666', fontWeight: '500' }}>Организация:</label>
+              <label style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: '500' }}>Организация:</label>
               <select
                 value={selectedCompanyId || ''}
                 onChange={(e) => setSelectedCompanyId(e.target.value ? parseInt(e.target.value, 10) : null)}
                 style={{
                   padding: '8px 32px 8px 12px',
-                  border: '1.5px solid #d0d0d0',
+                  border: '1.5px solid var(--input-border)',
                   fontSize: '13px',
-                  backgroundColor: '#fff',
+                  backgroundColor: 'var(--input-bg)',
+                  color: 'var(--text-primary)',
                   minWidth: '220px',
                   borderRadius: '6px',
                   cursor: 'pointer',

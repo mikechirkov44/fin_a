@@ -9,6 +9,7 @@ const Input1 = () => {
   const [movements, setMovements] = useState<any[]>([])
   const [allMovements, setAllMovements] = useState<any[]>([])
   const [searchQuery, setSearchQuery] = useState('')
+  const [filterCompanyId, setFilterCompanyId] = useState<string>('')
   const [incomeItems, setIncomeItems] = useState<any[]>([])
   const [expenseItems, setExpenseItems] = useState<any[]>([])
   const [paymentPlaces, setPaymentPlaces] = useState<any[]>([])
@@ -63,21 +64,35 @@ const Input1 = () => {
     return place?.name || '-'
   }
 
+  const getCompanyName = (id: number | null) => {
+    if (!id) return '-'
+    const company = companies.find(c => c.id === id)
+    return company?.name || '-'
+  }
+
   // Фильтрация и сортировка
   useEffect(() => {
     let filtered = allMovements
 
+    // Фильтрация по организации
+    if (filterCompanyId) {
+      const companyIdNum = parseInt(filterCompanyId)
+      filtered = filtered.filter((movement) => movement.company_id === companyIdNum)
+    }
+
     // Фильтрация по поисковому запросу
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase().trim()
-      filtered = allMovements.filter((movement) => {
+      filtered = filtered.filter((movement) => {
         const itemName = getItemName(movement)?.toLowerCase() || ''
         const paymentPlaceName = getPaymentPlaceName(movement.payment_place_id)?.toLowerCase() || ''
+        const companyName = getCompanyName(movement.company_id)?.toLowerCase() || ''
         return (
           movement.date?.toLowerCase().includes(query) ||
           (movement.movement_type === 'income' ? 'поступление' : 'оплата').includes(query) ||
           itemName.includes(query) ||
           paymentPlaceName.includes(query) ||
+          companyName.includes(query) ||
           movement.amount?.toString().includes(query) ||
           movement.description?.toLowerCase().includes(query) ||
           (movement.is_business ? 'да' : 'нет').includes(query)
@@ -116,6 +131,10 @@ const Input1 = () => {
             aVal = a.is_business ? 1 : 0
             bVal = b.is_business ? 1 : 0
             break
+          case 'company':
+            aVal = getCompanyName(a.company_id)
+            bVal = getCompanyName(b.company_id)
+            break
           default:
             return 0
         }
@@ -135,7 +154,7 @@ const Input1 = () => {
     }
 
     setMovements(filtered)
-  }, [searchQuery, allMovements, incomeItems, expenseItems, paymentPlaces, sortColumn, sortDirection])
+  }, [searchQuery, filterCompanyId, allMovements, incomeItems, expenseItems, paymentPlaces, companies, sortColumn, sortDirection])
 
   const handleSort = (column: string) => {
     if (sortColumn === column) {
@@ -167,10 +186,10 @@ const Input1 = () => {
       const submitData = {
         ...formData,
         amount: parseFloat(formData.amount),
-        company_id: parseInt(formData.company_id),
-        income_item_id: formData.movement_type === 'income' ? parseInt(formData.income_item_id) : null,
-        expense_item_id: formData.movement_type === 'expense' ? parseInt(formData.expense_item_id) : null,
-        payment_place_id: parseInt(formData.payment_place_id),
+        company_id: parseInt(String(formData.company_id)),
+        income_item_id: formData.movement_type === 'income' ? parseInt(String(formData.income_item_id)) : null,
+        expense_item_id: formData.movement_type === 'expense' ? parseInt(String(formData.expense_item_id)) : null,
+        payment_place_id: parseInt(String(formData.payment_place_id)),
         is_business: formData.is_business,
       }
       if (editingItem) {
@@ -389,6 +408,21 @@ const Input1 = () => {
             </label>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <select
+              value={filterCompanyId}
+              onChange={(e) => setFilterCompanyId(e.target.value)}
+              style={{
+                padding: '4px 8px',
+                border: '1px solid #808080',
+                fontSize: '13px',
+                width: '180px'
+              }}
+            >
+              <option value="">Все организации</option>
+              {companies.filter(c => c.is_active).map(company => (
+                <option key={company.id} value={company.id}>{company.name}</option>
+              ))}
+            </select>
             <input
               type="text"
               placeholder="Поиск..."
@@ -454,6 +488,15 @@ const Input1 = () => {
                 Место оплаты {sortColumn === 'payment_place' && (sortDirection === 'asc' ? '▲' : '▼')}
               </th>
               <th 
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleSort('company')
+                }} 
+                style={{ cursor: 'pointer', userSelect: 'none' }}
+              >
+                Организация {sortColumn === 'company' && (sortDirection === 'asc' ? '▲' : '▼')}
+              </th>
+              <th 
                 className="text-right" 
                 onClick={(e) => {
                   e.stopPropagation()
@@ -478,7 +521,7 @@ const Input1 = () => {
           <tbody>
             {movements.length === 0 ? (
               <tr>
-                <td colSpan={7} className="text-center">Нет данных</td>
+                <td colSpan={8} className="text-center">Нет данных</td>
               </tr>
             ) : (
               movements.map((movement) => (
@@ -491,6 +534,7 @@ const Input1 = () => {
                   <td>{movement.movement_type === 'income' ? 'Поступление' : 'Оплата'}</td>
                   <td>{getItemName(movement)}</td>
                   <td>{getPaymentPlaceName(movement.payment_place_id)}</td>
+                  <td>{getCompanyName(movement.company_id)}</td>
                   <td className="text-right">{parseFloat(movement.amount).toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽</td>
                   <td>{movement.is_business ? 'Да' : 'Нет'}</td>
                   <td onClick={(e) => e.stopPropagation()}>

@@ -8,6 +8,7 @@ const Shipment = () => {
   const [shipments, setShipments] = useState<any[]>([])
   const [allShipments, setAllShipments] = useState<any[]>([])
   const [searchQuery, setSearchQuery] = useState('')
+  const [filterCompanyId, setFilterCompanyId] = useState<string>('')
   const [products, setProducts] = useState<any[]>([])
   const [marketplaces, setMarketplaces] = useState<any[]>([])
   const [showForm, setShowForm] = useState(false)
@@ -54,6 +55,12 @@ const Shipment = () => {
     }
   }
 
+  const getCompanyName = (id: number | null) => {
+    if (!id) return '-'
+    const company = companies.find(c => c.id === id)
+    return company?.name || '-'
+  }
+
   // Фильтрация и сортировка по поисковому запросу
   useEffect(() => {
     // Функция для получения имени продукта (используется внутри эффекта)
@@ -70,15 +77,23 @@ const Shipment = () => {
 
     let filtered = [...allShipments]
 
+    // Фильтрация по организации
+    if (filterCompanyId) {
+      const companyIdNum = parseInt(filterCompanyId)
+      filtered = filtered.filter((shipment) => shipment.company_id === companyIdNum)
+    }
+
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase().trim()
-      filtered = allShipments.filter((shipment) => {
+      filtered = filtered.filter((shipment) => {
         const productName = getProductNameLocal(shipment.product_id)?.toLowerCase() || ''
         const marketplace = marketplaces.find(m => m.id === shipment.marketplace_id)
+        const companyName = getCompanyName(shipment.company_id)?.toLowerCase() || ''
         return (
           shipment.date?.toLowerCase().includes(query) ||
           productName.includes(query) ||
           marketplace?.name?.toLowerCase().includes(query) ||
+          companyName.includes(query) ||
           shipment.quantity?.toString().includes(query) ||
           shipment.cost_price?.toString().includes(query) ||
           shipment.description?.toLowerCase().includes(query)
@@ -100,6 +115,10 @@ const Shipment = () => {
           case 'product':
             aVal = getProductNameLocal(a.product_id)
             bVal = getProductNameLocal(b.product_id)
+            break
+          case 'company':
+            aVal = getCompanyName(a.company_id)
+            bVal = getCompanyName(b.company_id)
             break
           case 'marketplace':
             const aMarketplace = marketplaces.find(m => m.id === a.marketplace_id)?.name || ''
@@ -144,9 +163,8 @@ const Shipment = () => {
       filtered = sorted
     }
 
-    console.log('Setting shipments:', filtered.length, 'sortColumn:', sortColumn, 'sortDirection:', sortDirection)
     setShipments(filtered)
-  }, [searchQuery, allShipments, products, marketplaces, sortColumn, sortDirection])
+  }, [searchQuery, filterCompanyId, allShipments, products, marketplaces, companies, sortColumn, sortDirection])
 
   const getProductName = (id: number | null) => {
     if (!id) return '-'
@@ -176,13 +194,22 @@ const Shipment = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
+      const companyId = parseInt(String(formData.company_id))
+      const marketplaceId = parseInt(String(formData.marketplace_id))
+      
+      if (!companyId || !marketplaceId) {
+        alert('Пожалуйста, выберите организацию и маркетплейс')
+        return
+      }
+      
       const submitData = {
-        ...formData,
-        company_id: parseInt(String(formData.company_id)),
+        date: formData.date,
+        company_id: companyId,
         product_id: formData.product_id ? parseInt(String(formData.product_id)) : null,
-        marketplace_id: parseInt(String(formData.marketplace_id)),
+        marketplace_id: marketplaceId,
         quantity: parseInt(String(formData.quantity)),
         cost_price: parseFloat(String(formData.cost_price)),
+        description: formData.description || null,
       }
       if (editingItem) {
         await shipmentService.updateShipment(editingItem.id, submitData)
@@ -193,8 +220,9 @@ const Shipment = () => {
       setEditingItem(null)
       resetForm()
       loadData()
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving:', error)
+      alert(error.response?.data?.detail || 'Ошибка сохранения')
     }
   }
 
@@ -332,6 +360,21 @@ const Shipment = () => {
             Добавить
           </button>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <select
+              value={filterCompanyId}
+              onChange={(e) => setFilterCompanyId(e.target.value)}
+              style={{
+                padding: '4px 8px',
+                border: '1px solid #808080',
+                fontSize: '13px',
+                width: '180px'
+              }}
+            >
+              <option value="">Все организации</option>
+              {companies.filter(c => c.is_active).map(company => (
+                <option key={company.id} value={company.id}>{company.name}</option>
+              ))}
+            </select>
             <input
               type="text"
               placeholder="Поиск..."
@@ -368,6 +411,15 @@ const Shipment = () => {
                 style={{ cursor: 'pointer', userSelect: 'none' }}
               >
                 Дата {sortColumn === 'date' && (sortDirection === 'asc' ? '▲' : '▼')}
+              </th>
+              <th 
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleSort('company')
+                }} 
+                style={{ cursor: 'pointer', userSelect: 'none' }}
+              >
+                Организация {sortColumn === 'company' && (sortDirection === 'asc' ? '▲' : '▼')}
               </th>
               <th 
                 onClick={(e) => {
@@ -432,7 +484,7 @@ const Shipment = () => {
           <tbody>
             {shipments.length === 0 ? (
               <tr>
-                <td colSpan={8} className="text-center">Нет данных</td>
+                <td colSpan={9} className="text-center">Нет данных</td>
               </tr>
             ) : (
               shipments.map((shipment) => {
@@ -444,6 +496,7 @@ const Shipment = () => {
                     onClick={() => handleEdit(shipment)}
                   >
                     <td>{shipment.date}</td>
+                    <td>{getCompanyName(shipment.company_id)}</td>
                     <td>{getProductName(shipment.product_id)}</td>
                     <td>{marketplaces.find(m => m.id === shipment.marketplace_id)?.name || '-'}</td>
                     <td className="text-right">{shipment.quantity}</td>

@@ -11,6 +11,7 @@ const Input2 = () => {
   const [allAssets, setAllAssets] = useState<any[]>([])
   const [allLiabilities, setAllLiabilities] = useState<any[]>([])
   const [searchQuery, setSearchQuery] = useState('')
+  const [filterCompanyId, setFilterCompanyId] = useState<string>('')
   const [showForm, setShowForm] = useState(false)
   const [editingItem, setEditingItem] = useState<any>(null)
   const [formData, setFormData] = useState({
@@ -42,43 +43,50 @@ const Input2 = () => {
     }
   }
 
-  // Фильтрация по поисковому запросу
+  const getCompanyName = (id: number | null) => {
+    if (!id) return '-'
+    const company = companies.find(c => c.id === id)
+    return company?.name || '-'
+  }
+
+  // Фильтрация по поисковому запросу и организации
   useEffect(() => {
-    const query = searchQuery.toLowerCase().trim()
+    let filtered: any[] = []
     
-    if (!query) {
-      if (activeTab === 'assets') {
-        setAssets(allAssets)
-      } else {
-        setLiabilities(allLiabilities)
-      }
-      return
+    if (activeTab === 'assets') {
+      filtered = [...allAssets]
+    } else {
+      filtered = [...allLiabilities]
+    }
+
+    // Фильтрация по организации
+    if (filterCompanyId) {
+      const companyIdNum = parseInt(filterCompanyId)
+      filtered = filtered.filter((item) => item.company_id === companyIdNum)
+    }
+
+    // Фильтрация по поисковому запросу
+    const query = searchQuery.toLowerCase().trim()
+    if (query) {
+      filtered = filtered.filter((item) => {
+        const companyName = getCompanyName(item.company_id)?.toLowerCase() || ''
+        return (
+          item.name?.toLowerCase().includes(query) ||
+          item.category?.toLowerCase().includes(query) ||
+          item.value?.toString().includes(query) ||
+          item.date?.toLowerCase().includes(query) ||
+          item.description?.toLowerCase().includes(query) ||
+          companyName.includes(query)
+        )
+      })
     }
 
     if (activeTab === 'assets') {
-      const filtered = allAssets.filter((item) => {
-        return (
-          item.name?.toLowerCase().includes(query) ||
-          item.category?.toLowerCase().includes(query) ||
-          item.value?.toString().includes(query) ||
-          item.date?.toLowerCase().includes(query) ||
-          item.description?.toLowerCase().includes(query)
-        )
-      })
       setAssets(filtered)
     } else {
-      const filtered = allLiabilities.filter((item) => {
-        return (
-          item.name?.toLowerCase().includes(query) ||
-          item.category?.toLowerCase().includes(query) ||
-          item.value?.toString().includes(query) ||
-          item.date?.toLowerCase().includes(query) ||
-          item.description?.toLowerCase().includes(query)
-        )
-      })
       setLiabilities(filtered)
     }
-  }, [searchQuery, activeTab, allAssets, allLiabilities])
+  }, [searchQuery, filterCompanyId, activeTab, allAssets, allLiabilities, companies])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -268,6 +276,21 @@ const Input2 = () => {
             Добавить
           </button>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <select
+              value={filterCompanyId}
+              onChange={(e) => setFilterCompanyId(e.target.value)}
+              style={{
+                padding: '4px 8px',
+                border: '1px solid #808080',
+                fontSize: '13px',
+                width: '180px'
+              }}
+            >
+              <option value="">Все организации</option>
+              {companies.filter(c => c.is_active).map(company => (
+                <option key={company.id} value={company.id}>{company.name}</option>
+              ))}
+            </select>
             <input
               type="text"
               placeholder="Поиск..."
@@ -299,6 +322,7 @@ const Input2 = () => {
               <th>Дата</th>
               <th>Наименование</th>
               <th>Категория</th>
+              <th>Организация</th>
               <th className="text-right">Стоимость</th>
               <th>Описание</th>
               <th style={{ width: '100px' }}>Действия</th>
@@ -307,7 +331,7 @@ const Input2 = () => {
           <tbody>
             {currentItems.length === 0 ? (
               <tr>
-                <td colSpan={6} className="text-center">Нет данных</td>
+                <td colSpan={7} className="text-center">Нет данных</td>
               </tr>
             ) : (
               currentItems.map((item) => (
@@ -319,6 +343,7 @@ const Input2 = () => {
                   <td>{item.date}</td>
                   <td>{item.name}</td>
                   <td>{categories.find(c => c.value === item.category)?.label || item.category}</td>
+                  <td>{getCompanyName(item.company_id)}</td>
                   <td className="text-right">{parseFloat(item.value).toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽</td>
                   <td>{item.description || '-'}</td>
                   <td onClick={(e) => e.stopPropagation()}>

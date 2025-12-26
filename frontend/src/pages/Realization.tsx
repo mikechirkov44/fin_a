@@ -10,6 +10,7 @@ const Realization = () => {
   const [allRealizations, setAllRealizations] = useState<any[]>([])
   const [marketplaces, setMarketplaces] = useState<any[]>([])
   const [searchQuery, setSearchQuery] = useState('')
+  const [filterCompanyId, setFilterCompanyId] = useState<string>('')
   const [showForm, setShowForm] = useState(false)
   const [editingItem, setEditingItem] = useState<any>(null)
   const [sortColumn, setSortColumn] = useState<string | null>(null)
@@ -53,6 +54,12 @@ const Realization = () => {
     }
   }
 
+  const getCompanyName = (id: number | null) => {
+    if (!id) return '-'
+    const company = companies.find(c => c.id === id)
+    return company?.name || '-'
+  }
+
   // Сортировка данных
   const sortData = (data: any[], column: string | null, direction: 'asc' | 'desc') => {
     if (!column) return data
@@ -65,6 +72,10 @@ const Realization = () => {
         case 'date':
           aVal = a.date || ''
           bVal = b.date || ''
+          break
+        case 'company':
+          aVal = getCompanyName(a.company_id)
+          bVal = getCompanyName(b.company_id)
           break
         case 'marketplace':
           const aMarketplace = marketplaces.find(m => m.id === a.marketplace_id)?.name || ''
@@ -108,13 +119,21 @@ const Realization = () => {
   useEffect(() => {
     let filtered = allRealizations
 
+    // Фильтрация по организации
+    if (filterCompanyId) {
+      const companyIdNum = parseInt(filterCompanyId)
+      filtered = filtered.filter((realization) => realization.company_id === companyIdNum)
+    }
+
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase().trim()
-      filtered = allRealizations.filter((realization) => {
+      filtered = filtered.filter((realization) => {
         const marketplace = marketplaces.find(m => m.id === realization.marketplace_id)
+        const companyName = getCompanyName(realization.company_id)?.toLowerCase() || ''
         return (
           realization.date?.toLowerCase().includes(query) ||
           marketplace?.name?.toLowerCase().includes(query) ||
+          companyName.includes(query) ||
           realization.revenue?.toString().includes(query) ||
           realization.quantity?.toString().includes(query) ||
           realization.description?.toLowerCase().includes(query)
@@ -124,7 +143,7 @@ const Realization = () => {
 
     const sorted = sortData(filtered, sortColumn, sortDirection)
     setRealizations(sorted)
-  }, [searchQuery, allRealizations, marketplaces, sortColumn, sortDirection])
+  }, [searchQuery, filterCompanyId, allRealizations, marketplaces, companies, sortColumn, sortDirection])
 
   const handleSort = (column: string) => {
     if (sortColumn === column) {
@@ -138,12 +157,21 @@ const Realization = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
+      const companyId = parseInt(String(formData.company_id))
+      const marketplaceId = parseInt(String(formData.marketplace_id))
+      
+      if (!companyId || !marketplaceId) {
+        alert('Пожалуйста, выберите организацию и маркетплейс')
+        return
+      }
+      
       const submitData = {
-        ...formData,
-        company_id: parseInt(formData.company_id),
-        marketplace_id: parseInt(formData.marketplace_id),
-        revenue: parseFloat(formData.revenue),
-        quantity: parseInt(formData.quantity) || 0,
+        date: formData.date,
+        company_id: companyId,
+        marketplace_id: marketplaceId,
+        revenue: parseFloat(String(formData.revenue)),
+        quantity: parseInt(String(formData.quantity)) || 0,
+        description: formData.description || null,
       }
       if (editingItem) {
         await realizationService.updateRealization(editingItem.id, submitData)
@@ -154,15 +182,17 @@ const Realization = () => {
       setEditingItem(null)
       resetForm()
       loadData()
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving:', error)
+      alert(error.response?.data?.detail || 'Ошибка сохранения')
     }
   }
 
   const resetForm = () => {
     setFormData({
       date: format(new Date(), 'yyyy-MM-dd'),
-      marketplace: '',
+      company_id: selectedCompanyId || '',
+      marketplace_id: '',
       revenue: '',
       quantity: '',
       description: '',
@@ -173,7 +203,8 @@ const Realization = () => {
     setEditingItem(item)
     setFormData({
       date: item.date,
-      marketplace: item.marketplace,
+      company_id: item.company_id?.toString() || selectedCompanyId || '',
+      marketplace_id: item.marketplace_id?.toString() || '',
       revenue: item.revenue.toString(),
       quantity: item.quantity.toString(),
       description: item.description || '',
@@ -282,6 +313,21 @@ const Realization = () => {
             </button>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <select
+              value={filterCompanyId}
+              onChange={(e) => setFilterCompanyId(e.target.value)}
+              style={{
+                padding: '4px 8px',
+                border: '1px solid #808080',
+                fontSize: '13px',
+                width: '180px'
+              }}
+            >
+              <option value="">Все организации</option>
+              {companies.filter(c => c.is_active).map(company => (
+                <option key={company.id} value={company.id}>{company.name}</option>
+              ))}
+            </select>
             <input
               type="text"
               placeholder="Поиск..."
@@ -317,6 +363,12 @@ const Realization = () => {
                 Дата {sortColumn === 'date' && (sortDirection === 'asc' ? '▲' : '▼')}
               </th>
               <th 
+                onClick={() => handleSort('company')} 
+                style={{ cursor: 'pointer', userSelect: 'none' }}
+              >
+                Организация {sortColumn === 'company' && (sortDirection === 'asc' ? '▲' : '▼')}
+              </th>
+              <th 
                 onClick={() => handleSort('marketplace')} 
                 style={{ cursor: 'pointer', userSelect: 'none' }}
               >
@@ -348,7 +400,7 @@ const Realization = () => {
           <tbody>
             {realizations.length === 0 ? (
               <tr>
-                <td colSpan={6} className="text-center">Нет данных</td>
+                <td colSpan={7} className="text-center">Нет данных</td>
               </tr>
             ) : (
               realizations.map((realization) => (
@@ -358,6 +410,7 @@ const Realization = () => {
                   onClick={() => handleEdit(realization)}
                 >
                   <td>{realization.date}</td>
+                  <td>{getCompanyName(realization.company_id)}</td>
                   <td>{marketplaces.find(m => m.id === realization.marketplace_id)?.name || '-'}</td>
                   <td className="text-right">{parseFloat(realization.revenue).toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽</td>
                   <td className="text-right">{realization.quantity}</td>

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { useTheme } from '../contexts/ThemeContext'
 import { authService } from '../services/api'
 import './Login.css'
 
@@ -11,6 +12,7 @@ const Login = () => {
   const [isRegister, setIsRegister] = useState(false)
   const [email, setEmail] = useState('')
   const { login } = useAuth()
+  const { theme, toggleTheme } = useTheme()
   const navigate = useNavigate()
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -35,6 +37,28 @@ const Login = () => {
 
   return (
     <div className="login-container">
+      <button 
+        className="theme-toggle" 
+        onClick={toggleTheme}
+        title={theme === 'light' ? 'Переключить на темную тему' : 'Переключить на светлую тему'}
+        style={{
+          position: 'absolute',
+          top: '20px',
+          right: '20px',
+          background: 'rgba(255, 255, 255, 0.2)',
+          backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(255, 255, 255, 0.3)',
+          color: '#fff',
+          padding: '10px',
+          borderRadius: '8px',
+          cursor: 'pointer',
+          fontSize: '24px',
+          transition: 'all 0.2s ease',
+          zIndex: 1000
+        }}
+      >
+        {theme === 'light' ? '🌙' : '☀️'}
+      </button>
       <div className="login-card">
         <h1>Финансовая отчетность</h1>
         <form onSubmit={handleSubmit}>

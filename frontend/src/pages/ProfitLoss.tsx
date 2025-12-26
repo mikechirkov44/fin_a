@@ -4,7 +4,7 @@ import { format, subMonths } from 'date-fns'
 
 const ProfitLoss = () => {
   const [report, setReport] = useState<any>(null)
-  const [startDate, setStartDate] = useState(format(subMonths(new Date(), 3), 'yyyy-MM-dd'))
+  const [startDate, setStartDate] = useState(format(subMonths(new Date(), 4), 'yyyy-MM-dd'))
   const [endDate, setEndDate] = useState(format(new Date(), 'yyyy-MM-dd'))
   const [loading, setLoading] = useState(false)
 
@@ -17,15 +17,50 @@ const ProfitLoss = () => {
     try {
       const data = await profitLossService.getReport({ start_date: startDate, end_date: endDate })
       setReport(data)
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading profit loss:', error)
+      setReport(null)
+      if (error.response) {
+        alert(`Ошибка загрузки данных: ${error.response.data?.detail || error.message}`)
+      }
     } finally {
       setLoading(false)
     }
   }
 
   if (loading) return <div>Загрузка...</div>
-  if (!report) return <div>Нет данных</div>
+  if (!report) {
+    return (
+      <div>
+        <div className="card" style={{ marginBottom: '16px' }}>
+          <div className="form-row">
+            <div className="form-group">
+              <label>Начало периода</label>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+              />
+            </div>
+            <div className="form-group">
+              <label>Конец периода</label>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+              />
+            </div>
+          </div>
+        </div>
+        <div className="card">
+          <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+            <p>Нет данных за выбранный период ({startDate} - {endDate})</p>
+            <p style={{ fontSize: '14px', marginTop: '10px' }}>Попробуйте изменить период или добавьте данные в разделах "Реализация" и "Отгрузка"</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div>
