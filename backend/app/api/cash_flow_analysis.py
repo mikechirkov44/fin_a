@@ -1,13 +1,13 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import func, case
+from sqlalchemy import func, case, or_
 from datetime import date
 from app.database import get_db
 from app.models.user import User
 from app.models.input1 import MoneyMovement
 from app.models.realization import Realization
 from app.models.shipment import Shipment
-from app.models.reference import Marketplace
+from app.models.reference import Marketplace, SalesChannel
 from app.auth.security import get_current_user
 
 router = APIRouter()
@@ -30,28 +30,77 @@ def get_cash_flow_analysis(
         if not end_date:
             end_date = date.today()
         
-        # Определяем каналы продаж
-        channels = ['WB', 'Ozon', 'WB Gold', 'Яндекс', 'Частные заказы', 'Аренда']
+        # Получаем каналы продаж из справочника
+        sales_channels = db.query(SalesChannel).filter(SalesChannel.is_active == True).all()
+        channels = [channel.name for channel in sales_channels]
+        
+        # Если справочник пуст, используем дефолтные каналы
+        if not channels:
+            channels = ['WB', 'Ozon', 'WB Gold', 'Яндекс', 'Частные заказы', 'Аренда']
         
         # Выручка по каналам из реализации (используем marketplace_id через join)
         revenue_by_channel = {}
+        
+        # Сначала получаем все маркетплейсы для отладки
+        all_marketplaces = db.query(Marketplace).filter(Marketplace.is_active == True).all()
+        print(f"[DEBUG] Всего активных маркетплейсов: {len(all_marketplaces)}")
+        for mp in all_marketplaces:
+            print(f"  - {mp.name} (ID: {mp.id})")
+        
+        # Проверяем, есть ли данные в реализации
+        total_realizations = db.query(func.count(Realization.id)).filter(
+            Realization.date >= start_date,
+            Realization.date <= end_date
+        ).scalar() or 0
+        print(f"[DEBUG] Всего записей реализации за период: {total_realizations}")
+        
         for channel in channels:
             # Определяем фильтр по названию маркетплейса через join
-            marketplace_name_filter = None
+            # Используем более гибкие фильтры
+            marketplace_filters = []
+            
             if channel == 'WB' or channel == 'Wildberries':
-                marketplace_name_filter = func.lower(Marketplace.name).like('%wildberries%')
+                marketplace_filters = [
+                    func.lower(Marketplace.name).like('%wildberries%'),
+                    func.lower(Marketplace.name).like('%wb%'),
+                    func.lower(Marketplace.name) == 'wb',
+                    func.lower(Marketplace.name) == 'wildberries',
+                ]
             elif channel == 'WB Gold':
-                marketplace_name_filter = func.lower(Marketplace.name).like('%gold%')
-            elif channel == 'Ozon':
-                marketplace_name_filter = func.lower(Marketplace.name).like('%ozon%')
+                marketplace_filters = [
+                    func.lower(Marketplace.name).like('%gold%'),
+                    func.lower(Marketplace.name).like('%wb gold%'),
+                ]
+            elif channel == 'Ozon' or channel == 'OZON':
+                marketplace_filters = [
+                    func.lower(Marketplace.name).like('%ozon%'),
+                    func.lower(Marketplace.name) == 'ozon',
+                    func.lower(Marketplace.name) == 'ozon.ru',
+                ]
             elif channel == 'Яндекс':
-                marketplace_name_filter = func.lower(Marketplace.name).like('%яндекс%')
+                marketplace_filters = [
+                    func.lower(Marketplace.name).like('%яндекс%'),
+                    func.lower(Marketplace.name).like('%yandex%'),
+                ]
             elif channel == 'Частные заказы':
-                marketplace_name_filter = func.lower(Marketplace.name).like('%частн%')
+                marketplace_filters = [
+                    func.lower(Marketplace.name).like('%частн%'),
+                    func.lower(Marketplace.name).like('%private%'),
+                ]
             elif channel == 'Аренда':
-                marketplace_name_filter = func.lower(Marketplace.name).like('%аренд%')
+                marketplace_filters = [
+                    func.lower(Marketplace.name).like('%аренд%'),
+                    func.lower(Marketplace.name).like('%rent%'),
+                ]
             else:
-                marketplace_name_filter = func.lower(Marketplace.name) == channel.lower()
+                # Точное совпадение или LIKE
+                marketplace_filters = [
+                    func.lower(Marketplace.name) == channel.lower(),
+                    func.lower(Marketplace.name).like(f'%{channel.lower()}%'),
+                ]
+            
+            # Используем OR для всех фильтров
+            marketplace_name_filter = or_(*marketplace_filters)
             
             try:
                 revenue_query = db.query(func.sum(Realization.revenue)).join(
@@ -64,31 +113,64 @@ def get_cash_flow_analysis(
                 if company_id:
                     revenue_query = revenue_query.filter(Realization.company_id == company_id)
                 revenue = revenue_query.scalar() or 0
+                
+                # Отладка
+                if revenue > 0:
+                    print(f"[DEBUG] Канал '{channel}': найдена выручка {revenue}")
             except Exception as e:
-                print(f"Error querying revenue for channel {channel}: {e}")
+                print(f"[ERROR] Ошибка запроса выручки для канала {channel}: {e}")
+                import traceback
+                traceback.print_exc()
                 revenue = 0
-        
-        revenue_by_channel[channel] = float(revenue)
+            
+            revenue_by_channel[channel] = float(revenue)
         
         # Затраты на маркетплейсах по каналам (из отгрузок)
         marketplace_costs_by_channel = {}
         for channel in channels:
-            # Определяем фильтр по названию маркетплейса через join
-            marketplace_name_filter = None
+            # Используем ту же логику фильтрации, что и для выручки
+            marketplace_filters = []
+            
             if channel == 'WB' or channel == 'Wildberries':
-                marketplace_name_filter = func.lower(Marketplace.name).like('%wildberries%')
+                marketplace_filters = [
+                    func.lower(Marketplace.name).like('%wildberries%'),
+                    func.lower(Marketplace.name).like('%wb%'),
+                    func.lower(Marketplace.name) == 'wb',
+                    func.lower(Marketplace.name) == 'wildberries',
+                ]
             elif channel == 'WB Gold':
-                marketplace_name_filter = func.lower(Marketplace.name).like('%gold%')
-            elif channel == 'Ozon':
-                marketplace_name_filter = func.lower(Marketplace.name).like('%ozon%')
+                marketplace_filters = [
+                    func.lower(Marketplace.name).like('%gold%'),
+                    func.lower(Marketplace.name).like('%wb gold%'),
+                ]
+            elif channel == 'Ozon' or channel == 'OZON':
+                marketplace_filters = [
+                    func.lower(Marketplace.name).like('%ozon%'),
+                    func.lower(Marketplace.name) == 'ozon',
+                    func.lower(Marketplace.name) == 'ozon.ru',
+                ]
             elif channel == 'Яндекс':
-                marketplace_name_filter = func.lower(Marketplace.name).like('%яндекс%')
+                marketplace_filters = [
+                    func.lower(Marketplace.name).like('%яндекс%'),
+                    func.lower(Marketplace.name).like('%yandex%'),
+                ]
             elif channel == 'Частные заказы':
-                marketplace_name_filter = func.lower(Marketplace.name).like('%частн%')
+                marketplace_filters = [
+                    func.lower(Marketplace.name).like('%частн%'),
+                    func.lower(Marketplace.name).like('%private%'),
+                ]
             elif channel == 'Аренда':
-                marketplace_name_filter = func.lower(Marketplace.name).like('%аренд%')
+                marketplace_filters = [
+                    func.lower(Marketplace.name).like('%аренд%'),
+                    func.lower(Marketplace.name).like('%rent%'),
+                ]
             else:
-                marketplace_name_filter = func.lower(Marketplace.name) == channel.lower()
+                marketplace_filters = [
+                    func.lower(Marketplace.name) == channel.lower(),
+                    func.lower(Marketplace.name).like(f'%{channel.lower()}%'),
+                ]
+            
+            marketplace_name_filter = or_(*marketplace_filters)
             
             try:
                 # Затраты на маркетплейсах = сумма (cost_price * quantity) для отгрузок
@@ -103,7 +185,7 @@ def get_cash_flow_analysis(
                     cost_query = cost_query.filter(Shipment.company_id == company_id)
                 cost = cost_query.scalar() or 0
             except Exception as e:
-                print(f"Error querying costs for channel {channel}: {e}")
+                print(f"[ERROR] Ошибка запроса затрат для канала {channel}: {e}")
                 cost = 0
             
             marketplace_costs_by_channel[channel] = float(cost)

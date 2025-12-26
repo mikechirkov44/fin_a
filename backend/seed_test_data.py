@@ -8,11 +8,14 @@ from sqlalchemy.orm import Session
 
 from app.database import SessionLocal, engine
 from app.models import (
-    User, IncomeItem, ExpenseItem, PaymentPlace,
+    User, 
+    IncomeGroup, IncomeItem, 
+    ExpenseGroup, ExpenseItem, 
+    PaymentPlace, Company, Marketplace,
+    ExpenseCategory, SalesChannel,
     MoneyMovement, Asset, Liability, Product,
     Realization, Shipment
 )
-from app.models.reference import Company, Marketplace
 from app.auth.security import get_password_hash
 
 def get_or_create_user(db: Session):
@@ -37,34 +40,173 @@ def seed_reference_data(db: Session):
     """Заполнить справочники"""
     print("\n[INFO] Заполнение справочников...")
     
-    # Статьи доходов
+    # Группы статей доходов (родительские группы)
+    income_groups = [
+        {"name": "Основная деятельность", "description": "Доходы от основной деятельности"},
+        {"name": "Инвестиционная деятельность", "description": "Доходы от инвестиций"},
+    ]
+    
+    income_group_map = {}
+    for group_data in income_groups:
+        group = db.query(IncomeGroup).filter(IncomeGroup.name == group_data["name"]).first()
+        if not group:
+            group = IncomeGroup(**group_data)
+            db.add(group)
+            print(f"  [OK] Создана группа доходов: {group_data['name']}")
+        else:
+            print(f"  [OK] Группа доходов уже существует: {group_data['name']}")
+        db.commit()
+        db.refresh(group)
+        income_group_map[group_data["name"]] = group
+    
+    # Создаем подгруппы "Поступления" для родительских групп
+    for parent_name, parent_group in income_group_map.items():
+        subgroup_name = "Поступления"
+        subgroup = db.query(IncomeGroup).filter(
+            IncomeGroup.name == subgroup_name,
+            IncomeGroup.parent_group_id == parent_group.id
+        ).first()
+        if not subgroup:
+            subgroup = IncomeGroup(
+                name=subgroup_name,
+                description=f"Поступления в рамках {parent_name}",
+                parent_group_id=parent_group.id,
+                subgroup_type="income"
+            )
+            db.add(subgroup)
+            print(f"  [OK] Создана подгруппа доходов: {subgroup_name} в {parent_name}")
+            db.commit()
+            db.refresh(subgroup)
+        income_group_map[f"{parent_name}_{subgroup_name}"] = subgroup
+    
+    # Группы статей расходов (родительские группы)
+    expense_groups = [
+        {"name": "Основная деятельность", "description": "Расходы основной деятельности"},
+        {"name": "Инвестиционная деятельность", "description": "Инвестиционные расходы"},
+        {"name": "Кредиты, займы", "description": "Расходы по кредитам и займам"},
+        {"name": "Дивиденды", "description": "Выплата дивидендов"},
+    ]
+    
+    expense_group_map = {}
+    for group_data in expense_groups:
+        group = db.query(ExpenseGroup).filter(ExpenseGroup.name == group_data["name"]).first()
+        if not group:
+            group = ExpenseGroup(**group_data)
+            db.add(group)
+            print(f"  [OK] Создана группа расходов: {group_data['name']}")
+        else:
+            print(f"  [OK] Группа расходов уже существует: {group_data['name']}")
+        db.commit()
+        db.refresh(group)
+        expense_group_map[group_data["name"]] = group
+    
+    # Создаем подгруппы "Выбытия" для родительских групп (кроме тех, где статьи напрямую)
+    for parent_name, parent_group in expense_group_map.items():
+        if parent_name in ["Кредиты, займы", "Дивиденды"]:
+            continue  # Эти группы не имеют подгрупп
+        
+        subgroup_name = "Выбытия"
+        subgroup = db.query(ExpenseGroup).filter(
+            ExpenseGroup.name == subgroup_name,
+            ExpenseGroup.parent_group_id == parent_group.id
+        ).first()
+        if not subgroup:
+            subgroup = ExpenseGroup(
+                name=subgroup_name,
+                description=f"Выбытия в рамках {parent_name}",
+                parent_group_id=parent_group.id,
+                subgroup_type="expense"
+            )
+            db.add(subgroup)
+            print(f"  [OK] Создана подгруппа расходов: {subgroup_name} в {parent_name}")
+            db.commit()
+            db.refresh(subgroup)
+        expense_group_map[f"{parent_name}_{subgroup_name}"] = subgroup
+    
+    # Категории расходов
+    expense_categories = [
+        {"name": "Производственные", "description": "Производственные расходы"},
+        {"name": "Административные", "description": "Административные расходы"},
+        {"name": "Коммерческие", "description": "Коммерческие расходы"},
+    ]
+    
+    for category_data in expense_categories:
+        category = db.query(ExpenseCategory).filter(ExpenseCategory.name == category_data["name"]).first()
+        if not category:
+            category = ExpenseCategory(**category_data)
+            db.add(category)
+            print(f"  [OK] Создана категория расходов: {category_data['name']}")
+        else:
+            print(f"  [OK] Категория расходов уже существует: {category_data['name']}")
+    
+    # Каналы продаж
+    sales_channels = [
+        {"name": "WB", "description": "Wildberries"},
+        {"name": "Ozon", "description": "Ozon маркетплейс"},
+        {"name": "Яндекс", "description": "Яндекс.Маркет"},
+        {"name": "Частные заказы", "description": "Частные заказы (свое производство)"},
+        {"name": "Аренда", "description": "Доходы от аренды"},
+    ]
+    
+    sales_channel_map = {}
+    for channel_data in sales_channels:
+        channel = db.query(SalesChannel).filter(SalesChannel.name == channel_data["name"]).first()
+        if not channel:
+            channel = SalesChannel(**channel_data)
+            db.add(channel)
+            print(f"  [OK] Создан канал продаж: {channel_data['name']}")
+        else:
+            print(f"  [OK] Канал продаж уже существует: {channel_data['name']}")
+        db.commit()
+        db.refresh(channel)
+        sales_channel_map[channel_data["name"]] = channel
+    
+    # Статьи доходов (привязываем к подгруппе "Поступления" в "Основная деятельность")
     income_items = [
-        {"name": "Продажа товаров", "description": "Доходы от продажи товаров"},
-        {"name": "Услуги", "description": "Доходы от оказания услуг"},
-        {"name": "Прочие доходы", "description": "Прочие виды доходов"},
+        {"name": "WB", "description": "Доходы от продажи на Wildberries", "parent_group": "Основная деятельность", "subgroup": "Поступления"},
+        {"name": "Ozon", "description": "Доходы от продажи на Ozon", "parent_group": "Основная деятельность", "subgroup": "Поступления"},
+        {"name": "Яндекс", "description": "Доходы от продажи на Яндекс.Маркет", "parent_group": "Основная деятельность", "subgroup": "Поступления"},
+        {"name": "Частные заказы(свое производство)", "description": "Доходы от частных заказов", "parent_group": "Основная деятельность", "subgroup": "Поступления"},
+        {"name": "Возврат денег за покупку", "description": "Возврат денежных средств", "parent_group": "Основная деятельность", "subgroup": "Поступления"},
+        {"name": "Аренда", "description": "Доходы от аренды", "parent_group": "Основная деятельность", "subgroup": "Поступления"},
     ]
     
     for item_data in income_items:
         item = db.query(IncomeItem).filter(IncomeItem.name == item_data["name"]).first()
         if not item:
-            item = IncomeItem(**item_data)
+            parent_group = item_data.get("parent_group")
+            subgroup = item_data.get("subgroup")
+            group_key = f"{parent_group}_{subgroup}" if subgroup else parent_group
+            group_id = income_group_map.get(group_key).id if group_key in income_group_map else None
+            item_dict = {k: v for k, v in item_data.items() if k not in ["parent_group", "subgroup"]}
+            item = IncomeItem(**item_dict, group_id=group_id)
             db.add(item)
             print(f"  [OK] Создана статья дохода: {item_data['name']}")
     
     # Статьи расходов
     expense_items = [
-        {"name": "Закупка товаров", "description": "Расходы на закупку товаров"},
-        {"name": "Зарплата", "description": "Расходы на оплату труда"},
-        {"name": "Аренда", "description": "Расходы на аренду помещений"},
-        {"name": "Реклама", "description": "Расходы на рекламу и маркетинг"},
-        {"name": "Коммунальные услуги", "description": "Электричество, вода, интернет"},
-        {"name": "Транспорт", "description": "Расходы на транспорт"},
+        {"name": "Закупка товаров", "description": "Расходы на закупку товаров", "parent_group": "Основная деятельность", "subgroup": "Выбытия"},
+        {"name": "Зарплата", "description": "Расходы на оплату труда", "parent_group": "Основная деятельность", "subgroup": "Выбытия"},
+        {"name": "Аренда", "description": "Расходы на аренду помещений", "parent_group": "Основная деятельность", "subgroup": "Выбытия"},
+        {"name": "Реклама", "description": "Расходы на рекламу и маркетинг", "parent_group": "Основная деятельность", "subgroup": "Выбытия"},
+        {"name": "Коммунальные услуги", "description": "Электричество, вода, интернет", "parent_group": "Основная деятельность", "subgroup": "Выбытия"},
+        {"name": "Транспорт", "description": "Расходы на транспорт", "parent_group": "Основная деятельность", "subgroup": "Выбытия"},
+        {"name": "Капитальный ремонт", "description": "Расходы на капитальный ремонт", "parent_group": "Инвестиционная деятельность", "subgroup": "Выбытия"},
+        {"name": "Основные средства", "description": "Приобретение основных средств", "parent_group": "Инвестиционная деятельность", "subgroup": "Выбытия"},
+        {"name": "Выплата тела по кредиту/займу", "description": "Погашение кредита", "parent_group": "Кредиты, займы", "subgroup": None},
+        {"name": "Вывод дивидендов (в т.ч. личные расходы)", "description": "Выплата дивидендов", "parent_group": "Дивиденды", "subgroup": None},
+        {"name": "Внешние займы", "description": "Внешние займы", "parent_group": "Кредиты, займы", "subgroup": None},
     ]
     
     for item_data in expense_items:
         item = db.query(ExpenseItem).filter(ExpenseItem.name == item_data["name"]).first()
         if not item:
-            item = ExpenseItem(**item_data)
+            parent_group = item_data.get("parent_group")
+            subgroup = item_data.get("subgroup")
+            group_key = f"{parent_group}_{subgroup}" if subgroup else parent_group
+            group_id = expense_group_map.get(group_key).id if group_key in expense_group_map else None
+            item_dict = {k: v for k, v in item_data.items() if k not in ["parent_group", "subgroup"]}
+            item = ExpenseItem(**item_dict, group_id=group_id)
             db.add(item)
             print(f"  [OK] Создана статья расхода: {item_data['name']}")
     
@@ -111,7 +253,7 @@ def seed_reference_data(db: Session):
     for mp in marketplace_map.values():
         db.refresh(mp)
     print("[OK] Справочники заполнены")
-    return company, marketplace_map
+    return company, marketplace_map, sales_channel_map
 
 def seed_products(db: Session):
     """Заполнить товары"""
@@ -385,7 +527,7 @@ def main():
         user = get_or_create_user(db)
         
         # Заполняем данные
-        company, marketplace_map = seed_reference_data(db)
+        company, marketplace_map, sales_channel_map = seed_reference_data(db)
         seed_products(db)
         seed_money_movements(db, company)
         seed_realizations(db, company, marketplace_map)

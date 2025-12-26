@@ -40,7 +40,8 @@ const Layout = () => {
   const menuItems: MenuItem[] = [
     { path: '/dashboard', label: 'Главное', icon: '🏠' },
     { path: '/realization', label: 'Продажи', icon: '🏷️' },
-    { path: '/input1', label: 'Закупки', icon: '🛒' },
+    { path: '/input1', label: 'Закупки', icon: '💰' },
+    { path: '/input2', label: 'Активы/Пассивы', icon: '📊' },
     { path: '/products', label: 'Товарные запасы', icon: '📦' },
     { 
       path: '/cash-flow', 
@@ -55,6 +56,7 @@ const Layout = () => {
       ]
     },
     { path: '/reference', label: 'Предприятие', icon: '🏢' },
+    { path: '/marketplace-integration', label: 'Интеграции', icon: '🔌' },
   ]
 
   const toggleExpanded = (path: string) => {
@@ -76,7 +78,7 @@ const Layout = () => {
     '/dashboard': 'Главное',
     '/realization': 'Продажи',
     '/input1': 'Закупки',
-    '/input2': 'ВВОД 2',
+    '/input2': 'Активы/Пассивы',
     '/balance': 'БАЛАНС',
     '/cash-flow': 'ОДДС',
     '/cash-flow-analysis': 'Анализ ДДС',
@@ -85,6 +87,7 @@ const Layout = () => {
     '/shipment': 'ОТГРУЗКА',
     '/products': 'Товарные запасы',
     '/reference': 'Предприятие',
+    '/marketplace-integration': 'Интеграции с маркетплейсами',
   }
 
   const getPageTitle = () => {

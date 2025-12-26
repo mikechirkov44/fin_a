@@ -69,14 +69,49 @@ def export_realizations(
     for r in realizations:
         data.append({
             "Дата": r.date,
-            "Маркетплейс": r.marketplace,
+            "Маркетплейс": r.marketplace.name if r.marketplace else "",
             "Выручка": float(r.revenue),
             "Количество": r.quantity,
+            "Организация": r.company.name if r.company else "",
             "Описание": r.description or "",
         })
     
     df = pd.DataFrame(data)
     return export_dataframe(df, "realizations", format)
+
+@router.get("/shipments")
+def export_shipments(
+    format: str = Query("xlsx", regex="^(xlsx|csv)$"),
+    start_date: date | None = Query(None),
+    end_date: date | None = Query(None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Экспорт отгрузок"""
+    query = db.query(Shipment)
+    if start_date:
+        query = query.filter(Shipment.date >= start_date)
+    if end_date:
+        query = query.filter(Shipment.date <= end_date)
+    
+    shipments = query.order_by(Shipment.date).all()
+    
+    data = []
+    for s in shipments:
+        data.append({
+            "Дата": s.date,
+            "Товар": s.product.name if s.product else "",
+            "SKU": s.product.sku if s.product else "",
+            "Маркетплейс": s.marketplace.name if s.marketplace else "",
+            "Количество": s.quantity,
+            "Себестоимость (ед.)": float(s.cost_price),
+            "Итого": float(s.cost_price * s.quantity),
+            "Организация": s.company.name if s.company else "",
+            "Описание": s.description or "",
+        })
+    
+    df = pd.DataFrame(data)
+    return export_dataframe(df, "shipments", format)
 
 @router.get("/products")
 def export_products(
@@ -99,6 +134,79 @@ def export_products(
     
     df = pd.DataFrame(data)
     return export_dataframe(df, "products", format)
+
+@router.get("/assets")
+def export_assets(
+    format: str = Query("xlsx", regex="^(xlsx|csv)$"),
+    start_date: date | None = Query(None),
+    end_date: date | None = Query(None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Экспорт активов"""
+    query = db.query(Asset)
+    if start_date:
+        query = query.filter(Asset.date >= start_date)
+    if end_date:
+        query = query.filter(Asset.date <= end_date)
+    
+    assets = query.order_by(Asset.date).all()
+    
+    data = []
+    for a in assets:
+        category_map = {
+            'current': 'Оборотные',
+            'receivable': 'Дебиторская задолженность',
+            'fixed': 'Основные средства',
+            'intangible': 'Нематериальные'
+        }
+        data.append({
+            "Дата": a.date,
+            "Наименование": a.name,
+            "Категория": category_map.get(a.category, a.category),
+            "Стоимость": float(a.value),
+            "Организация": a.company.name if a.company else "",
+            "Описание": a.description or "",
+        })
+    
+    df = pd.DataFrame(data)
+    return export_dataframe(df, "assets", format)
+
+@router.get("/liabilities")
+def export_liabilities(
+    format: str = Query("xlsx", regex="^(xlsx|csv)$"),
+    start_date: date | None = Query(None),
+    end_date: date | None = Query(None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Экспорт обязательств"""
+    query = db.query(Liability)
+    if start_date:
+        query = query.filter(Liability.date >= start_date)
+    if end_date:
+        query = query.filter(Liability.date <= end_date)
+    
+    liabilities = query.order_by(Liability.date).all()
+    
+    data = []
+    for l in liabilities:
+        category_map = {
+            'short_term': 'Краткосрочные',
+            'payable': 'Кредиторская задолженность',
+            'long_term': 'Долгосрочные'
+        }
+        data.append({
+            "Дата": l.date,
+            "Наименование": l.name,
+            "Категория": category_map.get(l.category, l.category),
+            "Стоимость": float(l.value),
+            "Организация": l.company.name if l.company else "",
+            "Описание": l.description or "",
+        })
+    
+    df = pd.DataFrame(data)
+    return export_dataframe(df, "liabilities", format)
 
 def export_dataframe(df: pd.DataFrame, filename: str, format: str):
     """Универсальная функция экспорта"""

@@ -76,26 +76,51 @@ export const authService = {
 }
 
 export const referenceService = {
+  // Income Groups
+  getIncomeGroups: () => apiService.get('/api/reference/income-groups'),
+  createIncomeGroup: (data: any) => apiService.post('/api/reference/income-groups', data),
+  updateIncomeGroup: (id: number, data: any) => apiService.put(`/api/reference/income-groups/${id}`, data),
+  deleteIncomeGroup: (id: number) => apiService.delete(`/api/reference/income-groups/${id}`),
+  // Income Items
   getIncomeItems: () => apiService.get('/api/reference/income-items'),
   createIncomeItem: (data: any) => apiService.post('/api/reference/income-items', data),
   updateIncomeItem: (id: number, data: any) => apiService.put(`/api/reference/income-items/${id}`, data),
   deleteIncomeItem: (id: number) => apiService.delete(`/api/reference/income-items/${id}`),
+  // Expense Groups
+  getExpenseGroups: () => apiService.get('/api/reference/expense-groups'),
+  createExpenseGroup: (data: any) => apiService.post('/api/reference/expense-groups', data),
+  updateExpenseGroup: (id: number, data: any) => apiService.put(`/api/reference/expense-groups/${id}`, data),
+  deleteExpenseGroup: (id: number) => apiService.delete(`/api/reference/expense-groups/${id}`),
+  // Expense Items
   getExpenseItems: () => apiService.get('/api/reference/expense-items'),
   createExpenseItem: (data: any) => apiService.post('/api/reference/expense-items', data),
   updateExpenseItem: (id: number, data: any) => apiService.put(`/api/reference/expense-items/${id}`, data),
   deleteExpenseItem: (id: number) => apiService.delete(`/api/reference/expense-items/${id}`),
+  // Payment Places
   getPaymentPlaces: () => apiService.get('/api/reference/payment-places'),
   createPaymentPlace: (data: any) => apiService.post('/api/reference/payment-places', data),
   updatePaymentPlace: (id: number, data: any) => apiService.put(`/api/reference/payment-places/${id}`, data),
   deletePaymentPlace: (id: number) => apiService.delete(`/api/reference/payment-places/${id}`),
+  // Companies
   getCompanies: () => apiService.get('/api/reference/companies'),
   createCompany: (data: any) => apiService.post('/api/reference/companies', data),
   updateCompany: (id: number, data: any) => apiService.put(`/api/reference/companies/${id}`, data),
   deleteCompany: (id: number) => apiService.delete(`/api/reference/companies/${id}`),
+  // Marketplaces
   getMarketplaces: () => apiService.get('/api/reference/marketplaces'),
   createMarketplace: (data: any) => apiService.post('/api/reference/marketplaces', data),
   updateMarketplace: (id: number, data: any) => apiService.put(`/api/reference/marketplaces/${id}`, data),
   deleteMarketplace: (id: number) => apiService.delete(`/api/reference/marketplaces/${id}`),
+  // Expense Categories
+  getExpenseCategories: () => apiService.get('/api/reference/expense-categories'),
+  createExpenseCategory: (data: any) => apiService.post('/api/reference/expense-categories', data),
+  updateExpenseCategory: (id: number, data: any) => apiService.put(`/api/reference/expense-categories/${id}`, data),
+  deleteExpenseCategory: (id: number) => apiService.delete(`/api/reference/expense-categories/${id}`),
+  // Sales Channels
+  getSalesChannels: () => apiService.get('/api/reference/sales-channels'),
+  createSalesChannel: (data: any) => apiService.post('/api/reference/sales-channels', data),
+  updateSalesChannel: (id: number, data: any) => apiService.put(`/api/reference/sales-channels/${id}`, data),
+  deleteSalesChannel: (id: number) => apiService.delete(`/api/reference/sales-channels/${id}`),
 }
 
 export const input1Service = {
@@ -116,6 +141,15 @@ export const input2Service = {
   deleteLiability: (id: number) => apiService.delete(`/api/input2/liabilities/${id}`),
 }
 
+export const marketplaceIntegrationService = {
+  getIntegrations: (params?: any) => apiService.get('/api/marketplace-integration/', { params }),
+  createIntegration: (data: any) => apiService.post('/api/marketplace-integration/', data),
+  updateIntegration: (id: number, data: any) => apiService.put(`/api/marketplace-integration/${id}`, data),
+  deleteIntegration: (id: number) => apiService.delete(`/api/marketplace-integration/${id}`),
+  syncMarketplace: (data: any) => apiService.post('/api/marketplace-integration/sync', data),
+  testConnection: (id: number) => apiService.post(`/api/marketplace-integration/test-connection?integration_id=${id}`),
+}
+
 export const balanceService = {
   getBalance: (params?: any) => apiService.get('/api/balance/', { params }),
 }
@@ -123,6 +157,7 @@ export const balanceService = {
 export const cashFlowService = {
   getReport: (params?: any) => apiService.get('/api/cash-flow/', { params }),
   getByCategory: (params?: any) => apiService.get('/api/cash-flow/by-category', { params }),
+  getByGroup: (params?: any) => apiService.get('/api/cash-flow/by-group', { params }),
 }
 
 export const cashFlowAnalysisService = {

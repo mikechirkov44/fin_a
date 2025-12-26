@@ -4,8 +4,13 @@
 """
 from app.database import engine, Base
 from app.models import (
-    User, IncomeItem, ExpenseItem, PaymentPlace, Company, Marketplace,
-    MoneyMovement, Asset, Liability, Realization, Shipment, Product
+    User, 
+    IncomeGroup, IncomeItem, 
+    ExpenseGroup, ExpenseItem, 
+    PaymentPlace, Company, Marketplace,
+    ExpenseCategory, SalesChannel,
+    MoneyMovement, Asset, Liability, Realization, Shipment, Product,
+    MarketplaceIntegration
 )
 
 def create_tables():

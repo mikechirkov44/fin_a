@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { input2Service } from '../services/api'
+import { exportService, importService } from '../services/exportService'
 import { useCompany } from '../contexts/CompanyContext'
 import { format } from 'date-fns'
 
@@ -12,6 +13,8 @@ const Input2 = () => {
   const [allLiabilities, setAllLiabilities] = useState<any[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [filterCompanyId, setFilterCompanyId] = useState<string>('')
+  const [sortColumn, setSortColumn] = useState<string | null>(null)
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
   const [showForm, setShowForm] = useState(false)
   const [editingItem, setEditingItem] = useState<any>(null)
   const [formData, setFormData] = useState({
@@ -81,20 +84,78 @@ const Input2 = () => {
       })
     }
 
+    // Сортировка данных
+    if (sortColumn) {
+      filtered = [...filtered].sort((a, b) => {
+        let aVal: any
+        let bVal: any
+
+        switch (sortColumn) {
+          case 'date':
+            aVal = a.date || ''
+            bVal = b.date || ''
+            break
+          case 'name':
+            aVal = a.name || ''
+            bVal = b.name || ''
+            break
+          case 'category':
+            aVal = categories.find(c => c.value === a.category)?.label || a.category
+            bVal = categories.find(c => c.value === b.category)?.label || b.category
+            break
+          case 'company':
+            aVal = getCompanyName(a.company_id)
+            bVal = getCompanyName(b.company_id)
+            break
+          case 'value':
+            aVal = parseFloat(String(a.value)) || 0
+            bVal = parseFloat(String(b.value)) || 0
+            break
+          case 'description':
+            aVal = a.description || ''
+            bVal = b.description || ''
+            break
+          default:
+            return 0
+        }
+
+        if (typeof aVal === 'number' && typeof bVal === 'number') {
+          return sortDirection === 'asc' ? aVal - bVal : bVal - aVal
+        } else {
+          const aStr = String(aVal).toLowerCase()
+          const bStr = String(bVal).toLowerCase()
+          if (sortDirection === 'asc') {
+            return aStr.localeCompare(bStr, 'ru')
+          } else {
+            return bStr.localeCompare(aStr, 'ru')
+          }
+        }
+      })
+    }
+
     if (activeTab === 'assets') {
       setAssets(filtered)
     } else {
       setLiabilities(filtered)
     }
-  }, [searchQuery, filterCompanyId, activeTab, allAssets, allLiabilities, companies])
+  }, [searchQuery, filterCompanyId, activeTab, allAssets, allLiabilities, companies, sortColumn, sortDirection])
+
+  const handleSort = (column: string) => {
+    if (sortColumn === column) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortColumn(column)
+      setSortDirection('asc')
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
       const submitData = {
         ...formData,
-        company_id: parseInt(formData.company_id),
-        value: parseFloat(formData.value),
+        company_id: parseInt(String(formData.company_id)),
+        value: parseFloat(String(formData.value)),
       }
       if (activeTab === 'assets') {
         if (editingItem) {
@@ -167,11 +228,13 @@ const Input2 = () => {
   const categories = activeTab === 'assets'
     ? [
         { value: 'current', label: 'Оборотные' },
+        { value: 'receivable', label: 'Дебиторская задолженность' },
         { value: 'fixed', label: 'Основные средства' },
         { value: 'intangible', label: 'Нематериальные' },
       ]
     : [
         { value: 'short_term', label: 'Краткосрочные' },
+        { value: 'payable', label: 'Кредиторская задолженность' },
         { value: 'long_term', label: 'Долгосрочные' },
       ]
 
@@ -272,9 +335,47 @@ const Input2 = () => {
       <div className="card">
         <div className="card-header">{title}</div>
         <div style={{ marginBottom: '12px', display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'space-between' }}>
-          <button onClick={() => { setShowForm(true); setEditingItem(null); resetForm() }} className="primary">
-            Добавить
-          </button>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button onClick={() => { setShowForm(true); setEditingItem(null); resetForm() }} className="primary">
+              Добавить
+            </button>
+            <button 
+              onClick={() => activeTab === 'assets' 
+                ? exportService.exportAssets({ format: 'xlsx' })
+                : exportService.exportLiabilities({ format: 'xlsx' })
+              }
+              style={{ fontSize: '13px' }}
+            >
+              Экспорт Excel
+            </button>
+            <label style={{ fontSize: '13px', padding: '4px 8px', border: '1px solid #808080', cursor: 'pointer', borderRadius: '4px' }}>
+              Импорт
+              <input
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                style={{ display: 'none' }}
+                onChange={async (e) => {
+                  const file = e.target.files?.[0]
+                  if (file) {
+                    try {
+                      const result = activeTab === 'assets'
+                        ? await importService.importAssets(file)
+                        : await importService.importLiabilities(file)
+                      alert(result.message)
+                      if (result.errors && result.errors.length > 0) {
+                        console.error('Ошибки импорта:', result.errors)
+                        alert(`Ошибки: ${result.errors.slice(0, 5).join('; ')}${result.errors.length > 5 ? '...' : ''}`)
+                      }
+                      loadData()
+                    } catch (error: any) {
+                      alert(`Ошибка импорта: ${error.response?.data?.detail || error.message}`)
+                    }
+                  }
+                  e.target.value = ''
+                }}
+              />
+            </label>
+          </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <select
               value={filterCompanyId}
@@ -319,12 +420,43 @@ const Input2 = () => {
         <table>
           <thead>
             <tr>
-              <th>Дата</th>
-              <th>Наименование</th>
-              <th>Категория</th>
-              <th>Организация</th>
-              <th className="text-right">Стоимость</th>
-              <th>Описание</th>
+              <th 
+                style={{ cursor: 'pointer', userSelect: 'none' }}
+                onClick={() => handleSort('date')}
+              >
+                Дата {sortColumn === 'date' && (sortDirection === 'asc' ? '▲' : '▼')}
+              </th>
+              <th 
+                style={{ cursor: 'pointer', userSelect: 'none' }}
+                onClick={() => handleSort('name')}
+              >
+                Наименование {sortColumn === 'name' && (sortDirection === 'asc' ? '▲' : '▼')}
+              </th>
+              <th 
+                style={{ cursor: 'pointer', userSelect: 'none' }}
+                onClick={() => handleSort('category')}
+              >
+                Категория {sortColumn === 'category' && (sortDirection === 'asc' ? '▲' : '▼')}
+              </th>
+              <th 
+                style={{ cursor: 'pointer', userSelect: 'none' }}
+                onClick={() => handleSort('company')}
+              >
+                Организация {sortColumn === 'company' && (sortDirection === 'asc' ? '▲' : '▼')}
+              </th>
+              <th 
+                className="text-right" 
+                style={{ cursor: 'pointer', userSelect: 'none' }}
+                onClick={() => handleSort('value')}
+              >
+                Стоимость {sortColumn === 'value' && (sortDirection === 'asc' ? '▲' : '▼')}
+              </th>
+              <th 
+                style={{ cursor: 'pointer', userSelect: 'none' }}
+                onClick={() => handleSort('description')}
+              >
+                Описание {sortColumn === 'description' && (sortDirection === 'asc' ? '▲' : '▼')}
+              </th>
               <th style={{ width: '100px' }}>Действия</th>
             </tr>
           </thead>

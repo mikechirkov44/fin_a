@@ -1,23 +1,38 @@
 from .user import UserCreate, UserResponse, Token
 from .reference import (
+    IncomeGroupCreate, IncomeGroupResponse,
     IncomeItemCreate, IncomeItemResponse, 
+    ExpenseGroupCreate, ExpenseGroupResponse,
     ExpenseItemCreate, ExpenseItemResponse, 
     PaymentPlaceCreate, PaymentPlaceResponse,
     CompanyCreate, CompanyResponse,
-    MarketplaceCreate, MarketplaceResponse
+    MarketplaceCreate, MarketplaceResponse,
+    ExpenseCategoryCreate, ExpenseCategoryResponse,
+    SalesChannelCreate, SalesChannelResponse
 )
 from .input1 import MoneyMovementCreate, MoneyMovementResponse
 from .input2 import AssetCreate, AssetResponse, LiabilityCreate, LiabilityResponse
 from .realization import RealizationCreate, RealizationResponse
 from .shipment import ShipmentCreate, ShipmentResponse
 from .product import ProductCreate, ProductResponse
+from .marketplace_integration import (
+    MarketplaceIntegrationCreate,
+    MarketplaceIntegrationUpdate,
+    MarketplaceIntegrationResponse,
+    SyncRequest,
+    SyncResponse
+)
 
 __all__ = [
     "UserCreate",
     "UserResponse",
     "Token",
+    "IncomeGroupCreate",
+    "IncomeGroupResponse",
     "IncomeItemCreate",
     "IncomeItemResponse",
+    "ExpenseGroupCreate",
+    "ExpenseGroupResponse",
     "ExpenseItemCreate",
     "ExpenseItemResponse",
     "PaymentPlaceCreate",
@@ -26,6 +41,10 @@ __all__ = [
     "CompanyResponse",
     "MarketplaceCreate",
     "MarketplaceResponse",
+    "ExpenseCategoryCreate",
+    "ExpenseCategoryResponse",
+    "SalesChannelCreate",
+    "SalesChannelResponse",
     "MoneyMovementCreate",
     "MoneyMovementResponse",
     "AssetCreate",
@@ -38,5 +57,10 @@ __all__ = [
     "ShipmentResponse",
     "ProductCreate",
     "ProductResponse",
+    "MarketplaceIntegrationCreate",
+    "MarketplaceIntegrationUpdate",
+    "MarketplaceIntegrationResponse",
+    "SyncRequest",
+    "SyncResponse",
 ]
 

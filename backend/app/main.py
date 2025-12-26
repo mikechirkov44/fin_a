@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from app.database import engine, Base
-from app.api import auth, reference, input1, input2, balance, cash_flow, profit_loss, cash_flow_analysis, profit_loss_analysis, realization, shipment, products, dashboard, export, import_api
+from app.api import auth, reference, input1, input2, balance, cash_flow, profit_loss, cash_flow_analysis, profit_loss_analysis, realization, shipment, products, dashboard, export, import_api, marketplace_integration
 import traceback
 
 # Создаем таблицы
@@ -62,6 +62,7 @@ app.include_router(products.router, prefix="/api/products", tags=["products"])
 app.include_router(dashboard.router, prefix="/api/dashboard", tags=["dashboard"])
 app.include_router(export.router, prefix="/api/export", tags=["export"])
 app.include_router(import_api.router, prefix="/api/import", tags=["import"])
+app.include_router(marketplace_integration.router, prefix="/api/marketplace-integration", tags=["marketplace-integration"])
 
 @app.get("/")
 async def root():

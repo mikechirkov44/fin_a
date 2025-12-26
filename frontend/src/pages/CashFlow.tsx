@@ -6,6 +6,7 @@ import { format, subMonths } from 'date-fns'
 const CashFlow = () => {
   const [report, setReport] = useState<any>(null)
   const [byCategory, setByCategory] = useState<any>(null)
+  const [byGroup, setByGroup] = useState<any>(null)
   const [startDate, setStartDate] = useState(format(subMonths(new Date(), 4), 'yyyy-MM-dd'))
   const [endDate, setEndDate] = useState(format(new Date(), 'yyyy-MM-dd'))
   const [groupBy, setGroupBy] = useState('month')
@@ -19,14 +20,17 @@ const CashFlow = () => {
     setLoading(true)
     try {
       console.log('Запрос данных ДДС:', { startDate, endDate, groupBy })
-      const [reportData, incomeData, expenseData] = await Promise.all([
+      const [reportData, incomeData, expenseData, incomeGroupsData, expenseGroupsData] = await Promise.all([
         cashFlowService.getReport({ start_date: startDate, end_date: endDate, group_by: groupBy }),
         cashFlowService.getByCategory({ start_date: startDate, end_date: endDate, movement_type: 'income' }),
         cashFlowService.getByCategory({ start_date: startDate, end_date: endDate, movement_type: 'expense' }),
+        cashFlowService.getByGroup({ start_date: startDate, end_date: endDate, movement_type: 'income' }),
+        cashFlowService.getByGroup({ start_date: startDate, end_date: endDate, movement_type: 'expense' }),
       ])
-      console.log('Получены данные ДДС:', { reportData, incomeData, expenseData })
+      console.log('Получены данные ДДС:', { reportData, incomeData, expenseData, incomeGroupsData, expenseGroupsData })
       setReport(reportData)
       setByCategory({ income: incomeData, expense: expenseData })
+      setByGroup({ income: incomeGroupsData, expense: expenseGroupsData })
     } catch (error: any) {
       console.error('Error loading cash flow:', error)
       console.error('Error details:', error.response?.data, error.response?.status)
@@ -205,7 +209,11 @@ const CashFlow = () => {
                       cx="50%"
                       cy="50%"
                       outerRadius={100}
-                      label
+                      label={({ value }: any) => {
+                        const total = byCategory.income.categories.reduce((sum: number, c: any) => sum + (c.amount || 0), 0)
+                        const percentage = total > 0 ? (value / total * 100).toFixed(1) : '0.0'
+                        return `${value.toLocaleString('ru-RU')} (${percentage}%)`
+                      }}
                     >
                       {byCategory.income.categories.map((_entry: any, index: number) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -250,7 +258,11 @@ const CashFlow = () => {
                       cx="50%"
                       cy="50%"
                       outerRadius={100}
-                      label
+                      label={({ value }: any) => {
+                        const total = byCategory.expense.categories.reduce((sum: number, c: any) => sum + (c.amount || 0), 0)
+                        const percentage = total > 0 ? (value / total * 100).toFixed(1) : '0.0'
+                        return `${value.toLocaleString('ru-RU')} (${percentage}%)`
+                      }}
                     >
                       {byCategory.expense.categories.map((_entry: any, index: number) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -264,6 +276,190 @@ const CashFlow = () => {
             </div>
           </div>
         </>
+      )}
+
+      {byGroup && byGroup.income && byGroup.income.groups && byGroup.income.groups.length > 0 && (
+        <div className="card" style={{ marginTop: '16px' }}>
+          <div className="card-header">Поступления по группам</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            <div>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Группа</th>
+                    <th className="text-right">Сумма</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {byGroup.income.groups.map((group: any) => (
+                    <>
+                      <tr key={group.id} style={{ backgroundColor: '#f5f5f5' }}>
+                        <td>
+                          <strong>{group.name}</strong>
+                        </td>
+                        <td className="text-right" style={{ fontWeight: 'bold' }}>
+                          {group.amount.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽
+                        </td>
+                      </tr>
+                      {group.subgroups && group.subgroups.length > 0 ? (
+                        group.subgroups.map((subgroup: any) => (
+                          <>
+                            <tr key={subgroup.id} style={{ backgroundColor: '#fafafa' }}>
+                              <td style={{ paddingLeft: '20px' }}>
+                                <strong>{subgroup.name}</strong>
+                                {subgroup.items && subgroup.items.length > 0 && (
+                                  <div style={{ marginTop: '8px', paddingLeft: '16px', fontSize: '12px', color: '#666' }}>
+                                    {subgroup.items.map((item: any) => (
+                                      <div key={item.id} style={{ marginTop: '4px' }}>
+                                        {item.name}: {item.amount.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </td>
+                              <td className="text-right" style={{ fontWeight: 'bold' }}>
+                                {subgroup.amount.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽
+                              </td>
+                            </tr>
+                          </>
+                        ))
+                      ) : (
+                        group.items && group.items.length > 0 && (
+                          <tr>
+                            <td colSpan={2} style={{ paddingLeft: '20px' }}>
+                              {group.items.map((item: any) => (
+                                <div key={item.id} style={{ marginTop: '4px', fontSize: '12px' }}>
+                                  {item.name}: {item.amount.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽
+                                </div>
+                              ))}
+                            </td>
+                          </tr>
+                        )
+                      )}
+                    </>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={byGroup.income.groups}
+                    dataKey="amount"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={100}
+                    label={({ value }: any) => {
+                      const total = byGroup.income.groups.reduce((sum: number, g: any) => sum + (g.amount || 0), 0)
+                      const percentage = total > 0 ? (value / total * 100).toFixed(1) : '0.0'
+                      return `${value.toLocaleString('ru-RU')} (${percentage}%)`
+                    }}
+                  >
+                    {byGroup.income.groups.map((_entry: any, index: number) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value: number) => value.toLocaleString('ru-RU') + ' ₽'} />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {byGroup && byGroup.expense && byGroup.expense.groups && byGroup.expense.groups.length > 0 && (
+        <div className="card" style={{ marginTop: '16px' }}>
+          <div className="card-header">Выбытия по группам</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            <div>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Группа</th>
+                    <th className="text-right">Сумма</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {byGroup.expense.groups.map((group: any) => (
+                    <>
+                      <tr key={group.id} style={{ backgroundColor: '#f5f5f5' }}>
+                        <td>
+                          <strong>{group.name}</strong>
+                        </td>
+                        <td className="text-right" style={{ fontWeight: 'bold', color: '#e74c3c' }}>
+                          {group.amount.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽
+                        </td>
+                      </tr>
+                      {group.subgroups && group.subgroups.length > 0 ? (
+                        group.subgroups.map((subgroup: any) => (
+                          <>
+                            <tr key={subgroup.id} style={{ backgroundColor: '#fafafa' }}>
+                              <td style={{ paddingLeft: '20px' }}>
+                                <strong>{subgroup.name}</strong>
+                                {subgroup.items && subgroup.items.length > 0 && (
+                                  <div style={{ marginTop: '8px', paddingLeft: '16px', fontSize: '12px', color: '#666' }}>
+                                    {subgroup.items.map((item: any) => (
+                                      <div key={item.id} style={{ marginTop: '4px' }}>
+                                        {item.name}: {item.amount.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </td>
+                              <td className="text-right" style={{ fontWeight: 'bold', color: '#e74c3c' }}>
+                                {subgroup.amount.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽
+                              </td>
+                            </tr>
+                          </>
+                        ))
+                      ) : (
+                        group.items && group.items.length > 0 && (
+                          <tr>
+                            <td colSpan={2} style={{ paddingLeft: '20px' }}>
+                              {group.items.map((item: any) => (
+                                <div key={item.id} style={{ marginTop: '4px', fontSize: '12px' }}>
+                                  {item.name}: {item.amount.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽
+                                </div>
+                              ))}
+                            </td>
+                          </tr>
+                        )
+                      )}
+                    </>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={byGroup.expense.groups}
+                    dataKey="amount"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={100}
+                    label={({ value }: any) => {
+                      const total = byGroup.expense.groups.reduce((sum: number, g: any) => sum + (g.amount || 0), 0)
+                      const percentage = total > 0 ? (value / total * 100).toFixed(1) : '0.0'
+                      return `${value.toLocaleString('ru-RU')} (${percentage}%)`
+                    }}
+                  >
+                    {byGroup.expense.groups.map((_entry: any, index: number) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value: number) => value.toLocaleString('ru-RU') + ' ₽'} />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

@@ -17,6 +17,7 @@ import ProfitLossAnalysis from './pages/ProfitLossAnalysis'
 import Realization from './pages/Realization'
 import Shipment from './pages/Shipment'
 import Products from './pages/Products'
+import MarketplaceIntegration from './pages/MarketplaceIntegration'
 
 function App() {
   return (
@@ -47,6 +48,7 @@ function App() {
             <Route path="realization" element={<Realization />} />
             <Route path="shipment" element={<Shipment />} />
             <Route path="products" element={<Products />} />
+            <Route path="marketplace-integration" element={<MarketplaceIntegration />} />
           </Route>
         </Routes>
       </Router>

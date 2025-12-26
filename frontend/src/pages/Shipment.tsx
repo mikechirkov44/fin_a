@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { shipmentService, productsService, referenceService } from '../services/api'
+import { exportService, importService } from '../services/exportService'
 import { useCompany } from '../contexts/CompanyContext'
 import { format } from 'date-fns'
 
@@ -356,9 +357,37 @@ const Shipment = () => {
 
       <div className="card">
         <div style={{ marginBottom: '12px', display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'space-between' }}>
-          <button onClick={() => { setShowForm(true); setEditingItem(null); resetForm() }} className="primary">
-            Добавить
-          </button>
+            <button onClick={() => { setShowForm(true); setEditingItem(null); resetForm() }} className="primary">
+              Добавить
+            </button>
+            <button onClick={() => exportService.exportShipments({ format: 'xlsx' })}>
+              Экспорт Excel
+            </button>
+            <label style={{ fontSize: '13px', padding: '4px 8px', border: '1px solid #808080', cursor: 'pointer', borderRadius: '4px' }}>
+              Импорт
+              <input
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                style={{ display: 'none' }}
+                onChange={async (e) => {
+                  const file = e.target.files?.[0]
+                  if (file) {
+                    try {
+                      const result = await importService.importShipments(file)
+                      alert(result.message)
+                      if (result.errors && result.errors.length > 0) {
+                        console.error('Ошибки импорта:', result.errors)
+                        alert(`Ошибки: ${result.errors.slice(0, 5).join('; ')}${result.errors.length > 5 ? '...' : ''}`)
+                      }
+                      loadData()
+                    } catch (error: any) {
+                      alert(`Ошибка импорта: ${error.response?.data?.detail || error.message}`)
+                    }
+                  }
+                  e.target.value = ''
+                }}
+              />
+            </label>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <select
               value={filterCompanyId}

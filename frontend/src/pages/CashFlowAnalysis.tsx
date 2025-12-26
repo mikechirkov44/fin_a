@@ -333,9 +333,13 @@ const CashFlowAnalysis = () => {
                 cx="50%"
                 cy="50%"
                 outerRadius={100}
-                label
+                label={({ value }: any) => {
+                  const total = report.channels.reduce((sum: number, c: any) => sum + (c.revenue || 0), 0)
+                  const percentage = total > 0 ? (value / total * 100).toFixed(1) : '0.0'
+                  return `${value.toLocaleString('ru-RU')} (${percentage}%)`
+                }}
               >
-                {report.channels.filter((c: any) => c.revenue > 0).map((entry: any, index: number) => (
+                {report.channels.filter((c: any) => c.revenue > 0).map((_entry: any, index: number) => (
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
