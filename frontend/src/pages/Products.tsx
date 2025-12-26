@@ -1,8 +1,14 @@
 import { useState, useEffect } from 'react'
 import { productsService } from '../services/api'
 import { exportService, importService } from '../services/exportService'
+import { useToast } from '../contexts/ToastContext'
+import LoadingSpinner from '../components/LoadingSpinner'
+import EmptyState from '../components/EmptyState'
+import SkeletonLoader from '../components/SkeletonLoader'
+import FormField from '../components/FormField'
 
 const Products = () => {
+  const { showSuccess, showError } = useToast()
   const [products, setProducts] = useState<any[]>([])
   const [allProducts, setAllProducts] = useState<any[]>([])
   const [searchQuery, setSearchQuery] = useState('')
@@ -10,6 +16,7 @@ const Products = () => {
   const [editingItem, setEditingItem] = useState<any>(null)
   const [sortColumn, setSortColumn] = useState<string | null>(null)
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
+  const [loading, setLoading] = useState(true)
   const [formData, setFormData] = useState({
     name: '',
     sku: '',
@@ -17,6 +24,7 @@ const Products = () => {
     selling_price: '',
     description: '',
   })
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({})
 
   useEffect(() => {
     loadData()
@@ -24,11 +32,15 @@ const Products = () => {
 
   const loadData = async () => {
     try {
+      setLoading(true)
       const data = await productsService.getProducts()
       setAllProducts(data)
       setProducts(data)
     } catch (error) {
       console.error('Error loading products:', error)
+      showError('Ошибка загрузки товаров')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -123,8 +135,44 @@ const Products = () => {
     }
   }
 
+  const validateForm = () => {
+    const errors: Record<string, string> = {}
+    
+    if (!formData.name.trim()) {
+      errors.name = 'Наименование обязательно для заполнения'
+    }
+    
+    if (!formData.sku.trim()) {
+      errors.sku = 'Артикул обязателен для заполнения'
+    }
+    
+    const costPrice = parseFloat(formData.cost_price)
+    if (!formData.cost_price || isNaN(costPrice) || costPrice < 0) {
+      errors.cost_price = 'Введите корректную себестоимость (больше или равно 0)'
+    }
+    
+    if (formData.selling_price) {
+      const sellingPrice = parseFloat(formData.selling_price)
+      if (isNaN(sellingPrice) || sellingPrice < 0) {
+        errors.selling_price = 'Введите корректную цену продажи (больше или равно 0)'
+      }
+      if (sellingPrice < costPrice) {
+        errors.selling_price = 'Цена продажи не может быть меньше себестоимости'
+      }
+    }
+    
+    setFormErrors(errors)
+    return Object.keys(errors).length === 0
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    if (!validateForm()) {
+      showError('Исправьте ошибки в форме')
+      return
+    }
+    
     try {
       const submitData = {
         ...formData,
@@ -133,15 +181,18 @@ const Products = () => {
       }
       if (editingItem) {
         await productsService.updateProduct(editingItem.id, submitData)
+        showSuccess('Товар успешно обновлен')
       } else {
         await productsService.createProduct(submitData)
+        showSuccess('Товар успешно добавлен')
       }
       setShowForm(false)
       setEditingItem(null)
       resetForm()
+      setFormErrors({})
       loadData()
     } catch (error: any) {
-      alert(error.response?.data?.detail || 'Ошибка сохранения')
+      showError(error.response?.data?.detail || 'Ошибка сохранения')
     }
   }
 
@@ -153,6 +204,7 @@ const Products = () => {
       selling_price: '',
       description: '',
     })
+    setFormErrors({})
   }
 
   const handleEdit = (item: any) => {
@@ -168,12 +220,13 @@ const Products = () => {
   }
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Удалить товар?')) return
+    if (!window.confirm('Удалить товар?')) return
     try {
       await productsService.deleteProduct(id)
+      showSuccess('Товар успешно удален')
       loadData()
-    } catch (error) {
-      console.error('Error deleting:', error)
+    } catch (error: any) {
+      showError(error.response?.data?.detail || 'Ошибка удаления товара')
     }
   }
 
@@ -184,54 +237,68 @@ const Products = () => {
           <div className="card-header">{editingItem ? 'Редактировать' : 'Добавить'} товар</div>
           <form onSubmit={handleSubmit}>
             <div className="form-row">
-              <div className="form-group">
-                <label>Наименование *</label>
+              <FormField label="Наименование" required error={formErrors.name}>
                 <input
                   type="text"
                   value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  required
+                  onChange={(e) => {
+                    setFormData({ ...formData, name: e.target.value })
+                    if (formErrors.name) {
+                      setFormErrors({ ...formErrors, name: '' })
+                    }
+                  }}
                 />
-              </div>
-              <div className="form-group">
-                <label>Артикул (SKU) *</label>
+              </FormField>
+              <FormField label="Артикул (SKU)" required error={formErrors.sku}>
                 <input
                   type="text"
                   value={formData.sku}
-                  onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
-                  required
+                  onChange={(e) => {
+                    setFormData({ ...formData, sku: e.target.value })
+                    if (formErrors.sku) {
+                      setFormErrors({ ...formErrors, sku: '' })
+                    }
+                  }}
                 />
-              </div>
+              </FormField>
             </div>
             <div className="form-row">
-              <div className="form-group">
-                <label>Себестоимость *</label>
+              <FormField label="Себестоимость" required error={formErrors.cost_price}>
                 <input
                   type="number"
                   step="0.01"
+                  min="0"
                   value={formData.cost_price}
-                  onChange={(e) => setFormData({ ...formData, cost_price: e.target.value })}
-                  required
+                  onChange={(e) => {
+                    setFormData({ ...formData, cost_price: e.target.value })
+                    if (formErrors.cost_price) {
+                      setFormErrors({ ...formErrors, cost_price: '' })
+                    }
+                  }}
                 />
-              </div>
-              <div className="form-group">
-                <label>Цена продажи</label>
+              </FormField>
+              <FormField label="Цена продажи" error={formErrors.selling_price}>
                 <input
                   type="number"
                   step="0.01"
+                  min="0"
                   value={formData.selling_price}
-                  onChange={(e) => setFormData({ ...formData, selling_price: e.target.value })}
+                  onChange={(e) => {
+                    setFormData({ ...formData, selling_price: e.target.value })
+                    if (formErrors.selling_price) {
+                      setFormErrors({ ...formErrors, selling_price: '' })
+                    }
+                  }}
                 />
-              </div>
+              </FormField>
             </div>
-            <div className="form-group">
-              <label>Описание</label>
+            <FormField label="Описание">
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 rows={3}
               />
-            </div>
+            </FormField>
             <button type="submit" className="primary mr-8">Сохранить</button>
             <button type="button" onClick={() => { setShowForm(false); setEditingItem(null); resetForm() }}>
               Отмена
@@ -261,13 +328,13 @@ const Products = () => {
                   if (file) {
                     try {
                       const result = await importService.importProducts(file)
-                      alert(result.message)
+                      showSuccess(result.message)
                       if (result.errors.length > 0) {
-                        alert('Ошибки:\n' + result.errors.join('\n'))
+                        showError('Ошибки при импорте: ' + result.errors.join(', '))
                       }
                       loadData()
                     } catch (error: any) {
-                      alert('Ошибка импорта: ' + (error.response?.data?.detail || error.message))
+                      showError('Ошибка импорта: ' + (error.response?.data?.detail || error.message))
                     }
                   }
                   e.target.value = ''
@@ -351,9 +418,25 @@ const Products = () => {
             </tr>
           </thead>
           <tbody>
-            {products.length === 0 ? (
+            {loading ? (
               <tr>
-                <td colSpan={7} className="text-center">Нет данных</td>
+                <td colSpan={7}>
+                  <LoadingSpinner message="Загрузка товаров..." />
+                </td>
+              </tr>
+            ) : products.length === 0 ? (
+              <tr>
+                <td colSpan={7}>
+                  <EmptyState
+                    icon="📦"
+                    title="Нет товаров"
+                    message={searchQuery ? 'Товары не найдены по вашему запросу' : 'Добавьте первый товар, чтобы начать работу'}
+                    action={!searchQuery ? {
+                      label: 'Добавить товар',
+                      onClick: () => { setShowForm(true); setEditingItem(null); resetForm() }
+                    } : undefined}
+                  />
+                </td>
               </tr>
             ) : (
               products.map((product) => {

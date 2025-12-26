@@ -2,10 +2,12 @@ import { useState, useEffect } from 'react'
 import { realizationService, referenceService } from '../services/api'
 import { exportService, importService } from '../services/exportService'
 import { useAuth } from '../contexts/AuthContext'
+import { useToast } from '../contexts/ToastContext'
 import { format } from 'date-fns'
 
 const Realization = () => {
   const { selectedCompanyId, companies } = useAuth()
+  const { showSuccess, showError } = useToast()
   const [realizations, setRealizations] = useState<any[]>([])
   const [allRealizations, setAllRealizations] = useState<any[]>([])
   const [marketplaces, setMarketplaces] = useState<any[]>([])
@@ -161,7 +163,7 @@ const Realization = () => {
       const marketplaceId = parseInt(String(formData.marketplace_id))
       
       if (!companyId || !marketplaceId) {
-        alert('Пожалуйста, выберите организацию и маркетплейс')
+        showError('Пожалуйста, выберите организацию и маркетплейс')
         return
       }
       
@@ -181,10 +183,11 @@ const Realization = () => {
       setShowForm(false)
       setEditingItem(null)
       resetForm()
+      showSuccess(editingItem ? 'Реализация успешно обновлена' : 'Реализация успешно добавлена')
       loadData()
     } catch (error: any) {
       console.error('Error saving:', error)
-      alert(error.response?.data?.detail || 'Ошибка сохранения')
+      showError(error.response?.data?.detail || 'Ошибка сохранения')
     }
   }
 
@@ -213,7 +216,7 @@ const Realization = () => {
   }
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Удалить запись?')) return
+    if (!window.confirm('Удалить запись?')) return
     try {
       await realizationService.deleteRealization(id)
       loadData()

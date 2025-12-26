@@ -140,11 +140,19 @@ const Layout = () => {
       {/* Верхняя панель */}
       <header className="top-bar">
         <div className="top-bar-left">
-          <div className="app-title">Финансовый анализ предприятия</div>
+          <div className="app-title">Управление предприятием v.1.0</div>
         </div>
         <div className="top-bar-right" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <Notifications />
+          <button 
+            className="theme-toggle" 
+            onClick={toggleTheme}
+            title={theme === 'light' ? 'Переключить на темную тему' : 'Переключить на светлую тему'}
+          >
+            {theme === 'light' ? '🌙' : '☀️'}
+          </button>
           {user && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginLeft: 'auto' }}>
               <span style={{ fontWeight: 'bold', fontSize: '14px' }}>
                 {user.username} ({user.role === 'ADMIN' ? 'Администратор' : user.role === 'ACCOUNTANT' ? 'Бухгалтер' : user.role === 'MANAGER' ? 'Менеджер' : 'Просмотр'})
               </span>
@@ -174,31 +182,19 @@ const Layout = () => {
               </button>
             </div>
           )}
-          <Notifications />
-          <button 
-            className="theme-toggle" 
-            onClick={toggleTheme}
-            title={theme === 'light' ? 'Переключить на темную тему' : 'Переключить на светлую тему'}
-          >
-            {theme === 'light' ? '🌙' : '☀️'}
-          </button>
+        </div>
+      </header>
+
+      <div className="layout-body">
+        {/* Боковая панель навигации */}
+        <aside className="sidebar">
           {companies.length > 0 && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <label style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: '500' }}>Организация:</label>
+            <div className="sidebar-company-selector">
+              <label className="sidebar-company-label">Организация:</label>
               <select
                 value={selectedCompanyId || ''}
                 onChange={(e) => setSelectedCompany(e.target.value ? parseInt(e.target.value, 10) : null)}
-                style={{
-                  padding: '8px 32px 8px 12px',
-                  border: '1.5px solid var(--input-border)',
-                  fontSize: '13px',
-                  backgroundColor: 'var(--input-bg)',
-                  color: 'var(--text-primary)',
-                  minWidth: '220px',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease'
-                }}
+                className="sidebar-company-select"
               >
                 {user?.role === 'ADMIN' && (
                   <option value="">Все организации</option>
@@ -211,12 +207,6 @@ const Layout = () => {
               </select>
             </div>
           )}
-        </div>
-      </header>
-
-      <div className="layout-body">
-        {/* Боковая панель навигации */}
-        <aside className="sidebar">
           <nav className="sidebar-nav">
             <ul>
               {menuItems.map((item) => {

@@ -2,10 +2,12 @@ import { useState, useEffect } from 'react'
 import { input1Service, referenceService } from '../services/api'
 import { exportService, importService } from '../services/exportService'
 import { useAuth } from '../contexts/AuthContext'
+import { useToast } from '../contexts/ToastContext'
 import { format } from 'date-fns'
 
 const Input1 = () => {
   const { selectedCompanyId, companies } = useAuth()
+  const { showSuccess, showError } = useToast()
   const [movements, setMovements] = useState<any[]>([])
   const [allMovements, setAllMovements] = useState<any[]>([])
   const [searchQuery, setSearchQuery] = useState('')
@@ -200,9 +202,10 @@ const Input1 = () => {
       setShowForm(false)
       setEditingItem(null)
       resetForm()
+      showSuccess(editingItem ? 'Движение успешно обновлено' : 'Движение успешно добавлено')
       loadData()
     } catch (error: any) {
-      alert(error.response?.data?.detail || 'Ошибка сохранения')
+      showError(error.response?.data?.detail || 'Ошибка сохранения')
     }
   }
 
@@ -389,13 +392,13 @@ const Input1 = () => {
                   if (file) {
                     try {
                       const result = await importService.importMoneyMovements(file)
-                      alert(result.message)
+                      showSuccess(result.message)
                       if (result.errors.length > 0) {
-                        alert('Ошибки:\n' + result.errors.join('\n'))
+                        showError('Ошибки при импорте: ' + result.errors.join(', '))
                       }
                       loadData()
                     } catch (error: any) {
-                      alert('Ошибка импорта: ' + (error.response?.data?.detail || error.message))
+                      showError('Ошибка импорта: ' + (error.response?.data?.detail || error.message))
                     }
                   }
                   e.target.value = ''

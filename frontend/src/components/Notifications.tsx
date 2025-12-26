@@ -151,7 +151,7 @@ const Notifications = () => {
               marginTop: '8px',
               width: '400px',
               maxHeight: '500px',
-              backgroundColor: 'var(--card-bg)',
+              backgroundColor: 'var(--bg-secondary)',
               border: '1px solid var(--border-color)',
               borderRadius: '8px',
               boxShadow: '0 4px 12px rgba(0,0,0,0.15)',

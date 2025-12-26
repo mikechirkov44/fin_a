@@ -1,0 +1,107 @@
+.metric-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px var(--shadow);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.metric-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #4a90e2 0%, #357abd 100%);
+}
+
+.metric-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px var(--shadow-hover);
+}
+
+.metric-card-primary::before {
+  background: linear-gradient(90deg, #4a90e2 0%, #357abd 100%);
+}
+
+.metric-card-success::before {
+  background: linear-gradient(90deg, #27ae60 0%, #229954 100%);
+}
+
+.metric-card-warning::before {
+  background: linear-gradient(90deg, #f39c12 0%, #e67e22 100%);
+}
+
+.metric-card-danger::before {
+  background: linear-gradient(90deg, #e74c3c 0%, #c0392b 100%);
+}
+
+.metric-card-info::before {
+  background: linear-gradient(90deg, #3498db 0%, #2980b9 100%);
+}
+
+.metric-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.metric-card-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.metric-card-icon {
+  font-size: 24px;
+  opacity: 0.7;
+}
+
+.metric-card-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+  line-height: 1.2;
+}
+
+.metric-card-subtitle {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.metric-card-trend {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  margin-top: 8px;
+}
+
+.trend-positive {
+  color: #27ae60;
+}
+
+.trend-negative {
+  color: #e74c3c;
+}
+
+.trend-arrow {
+  font-size: 16px;
+}
+
+.trend-label {
+  font-weight: 400;
+  color: var(--text-secondary);
+  margin-left: 4px;
+}
+

@@ -3,6 +3,11 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 import { dashboardService } from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 import { format } from 'date-fns'
+import LoadingSpinner from '../components/LoadingSpinner'
+import EmptyState from '../components/EmptyState'
+import MetricCard from '../components/MetricCard'
+import SkeletonLoader from '../components/SkeletonLoader'
+import './Dashboard.css'
 
 const Dashboard = () => {
   const [data, setData] = useState<any>(null)
@@ -31,45 +36,82 @@ const Dashboard = () => {
     }
   }
 
-  if (loading) return <div>Загрузка...</div>
-  if (!data) return <div>Нет данных</div>
+  if (loading) {
+    return (
+      <div>
+        <div className="dashboard-metrics-grid">
+          {Array.from({ length: 7 }).map((_, i) => (
+            <SkeletonLoader key={i} type="card" />
+          ))}
+        </div>
+        <div style={{ marginTop: '24px' }}>
+          <SkeletonLoader type="card" />
+        </div>
+      </div>
+    )
+  }
+
+  if (!data) {
+    return (
+      <EmptyState
+        icon="📊"
+        title="Нет данных"
+        message="Не удалось загрузить данные для отображения. Попробуйте обновить страницу."
+      />
+    )
+  }
+
+  const indicators = data.current_indicators
+  const isProfitPositive = indicators.net_profit >= 0
+  const isGrossProfitPositive = indicators.gross_profit >= 0
 
   return (
     <div>
-      <div className="card">
-        <div className="card-header">Текущие показатели</div>
-        <table>
-          <tbody>
-            <tr>
-              <td><strong>Выручка</strong></td>
-              <td className="text-right">{data.current_indicators.revenue.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽</td>
-            </tr>
-            <tr>
-              <td><strong>Себестоимость</strong></td>
-              <td className="text-right">{data.current_indicators.cost_of_goods.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽</td>
-            </tr>
-            <tr>
-              <td><strong>Расходы</strong></td>
-              <td className="text-right">{data.current_indicators.expenses.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽</td>
-            </tr>
-            <tr>
-              <td><strong>Валовая прибыль</strong></td>
-              <td className="text-right">{data.current_indicators.gross_profit.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽</td>
-            </tr>
-            <tr>
-              <td><strong>Рентабельность валовой прибыли</strong></td>
-              <td className="text-right">{data.current_indicators.gross_margin}%</td>
-            </tr>
-            <tr>
-              <td><strong>Чистая прибыль</strong></td>
-              <td className="text-right">{data.current_indicators.net_profit.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽</td>
-            </tr>
-            <tr>
-              <td><strong>Рентабельность чистой прибыли</strong></td>
-              <td className="text-right">{data.current_indicators.net_margin}%</td>
-            </tr>
-          </tbody>
-        </table>
+      <div className="dashboard-metrics-grid">
+        <MetricCard
+          title="Выручка"
+          value={`${indicators.revenue.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽`}
+          icon="💰"
+          color="primary"
+        />
+        <MetricCard
+          title="Себестоимость"
+          value={`${indicators.cost_of_goods.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽`}
+          icon="📦"
+          color="info"
+        />
+        <MetricCard
+          title="Расходы"
+          value={`${indicators.expenses.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽`}
+          icon="💸"
+          color="warning"
+        />
+        <MetricCard
+          title="Валовая прибыль"
+          value={`${indicators.gross_profit.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽`}
+          icon="📈"
+          color={isGrossProfitPositive ? 'success' : 'danger'}
+          subtitle={`Рентабельность: ${indicators.gross_margin}%`}
+        />
+        <MetricCard
+          title="Рентабельность валовой прибыли"
+          value={`${indicators.gross_margin}%`}
+          icon="📊"
+          color={indicators.gross_margin >= 0 ? 'success' : 'danger'}
+        />
+        <MetricCard
+          title="Чистая прибыль"
+          value={`${indicators.net_profit.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽`}
+          icon="💵"
+          color={isProfitPositive ? 'success' : 'danger'}
+          subtitle={`Рентабельность: ${indicators.net_margin}%`}
+        />
+        <MetricCard
+          title="Рентабельность чистой прибыли"
+          value={`${indicators.net_margin}%`}
+          icon="🎯"
+          color={indicators.net_margin >= 0 ? 'success' : 'danger'}
+        />
       </div>
 
       <div className="card">
