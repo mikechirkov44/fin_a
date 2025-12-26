@@ -197,5 +197,28 @@ export const dashboardService = {
   getDashboard: (params?: any) => apiService.get('/api/dashboard/', { params }),
 }
 
+export const auditService = {
+  getLogs: (params?: any) => apiService.get('/api/audit/logs', { params }),
+  getLogsByRecord: (recordId: number, tableName: string) => 
+    apiService.get(`/api/audit/logs/${recordId}`, { params: { table_name: tableName } }),
+  getStats: (params?: any) => apiService.get('/api/audit/stats', { params }),
+}
+
+export const budgetService = {
+  getBudgets: (params?: any) => apiService.get('/api/budget/', { params }),
+  createBudget: (data: any) => apiService.post('/api/budget/', data),
+  updateBudget: (id: number, data: any) => apiService.put(`/api/budget/${id}`, data),
+  deleteBudget: (id: number) => apiService.delete(`/api/budget/${id}`),
+  getComparison: (params?: any) => apiService.get('/api/budget/comparison', { params }),
+}
+
+export const notificationService = {
+  getNotifications: (params?: any) => apiService.get('/api/notifications/', { params }),
+  getUnreadCount: () => apiService.get('/api/notifications/unread-count'),
+  markAsRead: (id: number) => apiService.put(`/api/notifications/${id}/read`),
+  markAllAsRead: () => apiService.put('/api/notifications/read-all'),
+  deleteNotification: (id: number) => apiService.delete(`/api/notifications/${id}`),
+}
+
 export default apiService
 

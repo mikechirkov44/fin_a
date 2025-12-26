@@ -1,5 +1,5 @@
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session
 from datetime import date
 from app.database import get_db
@@ -7,6 +7,7 @@ from app.models.user import User
 from app.models.input1 import MoneyMovement
 from app.schemas.input1 import MoneyMovementCreate, MoneyMovementResponse
 from app.auth.security import get_current_user
+from app.utils.audit_logger import log_create, log_update, log_delete
 
 router = APIRouter()
 
@@ -38,6 +39,7 @@ def get_money_movements(
 @router.post("/", response_model=MoneyMovementResponse)
 def create_money_movement(
     movement: MoneyMovementCreate,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -51,12 +53,20 @@ def create_money_movement(
     db.add(db_movement)
     db.commit()
     db.refresh(db_movement)
+    
+    # Логирование создания
+    ip_address = request.client.host if request.client else None
+    log_create(db, db_movement, current_user.id, 
+               description=f"Создано движение денег: {movement.movement_type}, сумма: {movement.amount}",
+               ip_address=ip_address)
+    
     return db_movement
 
 @router.put("/{movement_id}", response_model=MoneyMovementResponse)
 def update_money_movement(
     movement_id: int,
     movement: MoneyMovementCreate,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -69,21 +79,40 @@ def update_money_movement(
     if movement.movement_type == "expense" and not movement.expense_item_id:
         raise HTTPException(status_code=400, detail="Expense item is required for expense movement")
     
+    # Сохраняем старые значения для логирования
+    from app.utils.audit_logger import model_to_dict
+    old_values = model_to_dict(db_movement)
+    
     for key, value in movement.dict().items():
         setattr(db_movement, key, value)
     db.commit()
     db.refresh(db_movement)
+    
+    # Логирование обновления
+    ip_address = request.client.host if request.client else None
+    log_update(db, db_movement, current_user.id, old_values=old_values,
+               description=f"Обновлено движение денег ID: {movement_id}",
+               ip_address=ip_address)
+    
     return db_movement
 
 @router.delete("/{movement_id}")
 def delete_money_movement(
     movement_id: int,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     db_movement = db.query(MoneyMovement).filter(MoneyMovement.id == movement_id).first()
     if not db_movement:
         raise HTTPException(status_code=404, detail="Money movement not found")
+    
+    # Логирование удаления (до удаления из БД)
+    ip_address = request.client.host if request.client else None
+    log_delete(db, db_movement, current_user.id,
+               description=f"Удалено движение денег ID: {movement_id}",
+               ip_address=ip_address)
+    
     db.delete(db_movement)
     db.commit()
     return {"message": "Money movement deleted"}

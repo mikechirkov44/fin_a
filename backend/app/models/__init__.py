@@ -11,6 +11,9 @@ from .realization import Realization
 from .shipment import Shipment
 from .product import Product
 from .marketplace_integration import MarketplaceIntegration
+from .audit import AuditLog
+from .budget import Budget
+from .notification import Notification
 
 __all__ = [
     "User",
@@ -30,5 +33,8 @@ __all__ = [
     "Shipment",
     "Product",
     "MarketplaceIntegration",
+    "AuditLog",
+    "Budget",
+    "Notification",
 ]
 

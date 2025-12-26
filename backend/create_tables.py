@@ -10,7 +10,7 @@ from app.models import (
     PaymentPlace, Company, Marketplace,
     ExpenseCategory, SalesChannel,
     MoneyMovement, Asset, Liability, Realization, Shipment, Product,
-    MarketplaceIntegration
+    MarketplaceIntegration, AuditLog, Budget, Notification
 )
 
 def create_tables():

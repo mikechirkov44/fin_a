@@ -18,6 +18,8 @@ import Realization from './pages/Realization'
 import Shipment from './pages/Shipment'
 import Products from './pages/Products'
 import MarketplaceIntegration from './pages/MarketplaceIntegration'
+import AuditLog from './pages/AuditLog'
+import Budget from './pages/Budget'
 
 function App() {
   return (
@@ -49,6 +51,8 @@ function App() {
             <Route path="shipment" element={<Shipment />} />
             <Route path="products" element={<Products />} />
             <Route path="marketplace-integration" element={<MarketplaceIntegration />} />
+            <Route path="audit-log" element={<AuditLog />} />
+            <Route path="budget" element={<Budget />} />
           </Route>
         </Routes>
       </Router>

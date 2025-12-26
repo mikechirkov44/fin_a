@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { useCompany } from '../contexts/CompanyContext'
 import { useTheme } from '../contexts/ThemeContext'
 import { useState, useEffect } from 'react'
+import Notifications from './Notifications'
 import './Layout.css'
 
 interface MenuItem {
@@ -57,6 +58,8 @@ const Layout = () => {
     },
     { path: '/reference', label: 'Предприятие', icon: '🏢' },
     { path: '/marketplace-integration', label: 'Интеграции', icon: '🔌' },
+    { path: '/budget', label: 'Бюджетирование', icon: '📈' },
+    { path: '/audit-log', label: 'История изменений', icon: '📋' },
   ]
 
   const toggleExpanded = (path: string) => {
@@ -88,6 +91,8 @@ const Layout = () => {
     '/products': 'Товарные запасы',
     '/reference': 'Предприятие',
     '/marketplace-integration': 'Интеграции с маркетплейсами',
+    '/budget': 'Бюджетирование',
+    '/audit-log': 'История изменений',
   }
 
   const getPageTitle = () => {
@@ -102,6 +107,7 @@ const Layout = () => {
           <div className="app-title">Финансовый анализ предприятия</div>
         </div>
         <div className="top-bar-right" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <Notifications />
           <button 
             className="theme-toggle" 
             onClick={toggleTheme}
