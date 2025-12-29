@@ -108,11 +108,6 @@ export const referenceService = {
   createCompany: (data: any) => apiService.post('/api/reference/companies', data),
   updateCompany: (id: number, data: any) => apiService.put(`/api/reference/companies/${id}`, data),
   deleteCompany: (id: number) => apiService.delete(`/api/reference/companies/${id}`),
-  // Marketplaces
-  getMarketplaces: () => apiService.get('/api/reference/marketplaces'),
-  createMarketplace: (data: any) => apiService.post('/api/reference/marketplaces', data),
-  updateMarketplace: (id: number, data: any) => apiService.put(`/api/reference/marketplaces/${id}`, data),
-  deleteMarketplace: (id: number) => apiService.delete(`/api/reference/marketplaces/${id}`),
   // Expense Categories
   getExpenseCategories: () => apiService.get('/api/reference/expense-categories'),
   createExpenseCategory: (data: any) => apiService.post('/api/reference/expense-categories', data),

@@ -4,16 +4,18 @@ import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
 import { useConfirm } from '../contexts/ConfirmContext'
 import FormField from '../components/FormField'
+import Modal from '../components/Modal'
 import Tooltip from '../components/Tooltip'
 import LoadingSpinner from '../components/LoadingSpinner'
 import EmptyState from '../components/EmptyState'
 import { useFormValidation } from '../hooks/useFormValidation'
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
+import { format } from 'date-fns'
 
 const Inventory = () => {
   const { selectedCompanyId, canWrite } = useAuth()
   const { showSuccess, showError } = useToast()
-  const confirm = useConfirm()
+  const { confirm } = useConfirm()
   const [inventory, setInventory] = useState<any[]>([])
   const [products, setProducts] = useState<any[]>([])
   const [warehouses, setWarehouses] = useState<any[]>([])
@@ -23,21 +25,39 @@ const Inventory = () => {
   const [loading, setLoading] = useState(true)
   
   const transactionValidation = useFormValidation({
-    product_id: { required: true, custom: (value) => value === 0 ? 'Выберите товар' : null },
-    warehouse_id: { required: true, custom: (value) => value === 0 ? 'Выберите склад' : null },
+    product_id: { required: true, custom: (value) => !value ? 'Выберите товар' : null },
+    warehouse_id: { required: true, custom: (value) => !value ? 'Выберите склад' : null },
     quantity: { required: true, min: 0 },
     cost_price: { required: true, min: 0 },
     date: { required: true },
   })
   const [transactionFormData, setTransactionFormData] = useState({
     transaction_type: 'INCOME',
-    product_id: 0,
-    warehouse_id: 0,
+    product_id: '',
+    warehouse_id: '',
     quantity: '',
     cost_price: '',
-    date: new Date().toISOString().split('T')[0],
+    date: format(new Date(), 'yyyy-MM-dd'),
     description: '',
   })
+
+  const resetTransactionForm = () => {
+    setTransactionFormData({
+      transaction_type: 'INCOME',
+      product_id: '',
+      warehouse_id: '',
+      quantity: '',
+      cost_price: '',
+      date: format(new Date(), 'yyyy-MM-dd'),
+      description: '',
+    })
+    transactionValidation.clearAllErrors()
+  }
+
+  const handleTransactionClose = () => {
+    setShowTransactionForm(false)
+    resetTransactionForm()
+  }
 
   useEffect(() => {
     if (selectedCompanyId) {
@@ -111,20 +131,12 @@ const Inventory = () => {
     try {
       await inventoryService.createTransaction({
         ...transactionFormData,
+        product_id: parseInt(String(transactionFormData.product_id)),
+        warehouse_id: parseInt(String(transactionFormData.warehouse_id)),
         quantity: parseFloat(transactionFormData.quantity),
         cost_price: parseFloat(transactionFormData.cost_price),
       })
-      setShowTransactionForm(false)
-      setTransactionFormData({
-        transaction_type: 'INCOME',
-        product_id: 0,
-        warehouse_id: 0,
-        quantity: '',
-        cost_price: '',
-        date: new Date().toISOString().split('T')[0],
-        description: '',
-      })
-      transactionValidation.clearAllErrors()
+      handleTransactionClose()
       showSuccess('Транзакция успешно создана')
       loadInventory()
       loadTransactions()
@@ -164,6 +176,30 @@ const Inventory = () => {
     }
   }, [activeTab, selectedCompanyId])
 
+  // Горячие клавиши
+  useKeyboardShortcuts([
+    {
+      key: 'n',
+      ctrl: true,
+      action: () => {
+        if (!showTransactionForm && canWrite(selectedCompanyId)) {
+          setShowTransactionForm(true)
+          resetTransactionForm()
+        }
+      },
+      description: 'Создать новую транзакцию',
+    },
+    {
+      key: 'Escape',
+      action: () => {
+        if (showTransactionForm) {
+          handleTransactionClose()
+        }
+      },
+      description: 'Закрыть форму',
+    },
+  ])
+
   if (!selectedCompanyId) {
     return (
       <div className="card" style={{ padding: '20px', backgroundColor: '#fff3cd' }}>
@@ -177,7 +213,10 @@ const Inventory = () => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
         <h2>Управление остатками товаров</h2>
         {canWrite(selectedCompanyId) && (
-          <button onClick={() => setShowTransactionForm(true)}>
+          <button onClick={() => {
+            setShowTransactionForm(true)
+            resetTransactionForm()
+          }} className="primary">
             Создать транзакцию
           </button>
         )}
@@ -224,104 +263,113 @@ const Inventory = () => {
         </button>
       </div>
 
-      {showTransactionForm && (
-        <div className="card" style={{ marginBottom: '20px' }}>
-          <div className="card-header">Создать транзакцию</div>
-          <form onSubmit={handleTransactionSubmit} style={{ padding: '20px' }}>
-            <div style={{ marginBottom: '15px' }}>
-              <label>Тип транзакции:</label>
+      <Modal
+        isOpen={showTransactionForm}
+        onClose={handleTransactionClose}
+        title="Создать транзакцию"
+        maxWidth="800px"
+      >
+        <form onSubmit={handleTransactionSubmit}>
+          <div className="form-row">
+            <FormField label="Тип транзакции" required>
               <select
                 value={transactionFormData.transaction_type}
-                onChange={(e) => setTransactionFormData({ ...transactionFormData, transaction_type: e.target.value })}
-                required
-                style={{ width: '100%', padding: '8px', marginTop: '5px' }}
+                onChange={(e) => {
+                  setTransactionFormData({ ...transactionFormData, transaction_type: e.target.value })
+                }}
               >
                 <option value="INCOME">Приход</option>
                 <option value="OUTCOME">Расход</option>
                 <option value="ADJUSTMENT">Корректировка</option>
               </select>
-            </div>
-            <div style={{ marginBottom: '15px' }}>
-              <label>Товар:</label>
+            </FormField>
+            <FormField label="Дата" required error={transactionValidation.errors.date}>
+              <input
+                type="date"
+                value={transactionFormData.date}
+                onChange={(e) => {
+                  setTransactionFormData({ ...transactionFormData, date: e.target.value })
+                  transactionValidation.clearError('date')
+                }}
+              />
+            </FormField>
+          </div>
+          <div className="form-row">
+            <FormField label="Товар" required error={transactionValidation.errors.product_id}>
               <select
                 value={transactionFormData.product_id}
-                onChange={(e) => setTransactionFormData({ ...transactionFormData, product_id: parseInt(e.target.value, 10) })}
-                required
-                style={{ width: '100%', padding: '8px', marginTop: '5px' }}
+                onChange={(e) => {
+                  setTransactionFormData({ ...transactionFormData, product_id: e.target.value })
+                  transactionValidation.clearError('product_id')
+                }}
               >
-                <option value="0">Выберите товар</option>
+                <option value="">Выберите товар</option>
                 {products.map(product => (
                   <option key={product.id} value={product.id}>
                     {product.name} ({product.sku})
                   </option>
                 ))}
               </select>
-            </div>
-            <div style={{ marginBottom: '15px' }}>
-              <label>Склад:</label>
+            </FormField>
+            <FormField label="Склад" required error={transactionValidation.errors.warehouse_id}>
               <select
                 value={transactionFormData.warehouse_id}
-                onChange={(e) => setTransactionFormData({ ...transactionFormData, warehouse_id: parseInt(e.target.value, 10) })}
-                required
-                style={{ width: '100%', padding: '8px', marginTop: '5px' }}
+                onChange={(e) => {
+                  setTransactionFormData({ ...transactionFormData, warehouse_id: e.target.value })
+                  transactionValidation.clearError('warehouse_id')
+                }}
               >
-                <option value="0">Выберите склад</option>
+                <option value="">Выберите склад</option>
                 {warehouses.map(warehouse => (
                   <option key={warehouse.id} value={warehouse.id}>
                     {warehouse.name}
                   </option>
                 ))}
               </select>
-            </div>
-            <div style={{ marginBottom: '15px' }}>
-              <label>Количество:</label>
+            </FormField>
+          </div>
+          <div className="form-row">
+            <FormField label="Количество" required error={transactionValidation.errors.quantity}>
               <input
                 type="number"
                 step="0.001"
+                min="0"
                 value={transactionFormData.quantity}
-                onChange={(e) => setTransactionFormData({ ...transactionFormData, quantity: e.target.value })}
-                required
-                style={{ width: '100%', padding: '8px', marginTop: '5px' }}
+                onChange={(e) => {
+                  setTransactionFormData({ ...transactionFormData, quantity: e.target.value })
+                  transactionValidation.clearError('quantity')
+                }}
               />
-            </div>
-            <div style={{ marginBottom: '15px' }}>
-              <label>Себестоимость (за единицу):</label>
+            </FormField>
+            <FormField label="Себестоимость (за единицу)" required error={transactionValidation.errors.cost_price}>
               <input
                 type="number"
                 step="0.01"
+                min="0"
                 value={transactionFormData.cost_price}
-                onChange={(e) => setTransactionFormData({ ...transactionFormData, cost_price: e.target.value })}
-                required
-                style={{ width: '100%', padding: '8px', marginTop: '5px' }}
+                onChange={(e) => {
+                  setTransactionFormData({ ...transactionFormData, cost_price: e.target.value })
+                  transactionValidation.clearError('cost_price')
+                }}
               />
-            </div>
-            <div style={{ marginBottom: '15px' }}>
-              <label>Дата:</label>
-              <input
-                type="date"
-                value={transactionFormData.date}
-                onChange={(e) => setTransactionFormData({ ...transactionFormData, date: e.target.value })}
-                required
-                style={{ width: '100%', padding: '8px', marginTop: '5px' }}
-              />
-            </div>
-            <div style={{ marginBottom: '15px' }}>
-              <label>Описание:</label>
-              <textarea
-                value={transactionFormData.description}
-                onChange={(e) => setTransactionFormData({ ...transactionFormData, description: e.target.value })}
-                style={{ width: '100%', padding: '8px', marginTop: '5px', minHeight: '80px' }}
-              />
-            </div>
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <button type="submit">Создать</button>
-              <button type="button" onClick={() => setShowTransactionForm(false)}>
-                Отмена
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
+            </FormField>
+          </div>
+          <FormField label="Описание">
+            <textarea
+              value={transactionFormData.description}
+              onChange={(e) => setTransactionFormData({ ...transactionFormData, description: e.target.value })}
+            />
+          </FormField>
+          <div style={{ display: 'flex', gap: '12px', marginTop: '20px', justifyContent: 'flex-end' }}>
+            <button type="button" onClick={handleTransactionClose}>
+              Отмена
+            </button>
+            <button type="submit" className="primary">
+              Создать
+            </button>
+          </div>
+        </form>
+      </Modal>
 
       {activeTab === 'inventory' && (
         <div className="card">

@@ -17,7 +17,7 @@ import { format } from 'date-fns'
 const Input2 = () => {
   const { selectedCompanyId, companies } = useAuth()
   const { showSuccess, showError } = useToast()
-  const confirm = useConfirm()
+  const { confirm } = useConfirm()
   const [activeTab, setActiveTab] = useState<'assets' | 'liabilities'>('assets')
   const [assets, setAssets] = useState<any[]>([])
   const [liabilities, setLiabilities] = useState<any[]>([])

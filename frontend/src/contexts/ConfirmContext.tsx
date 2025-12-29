@@ -32,6 +32,7 @@ export const ConfirmProvider = ({ children }: { children: ReactNode }) => {
 
   const confirm = useCallback((options: ConfirmOptions): Promise<boolean> => {
     return new Promise((resolve) => {
+      console.log('ConfirmDialog: открытие диалога', options)
       setDialog({
         isOpen: true,
         options,
@@ -42,6 +43,7 @@ export const ConfirmProvider = ({ children }: { children: ReactNode }) => {
 
   const handleConfirm = () => {
     if (dialog) {
+      console.log('ConfirmDialog: подтверждение')
       dialog.resolve(true)
       setDialog(null)
     }
@@ -49,6 +51,7 @@ export const ConfirmProvider = ({ children }: { children: ReactNode }) => {
 
   const handleCancel = () => {
     if (dialog) {
+      console.log('ConfirmDialog: отмена')
       dialog.resolve(false)
       setDialog(null)
     }

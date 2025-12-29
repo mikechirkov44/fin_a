@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import './ConfirmDialog.css'
 
 interface ConfirmDialogProps {
@@ -24,22 +25,28 @@ const ConfirmDialog = ({
 }: ConfirmDialogProps) => {
   useEffect(() => {
     if (isOpen) {
+      // Блокируем прокрутку фона
+      document.body.style.overflow = 'hidden'
+      
       const handleEscape = (e: KeyboardEvent) => {
         if (e.key === 'Escape') {
           onCancel()
         }
       }
       document.addEventListener('keydown', handleEscape)
-      return () => document.removeEventListener('keydown', handleEscape)
+      
+      return () => {
+        document.body.style.overflow = ''
+        document.removeEventListener('keydown', handleEscape)
+      }
     }
   }, [isOpen, onCancel])
 
   if (!isOpen) return null
 
-  return (
-    <>
-      <div className="confirm-dialog-overlay" onClick={onCancel} />
-      <div className={`confirm-dialog confirm-dialog-${type}`}>
+  const dialogContent = (
+    <div className="confirm-dialog-overlay" onClick={onCancel}>
+      <div className={`confirm-dialog confirm-dialog-${type}`} onClick={(e) => e.stopPropagation()}>
         <div className="confirm-dialog-header">
           <div className="confirm-dialog-icon">
             {type === 'danger' && '⚠️'}
@@ -63,8 +70,10 @@ const ConfirmDialog = ({
           </button>
         </div>
       </div>
-    </>
+    </div>
   )
+
+  return createPortal(dialogContent, document.body)
 }
 
 export default ConfirmDialog

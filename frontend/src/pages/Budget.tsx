@@ -17,7 +17,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
 const Budget = () => {
   const { selectedCompanyId, companies } = useAuth()
   const { showSuccess, showError } = useToast()
-  const confirm = useConfirm()
+  const { confirm } = useConfirm()
   const [budgets, setBudgets] = useState<any[]>([])
   const [comparison, setComparison] = useState<any[]>([])
   const [incomeItems, setIncomeItems] = useState<any[]>([])

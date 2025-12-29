@@ -28,7 +28,7 @@ const Shipment = () => {
   const debouncedSearchQuery = useDebounce(searchQuery, 300)
   const [filterCompanyId, setFilterCompanyId] = useState<string>('')
   const [products, setProducts] = useState<any[]>([])
-  const [marketplaces, setMarketplaces] = useState<any[]>([])
+  const [salesChannels, setSalesChannels] = useState<any[]>([])
   const [showForm, setShowForm] = useState(false)
   const [editingItem, setEditingItem] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -39,7 +39,7 @@ const Shipment = () => {
     date: { required: true },
     company_id: { required: true },
     product_id: { required: true },
-    marketplace_id: { required: true },
+    sales_channel_id: { required: true },
     quantity: { required: true, min: 0 },
     cost_price: { required: true, min: 0 },
   })
@@ -47,7 +47,7 @@ const Shipment = () => {
     date: format(new Date(), 'yyyy-MM-dd'),
     company_id: selectedCompanyId || '',
     product_id: '',
-    marketplace_id: '',
+    sales_channel_id: '',
     quantity: '',
     cost_price: '',
     description: '',
@@ -62,7 +62,7 @@ const Shipment = () => {
 
   useEffect(() => {
     loadProducts()
-    loadMarketplaces()
+    loadSalesChannels()
   }, [])
   
   useEffect(() => {
@@ -85,12 +85,12 @@ const Shipment = () => {
     }
   }, [showForm, editingItem, hasDraft])
 
-  const loadMarketplaces = async () => {
+  const loadSalesChannels = async () => {
     try {
-      const data = await referenceService.getMarketplaces()
-      setMarketplaces(data)
+      const data = await referenceService.getSalesChannels()
+      setSalesChannels(data)
     } catch (error) {
-      console.error('Error loading marketplaces:', error)
+      console.error('Error loading sales channels:', error)
     }
   }
 
@@ -148,10 +148,10 @@ const Shipment = () => {
       getValue: (item) => getProductName(item.product_id),
     },
     {
-      key: 'marketplace',
-      label: 'Маркетплейс',
+      key: 'sales_channel',
+      label: 'Канал продаж',
       sortable: true,
-      getValue: (item) => marketplaces.find(m => m.id === item.marketplace_id)?.name || '',
+      getValue: (item) => salesChannels.find(sc => sc.id === item.sales_channel_id)?.name || '',
     },
     {
       key: 'quantity',
@@ -177,7 +177,7 @@ const Shipment = () => {
       sortable: true,
       getValue: (item) => item.description || '',
     },
-  ], [marketplaces, companies, products])
+  ], [salesChannels, companies, products])
 
   // Фильтрация данных
   const filteredData = useMemo(() => {
@@ -186,19 +186,19 @@ const Shipment = () => {
     const query = debouncedSearchQuery.toLowerCase().trim()
     return shipments.filter((shipment) => {
       const productName = getProductName(shipment.product_id)?.toLowerCase() || ''
-      const marketplace = marketplaces.find(m => m.id === shipment.marketplace_id)
+      const salesChannel = salesChannels.find(sc => sc.id === shipment.sales_channel_id)
       const companyName = getCompanyName(shipment.company_id)?.toLowerCase() || ''
       return (
         shipment.date?.toLowerCase().includes(query) ||
         productName.includes(query) ||
-        marketplace?.name?.toLowerCase().includes(query) ||
+        salesChannel?.name?.toLowerCase().includes(query) ||
         companyName.includes(query) ||
         shipment.quantity?.toString().includes(query) ||
         shipment.cost_price?.toString().includes(query) ||
         shipment.description?.toLowerCase().includes(query)
       )
     })
-  }, [shipments, debouncedSearchQuery, marketplaces, products, companies])
+  }, [shipments, debouncedSearchQuery, salesChannels, products, companies])
 
   // Использование хука useTableData
   const {
@@ -239,13 +239,13 @@ const Shipment = () => {
     
     try {
       const companyId = parseInt(String(formData.company_id))
-      const marketplaceId = parseInt(String(formData.marketplace_id))
+      const salesChannelId = parseInt(String(formData.sales_channel_id))
       
       const submitData = {
         date: formData.date,
         company_id: companyId,
         product_id: formData.product_id ? parseInt(String(formData.product_id)) : null,
-        marketplace_id: marketplaceId,
+        sales_channel_id: salesChannelId,
         quantity: parseInt(String(formData.quantity)),
         cost_price: parseFloat(String(formData.cost_price)),
         description: formData.description || null,
@@ -271,7 +271,7 @@ const Shipment = () => {
       date: format(new Date(), 'yyyy-MM-dd'),
       company_id: selectedCompanyId || '',
       product_id: '',
-      marketplace_id: '',
+      sales_channel_id: '',
       quantity: '',
       cost_price: '',
       description: '',
@@ -291,7 +291,7 @@ const Shipment = () => {
       date: item.date,
       company_id: item.company_id?.toString() || selectedCompanyId || '',
       product_id: item.product_id?.toString() || '',
-      marketplace_id: item.marketplace_id?.toString() || '',
+      sales_channel_id: item.sales_channel_id?.toString() || '',
       quantity: item.quantity.toString(),
       cost_price: item.cost_price.toString(),
       description: item.description || '',
@@ -410,17 +410,17 @@ const Shipment = () => {
                   ))}
                 </select>
               </FormField>
-              <FormField label="Маркетплейс" required error={validation.errors.marketplace_id}>
+              <FormField label="Канал продаж" required error={validation.errors.sales_channel_id}>
                 <select
-                  value={formData.marketplace_id}
+                  value={formData.sales_channel_id}
                   onChange={(e) => {
-                    setFormData({ ...formData, marketplace_id: e.target.value })
-                    validation.clearError('marketplace_id')
+                    setFormData({ ...formData, sales_channel_id: e.target.value })
+                    validation.clearError('sales_channel_id')
                   }}
                 >
                   <option value="">Выберите...</option>
-                  {marketplaces.filter(m => m.is_active).map(marketplace => (
-                    <option key={marketplace.id} value={marketplace.id}>{marketplace.name}</option>
+                  {salesChannels.filter(sc => sc.is_active).map(channel => (
+                    <option key={channel.id} value={channel.id}>{channel.name}</option>
                   ))}
                 </select>
               </FormField>
@@ -629,7 +629,7 @@ const Shipment = () => {
                       <td>{shipment.date}</td>
                       <td>{getCompanyName(shipment.company_id)}</td>
                       <td>{getProductName(shipment.product_id)}</td>
-                      <td>{marketplaces.find(m => m.id === shipment.marketplace_id)?.name || '-'}</td>
+                      <td>{salesChannels.find(sc => sc.id === shipment.sales_channel_id)?.name || '-'}</td>
                       <td className="text-right">{shipment.quantity}</td>
                       <td className="text-right">{parseFloat(shipment.cost_price).toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽</td>
                       <td className="text-right">{total.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽</td>

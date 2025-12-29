@@ -14,7 +14,7 @@ import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
 const Warehouses = () => {
   const { selectedCompanyId, canWrite } = useAuth()
   const { showSuccess, showError } = useToast()
-  const confirm = useConfirm()
+  const { confirm } = useConfirm()
   const [warehouses, setWarehouses] = useState<any[]>([])
   const [companies, setCompanies] = useState<any[]>([])
   const [showForm, setShowForm] = useState(false)

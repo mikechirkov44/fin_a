@@ -4,17 +4,16 @@ import { useToast } from '../contexts/ToastContext'
 import { useConfirm } from '../contexts/ConfirmContext'
 import Modal from '../components/Modal'
 
-type TabType = 'income' | 'expense' | 'payment' | 'company' | 'marketplace' | 'incomeGroup' | 'expenseGroup' | 'expenseCategory' | 'salesChannel' | 'product'
+type TabType = 'income' | 'expense' | 'payment' | 'company' | 'incomeGroup' | 'expenseGroup' | 'expenseCategory' | 'salesChannel' | 'product'
 
 const Reference = () => {
   const { showSuccess, showError } = useToast()
-  const confirm = useConfirm()
+  const { confirm } = useConfirm()
   const [activeTab, setActiveTab] = useState<TabType>('income')
   const [incomeItems, setIncomeItems] = useState<any[]>([])
   const [expenseItems, setExpenseItems] = useState<any[]>([])
   const [paymentPlaces, setPaymentPlaces] = useState<any[]>([])
   const [companies, setCompanies] = useState<any[]>([])
-  const [marketplaces, setMarketplaces] = useState<any[]>([])
   const [incomeGroups, setIncomeGroups] = useState<any[]>([])
   const [expenseGroups, setExpenseGroups] = useState<any[]>([])
   const [expenseCategories, setExpenseCategories] = useState<any[]>([])
@@ -24,7 +23,6 @@ const Reference = () => {
   const [allExpenseItems, setAllExpenseItems] = useState<any[]>([])
   const [allPaymentPlaces, setAllPaymentPlaces] = useState<any[]>([])
   const [allCompanies, setAllCompanies] = useState<any[]>([])
-  const [allMarketplaces, setAllMarketplaces] = useState<any[]>([])
   const [allIncomeGroups, setAllIncomeGroups] = useState<any[]>([])
   const [allExpenseGroups, setAllExpenseGroups] = useState<any[]>([])
   const [allExpenseCategories, setAllExpenseCategories] = useState<any[]>([])
@@ -85,10 +83,6 @@ const Reference = () => {
         const data = await referenceService.getCompanies()
         setAllCompanies(data)
         setCompanies(data)
-      } else if (activeTab === 'marketplace') {
-        const data = await referenceService.getMarketplaces()
-        setAllMarketplaces(data)
-        setMarketplaces(data)
       } else if (activeTab === 'incomeGroup') {
         const data = await referenceService.getIncomeGroups()
         setAllIncomeGroups(data)
@@ -125,7 +119,6 @@ const Reference = () => {
     else if (activeTab === 'expense') filtered = [...allExpenseItems]
     else if (activeTab === 'payment') filtered = [...allPaymentPlaces]
     else if (activeTab === 'company') filtered = [...allCompanies]
-    else if (activeTab === 'marketplace') filtered = [...allMarketplaces]
     else if (activeTab === 'incomeGroup') filtered = [...allIncomeGroups]
     else if (activeTab === 'expenseGroup') filtered = [...allExpenseGroups]
     else if (activeTab === 'expenseCategory') filtered = [...allExpenseCategories]
@@ -215,13 +208,12 @@ const Reference = () => {
     else if (activeTab === 'expense') setExpenseItems(filtered)
     else if (activeTab === 'payment') setPaymentPlaces(filtered)
     else if (activeTab === 'company') setCompanies(filtered)
-    else if (activeTab === 'marketplace') setMarketplaces(filtered)
     else if (activeTab === 'incomeGroup') setIncomeGroups(filtered)
     else if (activeTab === 'expenseGroup') setExpenseGroups(filtered)
     else if (activeTab === 'expenseCategory') setExpenseCategories(filtered)
     else if (activeTab === 'salesChannel') setSalesChannels(filtered)
     else if (activeTab === 'product') setProducts(filtered)
-  }, [searchQuery, activeTab, allIncomeItems, allExpenseItems, allPaymentPlaces, allCompanies, allMarketplaces, allIncomeGroups, allExpenseGroups, allExpenseCategories, allSalesChannels, allProducts, sortColumn, sortDirection, allIncomeGroups, allExpenseGroups])
+  }, [searchQuery, activeTab, allIncomeItems, allExpenseItems, allPaymentPlaces, allCompanies, allIncomeGroups, allExpenseGroups, allExpenseCategories, allSalesChannels, allProducts, sortColumn, sortDirection, allIncomeGroups, allExpenseGroups])
 
   const handleSort = (column: string) => {
     if (sortColumn === column) {
@@ -281,12 +273,6 @@ const Reference = () => {
           await referenceService.updateCompany(editingItem.id, submitData)
         } else {
           await referenceService.createCompany(submitData)
-        }
-      } else if (activeTab === 'marketplace') {
-        if (editingItem) {
-          await referenceService.updateMarketplace(editingItem.id, submitData)
-        } else {
-          await referenceService.createMarketplace(submitData)
         }
       } else if (activeTab === 'incomeGroup') {
         if (editingItem) {
@@ -361,7 +347,6 @@ const Reference = () => {
       else if (activeTab === 'expense') await referenceService.deleteExpenseItem(id)
       else if (activeTab === 'payment') await referenceService.deletePaymentPlace(id)
       else if (activeTab === 'company') await referenceService.deleteCompany(id)
-      else if (activeTab === 'marketplace') await referenceService.deleteMarketplace(id)
       else if (activeTab === 'incomeGroup') await referenceService.deleteIncomeGroup(id)
       else if (activeTab === 'expenseGroup') await referenceService.deleteExpenseGroup(id)
       else if (activeTab === 'expenseCategory') await referenceService.deleteExpenseCategory(id)
@@ -379,7 +364,6 @@ const Reference = () => {
     if (activeTab === 'expense') return expenseItems
     if (activeTab === 'payment') return paymentPlaces
     if (activeTab === 'company') return companies
-    if (activeTab === 'marketplace') return marketplaces
     if (activeTab === 'incomeGroup') return incomeGroups
     if (activeTab === 'expenseGroup') return expenseGroups
     if (activeTab === 'expenseCategory') return expenseCategories
@@ -393,7 +377,6 @@ const Reference = () => {
     if (activeTab === 'expense') return 'Статьи расходов'
     if (activeTab === 'payment') return 'Места оплаты'
     if (activeTab === 'company') return 'Компании'
-    if (activeTab === 'marketplace') return 'Маркетплейсы'
     if (activeTab === 'incomeGroup') return 'Группы статей доходов'
     if (activeTab === 'expenseGroup') return 'Группы статей расходов'
     if (activeTab === 'expenseCategory') return 'Категории расходов'
@@ -449,12 +432,6 @@ const Reference = () => {
           className={activeTab === 'company' ? 'primary' : ''}
         >
           Компании
-        </button>
-        <button
-          onClick={() => { setActiveTab('marketplace'); setShowForm(false); setEditingItem(null) }}
-          className={activeTab === 'marketplace' ? 'primary' : ''}
-        >
-          Маркетплейсы
         </button>
         <button
           onClick={() => { setActiveTab('salesChannel'); setShowForm(false); setEditingItem(null) }}

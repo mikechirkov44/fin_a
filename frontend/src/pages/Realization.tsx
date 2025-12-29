@@ -31,11 +31,11 @@ const Realization = () => {
   const validation = useFormValidation({
     date: { required: true },
     company_id: { required: true },
-    marketplace_id: { required: true },
+    sales_channel_id: { required: true },
   })
   const [realizations, setRealizations] = useState<any[]>([])
   const [totalCount, setTotalCount] = useState(0)
-  const [marketplaces, setMarketplaces] = useState<any[]>([])
+  const [salesChannels, setSalesChannels] = useState<any[]>([])
   const [products, setProducts] = useState<any[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const debouncedSearchQuery = useDebounce(searchQuery, 300)
@@ -49,7 +49,7 @@ const Realization = () => {
   const [formData, setFormData] = useState({
     date: format(new Date(), 'yyyy-MM-dd'),
     company_id: selectedCompanyId || '',
-    marketplace_id: '',
+    sales_channel_id: '',
     description: '',
     items: [] as RealizationItem[],
   })
@@ -63,7 +63,7 @@ const Realization = () => {
 
   useEffect(() => {
     loadData()
-    loadMarketplaces()
+    loadSalesChannels()
     loadProducts()
   }, [])
 
@@ -83,12 +83,12 @@ const Realization = () => {
     }
   }, [showForm, editingItem, hasDraft])
 
-  const loadMarketplaces = async () => {
+  const loadSalesChannels = async () => {
     try {
-      const data = await referenceService.getMarketplaces()
-      setMarketplaces(data)
+      const data = await referenceService.getSalesChannels()
+      setSalesChannels(data)
     } catch (error) {
-      console.error('Error loading marketplaces:', error)
+      console.error('Error loading sales channels:', error)
     }
   }
 
@@ -147,10 +147,10 @@ const Realization = () => {
       getValue: (item) => getCompanyName(item.company_id),
     },
     {
-      key: 'marketplace',
-      label: 'Маркетплейс',
+      key: 'sales_channel',
+      label: 'Канал продаж',
       sortable: true,
-      getValue: (item) => marketplaces.find(m => m.id === item.marketplace_id)?.name || '',
+      getValue: (item) => salesChannels.find(sc => sc.id === item.sales_channel_id)?.name || '',
     },
     {
       key: 'revenue',
@@ -170,7 +170,7 @@ const Realization = () => {
       sortable: true,
       getValue: (item) => item.description || '',
     },
-  ], [marketplaces, companies])
+  ], [salesChannels, companies])
 
   // Фильтрация данных
   const filteredData = useMemo(() => {
@@ -178,7 +178,7 @@ const Realization = () => {
     
     const query = debouncedSearchQuery.toLowerCase().trim()
     return realizations.filter((realization) => {
-      const marketplace = marketplaces.find(m => m.id === realization.marketplace_id)
+      const salesChannel = salesChannels.find(sc => sc.id === realization.sales_channel_id)
       const companyName = getCompanyName(realization.company_id)?.toLowerCase() || ''
       const itemsMatch = (realization.items || []).some((item: any) => {
         const productName = products.find(p => p.id === item.product_id)?.name?.toLowerCase() || ''
@@ -186,7 +186,7 @@ const Realization = () => {
       })
       return (
         realization.date?.toLowerCase().includes(query) ||
-        marketplace?.name?.toLowerCase().includes(query) ||
+        salesChannel?.name?.toLowerCase().includes(query) ||
         companyName.includes(query) ||
         realization.revenue?.toString().includes(query) ||
         realization.quantity?.toString().includes(query) ||
@@ -194,7 +194,7 @@ const Realization = () => {
         itemsMatch
       )
     })
-  }, [realizations, debouncedSearchQuery, marketplaces, products, companies])
+  }, [realizations, debouncedSearchQuery, salesChannels, products, companies])
 
   // Использование хука useTableData
   const {
@@ -248,12 +248,12 @@ const Realization = () => {
     
     try {
       const companyId = parseInt(String(formData.company_id))
-      const marketplaceId = parseInt(String(formData.marketplace_id))
+      const salesChannelId = parseInt(String(formData.sales_channel_id))
       
       const submitData = {
         date: formData.date,
         company_id: companyId,
-        marketplace_id: marketplaceId,
+        sales_channel_id: salesChannelId,
         description: formData.description || null,
         items: formData.items.map(item => ({
           product_id: parseInt(item.product_id),
@@ -282,7 +282,7 @@ const Realization = () => {
     setFormData({
       date: format(new Date(), 'yyyy-MM-dd'),
       company_id: selectedCompanyId || '',
-      marketplace_id: '',
+      sales_channel_id: '',
       description: '',
       items: [],
     })
@@ -344,7 +344,7 @@ const Realization = () => {
     setFormData({
       date: item.date,
       company_id: item.company_id?.toString() || selectedCompanyId || '',
-      marketplace_id: item.marketplace_id?.toString() || '',
+      sales_channel_id: item.sales_channel_id?.toString() || '',
       description: item.description || '',
       items: (item.items || []).map((i: any) => ({
         product_id: i.product_id?.toString() || '',
@@ -428,17 +428,17 @@ const Realization = () => {
                 ))}
               </select>
             </FormField>
-            <FormField label="Маркетплейс" required error={validation.errors.marketplace_id}>
+            <FormField label="Канал продаж" required error={validation.errors.sales_channel_id}>
               <select
-                value={formData.marketplace_id}
+                value={formData.sales_channel_id}
                 onChange={(e) => {
-                  setFormData({ ...formData, marketplace_id: e.target.value })
-                  validation.clearError('marketplace_id')
+                  setFormData({ ...formData, sales_channel_id: e.target.value })
+                  validation.clearError('sales_channel_id')
                 }}
               >
                 <option value="">Выберите...</option>
-                {marketplaces.filter(m => m.is_active).map(marketplace => (
-                  <option key={marketplace.id} value={marketplace.id}>{marketplace.name}</option>
+                {salesChannels.filter(sc => sc.is_active).map(channel => (
+                  <option key={channel.id} value={channel.id}>{channel.name}</option>
                 ))}
               </select>
             </FormField>
@@ -691,7 +691,7 @@ const Realization = () => {
                     </td>
                     <td>{realization.date}</td>
                     <td>{getCompanyName(realization.company_id)}</td>
-                    <td>{marketplaces.find(m => m.id === realization.marketplace_id)?.name || '-'}</td>
+                    <td>{salesChannels.find(sc => sc.id === realization.sales_channel_id)?.name || '-'}</td>
                     <td className="text-right">{parseFloat(realization.revenue).toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽</td>
                     <td className="text-right">
                       {realization.quantity}

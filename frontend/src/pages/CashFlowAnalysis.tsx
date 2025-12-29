@@ -3,6 +3,7 @@ import { cashFlowAnalysisService } from '../services/api'
 import { format, subMonths } from 'date-fns'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import { useAuth } from '../contexts/AuthContext'
+import './AnalysisInsights.css'
 
 const CashFlowAnalysis = () => {
   const { companies } = useAuth()
@@ -363,6 +364,66 @@ const CashFlowAnalysis = () => {
           </ResponsiveContainer>
         </div>
       </div>
+
+      {/* Выводы и рекомендации */}
+      {(report.insights && report.insights.length > 0) || (report.recommendations && report.recommendations.length > 0) ? (
+        <div className="insights-container">
+          {report.insights && report.insights.length > 0 && (
+            <div className="insights-card insights">
+              <div className="insights-header insights">
+                <span className="insights-header-icon">📊</span>
+                <span>Выводы по цифрам</span>
+              </div>
+              <div className="insights-content">
+                <ul className="insights-list">
+                  {report.insights.map((insight: string, index: number) => {
+                    // Определяем тип вывода по содержимому
+                    let insightType = 'info'
+                    if (insight.includes('🔴') || insight.includes('отрицательная') || insight.includes('убыточен') || insight.includes('Критическая')) {
+                      insightType = 'critical'
+                    } else if (insight.includes('⚠️') || insight.includes('Низкая') || insight.includes('Высокая')) {
+                      insightType = 'warning'
+                    } else if (insight.includes('✅') || insight.includes('Хорошая') || insight.includes('положительная')) {
+                      insightType = 'success'
+                    } else if (insight.includes('⭐') || insight.includes('Наиболее')) {
+                      insightType = 'highlight'
+                    }
+                    
+                    return (
+                      <li key={index} className={insightType}>
+                        {insight}
+                      </li>
+                    )
+                  })}
+                </ul>
+              </div>
+            </div>
+          )}
+          
+          {report.recommendations && report.recommendations.length > 0 && (
+            <div className="insights-card recommendations">
+              <div className="insights-header recommendations">
+                <span className="insights-header-icon">💡</span>
+                <span>Рекомендации</span>
+              </div>
+              <div className="insights-content">
+                <ol className="recommendations-list">
+                  {report.recommendations.map((recommendation: string, index: number) => {
+                    // Определяем критичность рекомендации
+                    const isCritical = recommendation.includes('Критическая') || recommendation.includes('Срочно')
+                    
+                    return (
+                      <li key={index} className={isCritical ? 'critical' : ''}>
+                        {recommendation}
+                      </li>
+                    )
+                  })}
+                </ol>
+              </div>
+            </div>
+          )}
+        </div>
+      ) : null}
     </div>
   )
 }

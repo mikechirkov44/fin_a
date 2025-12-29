@@ -26,6 +26,7 @@ import Users from './pages/Users'
 import Warehouses from './pages/Warehouses'
 import Inventory from './pages/Inventory'
 import Settings from './pages/Settings'
+import Help from './pages/Help'
 
 function App() {
   return (
@@ -65,6 +66,7 @@ function App() {
                     <Route path="warehouses" element={<Warehouses />} />
                     <Route path="inventory" element={<Inventory />} />
                     <Route path="settings" element={<Settings />} />
+                    <Route path="help" element={<Help />} />
                   </Route>
                 </Routes>
               </Router>

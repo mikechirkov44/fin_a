@@ -14,7 +14,7 @@ import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
 
 const Products = () => {
   const { showSuccess, showError } = useToast()
-  const confirm = useConfirm()
+  const { confirm } = useConfirm()
   const [products, setProducts] = useState<any[]>([])
   const [allProducts, setAllProducts] = useState<any[]>([])
   const [searchQuery, setSearchQuery] = useState('')

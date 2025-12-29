@@ -9,7 +9,7 @@ import { format, subDays } from 'date-fns'
 const MarketplaceIntegration = () => {
   const { selectedCompanyId, companies } = useAuth()
   const { showSuccess, showError } = useToast()
-  const confirm = useConfirm()
+  const { confirm } = useConfirm()
   const [integrations, setIntegrations] = useState<any[]>([])
   const [showForm, setShowForm] = useState(false)
   const [editingIntegration, setEditingIntegration] = useState<any>(null)

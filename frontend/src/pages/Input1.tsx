@@ -22,7 +22,7 @@ import { format } from 'date-fns'
 const Input1 = () => {
   const { selectedCompanyId, companies } = useAuth()
   const { showSuccess, showError } = useToast()
-  const confirm = useConfirm()
+  const { confirm } = useConfirm()
   const [movements, setMovements] = useState<any[]>([])
   const [totalCount, setTotalCount] = useState(0)
   const [searchQuery, setSearchQuery] = useState('')
