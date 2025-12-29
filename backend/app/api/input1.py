@@ -1,17 +1,18 @@
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Body
 from sqlalchemy.orm import Session
 from datetime import date
 from app.database import get_db
 from app.models.user import User
 from app.models.input1 import MoneyMovement
 from app.schemas.input1 import MoneyMovementCreate, MoneyMovementResponse
+from app.schemas.common import PaginatedResponse
 from app.auth.security import get_current_user
 from app.utils.audit_logger import log_create, log_update, log_delete
 
 router = APIRouter()
 
-@router.get("/", response_model=List[MoneyMovementResponse])
+@router.get("/", response_model=PaginatedResponse[MoneyMovementResponse])
 def get_money_movements(
     skip: int = 0,
     limit: int = 100,
@@ -33,8 +34,18 @@ def get_money_movements(
     if company_id:
         query = query.filter(MoneyMovement.company_id == company_id)
     
+    # Получаем общее количество записей
+    total = query.count()
+    
+    # Получаем данные с пагинацией
     movements = query.order_by(MoneyMovement.date.desc()).offset(skip).limit(limit).all()
-    return movements
+    
+    return {
+        "items": movements,
+        "total": total,
+        "skip": skip,
+        "limit": limit
+    }
 
 @router.post("/", response_model=MoneyMovementResponse)
 def create_money_movement(
@@ -116,4 +127,31 @@ def delete_money_movement(
     db.delete(db_movement)
     db.commit()
     return {"message": "Money movement deleted"}
+
+@router.post("/delete-multiple")
+def delete_multiple_movements(
+    request: Request,
+    ids: List[int] = Body(..., embed=True),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Групповое удаление движений денег"""
+    if not ids:
+        raise HTTPException(status_code=400, detail="No IDs provided")
+    
+    # Логирование удаления для каждой записи
+    ip_address = request.client.host if request.client else None
+    movements = db.query(MoneyMovement).filter(MoneyMovement.id.in_(ids)).all()
+    for movement in movements:
+        log_delete(db, movement, current_user.id,
+                  description=f"Групповое удаление движения денег ID: {movement.id}",
+                  ip_address=ip_address)
+    
+    deleted_count = db.query(MoneyMovement).filter(MoneyMovement.id.in_(ids)).delete(synchronize_session=False)
+    db.commit()
+    
+    return {
+        "message": f"Deleted {deleted_count} movement(s)",
+        "deleted_count": deleted_count
+    }
 

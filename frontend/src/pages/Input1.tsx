@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { input1Service, referenceService } from '../services/api'
 import { exportService, importService } from '../services/exportService'
 import { useAuth } from '../contexts/AuthContext'
@@ -7,11 +7,15 @@ import { useConfirm } from '../contexts/ConfirmContext'
 import FormField from '../components/FormField'
 import Modal from '../components/Modal'
 import Pagination from '../components/Pagination'
+import BulkActions from '../components/BulkActions'
 import Tooltip from '../components/Tooltip'
 import LoadingSpinner from '../components/LoadingSpinner'
 import EmptyState from '../components/EmptyState'
 import SkeletonLoader from '../components/SkeletonLoader'
 import { useFormValidation } from '../hooks/useFormValidation'
+import { useDebounce } from '../hooks/useDebounce'
+import { useTableData, TableColumn } from '../hooks/useTableData'
+import { useDraftSave } from '../hooks/useDraftSave'
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
 import { format } from 'date-fns'
 
@@ -20,16 +24,15 @@ const Input1 = () => {
   const { showSuccess, showError } = useToast()
   const confirm = useConfirm()
   const [movements, setMovements] = useState<any[]>([])
-  const [allMovements, setAllMovements] = useState<any[]>([])
+  const [totalCount, setTotalCount] = useState(0)
   const [searchQuery, setSearchQuery] = useState('')
+  const debouncedSearchQuery = useDebounce(searchQuery, 300)
   const [filterCompanyId, setFilterCompanyId] = useState<string>('')
   const [incomeItems, setIncomeItems] = useState<any[]>([])
   const [expenseItems, setExpenseItems] = useState<any[]>([])
   const [paymentPlaces, setPaymentPlaces] = useState<any[]>([])
   const [showForm, setShowForm] = useState(false)
   const [editingItem, setEditingItem] = useState<any>(null)
-  const [sortColumn, setSortColumn] = useState<string | null>(null)
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
   const [loading, setLoading] = useState(true)
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(25)
@@ -67,23 +70,56 @@ const Input1 = () => {
     description: '',
     is_business: true,
   })
+  
+  // Автосохранение черновика
+  const { hasDraft, loadDraft, clearDraft } = useDraftSave(
+    'input1-draft',
+    showForm && !editingItem ? formData : null,
+    showForm && !editingItem
+  )
 
   useEffect(() => {
-    loadData()
     loadReferences()
   }, [])
+  
+  useEffect(() => {
+    loadData()
+  }, [currentPage, itemsPerPage, filterCompanyId])
 
   useEffect(() => {
     if (selectedCompanyId && !formData.company_id) {
       setFormData(prev => ({ ...prev, company_id: selectedCompanyId }))
     }
   }, [selectedCompanyId])
+  
+  // Восстановление черновика при открытии формы
+  useEffect(() => {
+    if (showForm && !editingItem && hasDraft) {
+      const draft = loadDraft()
+      if (draft) {
+        setFormData(draft)
+      }
+    }
+  }, [showForm, editingItem, hasDraft])
 
   const loadData = async () => {
     try {
       setLoading(true)
-      const data = await input1Service.getMovements({ limit: 1000 })
-      setAllMovements(data)
+      const skip = (currentPage - 1) * itemsPerPage
+      const response = await input1Service.getMovements({
+        skip,
+        limit: itemsPerPage,
+        company_id: filterCompanyId ? parseInt(filterCompanyId) : undefined,
+      })
+      
+      // Поддержка старого формата (массив) и нового (объект с items)
+      if (Array.isArray(response)) {
+        setMovements(response)
+        setTotalCount(response.length)
+      } else {
+        setMovements(response.items || [])
+        setTotalCount(response.total || 0)
+      }
     } catch (error) {
       console.error('Error loading movements:', error)
       showError('Ошибка загрузки движений')
@@ -247,8 +283,10 @@ const Input1 = () => {
         await input1Service.createMovement(submitData)
       }
       handleClose()
+      clearDraft()
       showSuccess(editingItem ? 'Движение успешно обновлено' : 'Движение успешно добавлено')
       loadData()
+      clearSelection()
     } catch (error: any) {
       showError(error.response?.data?.detail || 'Ошибка сохранения')
     }
@@ -304,9 +342,29 @@ const Input1 = () => {
       await input1Service.deleteMovement(id)
       showSuccess('Запись успешно удалена')
       loadData()
+      clearSelection()
     } catch (error: any) {
       showError(error.response?.data?.detail || 'Ошибка удаления записи')
     }
+  }
+  
+  const handleBulkDelete = async () => {
+    const ids = Array.from(selectedItems).map(id => Number(id))
+    if (ids.length === 0) return
+    
+    try {
+      await input1Service.deleteMultiple(ids)
+      showSuccess(`Удалено ${ids.length} ${ids.length === 1 ? 'запись' : 'записей'}`)
+      loadData()
+      clearSelection()
+    } catch (error: any) {
+      showError(error.response?.data?.detail || 'Ошибка группового удаления')
+    }
+  }
+  
+  const handleBulkExport = () => {
+    const selectedData = movements.filter(m => selectedItems.has(m.id))
+    exportService.exportMoneyMovements({ format: 'xlsx', data: selectedData })
   }
 
   // Горячие клавиши
@@ -334,17 +392,6 @@ const Input1 = () => {
     },
   ])
 
-  // Пагинация
-  const totalPages = Math.ceil(movements.length / itemsPerPage)
-  const startIndex = (currentPage - 1) * itemsPerPage
-  const endIndex = startIndex + itemsPerPage
-  const paginatedMovements = movements.slice(startIndex, endIndex)
-
-  useEffect(() => {
-    if (currentPage > totalPages && totalPages > 0) {
-      setCurrentPage(1)
-    }
-  }, [totalPages, currentPage])
 
   return (
     <div>
@@ -570,92 +617,59 @@ const Input1 = () => {
             )}
           </div>
         </div>
+        {selectedItems.size > 0 && (
+          <BulkActions
+            selectedCount={selectedItems.size}
+            onDelete={handleBulkDelete}
+            onExport={handleBulkExport}
+          />
+        )}
         <div className="table-container">
           <table>
             <thead>
               <tr>
-                <th 
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    handleSort('date')
-                  }} 
-                  style={{ cursor: 'pointer', userSelect: 'none' }}
-                >
-                  Дата {sortColumn === 'date' && (sortDirection === 'asc' ? '▲' : '▼')}
+                <th style={{ width: '40px' }}>
+                  <input
+                    type="checkbox"
+                    checked={isAllSelected}
+                    ref={(input) => {
+                      if (input) input.indeterminate = isSomeSelected
+                    }}
+                    onChange={toggleSelectAll}
+                    onClick={(e) => e.stopPropagation()}
+                  />
                 </th>
-              <th 
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handleSort('type')
-                }} 
-                style={{ cursor: 'pointer', userSelect: 'none' }}
-              >
-                Тип {sortColumn === 'type' && (sortDirection === 'asc' ? '▲' : '▼')}
-              </th>
-              <th 
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handleSort('item')
-                }} 
-                style={{ cursor: 'pointer', userSelect: 'none' }}
-              >
-                Статья {sortColumn === 'item' && (sortDirection === 'asc' ? '▲' : '▼')}
-              </th>
-              <th 
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handleSort('payment_place')
-                }} 
-                style={{ cursor: 'pointer', userSelect: 'none' }}
-              >
-                Место оплаты {sortColumn === 'payment_place' && (sortDirection === 'asc' ? '▲' : '▼')}
-              </th>
-              <th 
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handleSort('company')
-                }} 
-                style={{ cursor: 'pointer', userSelect: 'none' }}
-              >
-                Организация {sortColumn === 'company' && (sortDirection === 'asc' ? '▲' : '▼')}
-              </th>
-              <th 
-                className="text-right" 
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handleSort('amount')
-                }} 
-                style={{ cursor: 'pointer', userSelect: 'none' }}
-              >
-                Сумма {sortColumn === 'amount' && (sortDirection === 'asc' ? '▲' : '▼')}
-              </th>
-              <th 
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handleSort('is_business')
-                }} 
-                style={{ cursor: 'pointer', userSelect: 'none' }}
-              >
-                Бизнес {sortColumn === 'is_business' && (sortDirection === 'asc' ? '▲' : '▼')}
-              </th>
-              <th style={{ width: '100px' }}>Действия</th>
-            </tr>
-          </thead>
+                {columns.map((col) => (
+                  <th
+                    key={col.key}
+                    onClick={() => col.sortable && handleSort(col.key)}
+                    style={{
+                      cursor: col.sortable ? 'pointer' : 'default',
+                      userSelect: 'none',
+                      textAlign: col.key === 'amount' ? 'right' : 'left',
+                    }}
+                  >
+                    {col.label} {sortColumn === col.key && (sortDirection === 'asc' ? '▲' : '▼')}
+                  </th>
+                ))}
+                <th style={{ width: '100px' }}>Действия</th>
+              </tr>
+            </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={8}>
+                  <td colSpan={columns.length + 2}>
                     <LoadingSpinner message="Загрузка движений..." />
                   </td>
                 </tr>
-              ) : paginatedMovements.length === 0 ? (
+              ) : paginatedData.length === 0 ? (
                 <tr>
-                  <td colSpan={8}>
+                  <td colSpan={columns.length + 2}>
                     <EmptyState
                       icon="💰"
                       title="Нет движений"
-                      message={searchQuery ? 'Движения не найдены по вашему запросу' : 'Добавьте первое движение, чтобы начать работу'}
-                      action={!searchQuery ? {
+                      message={debouncedSearchQuery ? 'Движения не найдены по вашему запросу' : 'Добавьте первое движение, чтобы начать работу'}
+                      action={!debouncedSearchQuery ? {
                         label: 'Добавить движение',
                         onClick: () => { setShowForm(true); setEditingItem(null); resetForm() }
                       } : undefined}
@@ -663,24 +677,33 @@ const Input1 = () => {
                   </td>
                 </tr>
               ) : (
-                paginatedMovements.map((movement) => (
-                  <tr 
+                paginatedData.map((movement) => (
+                  <tr
                     key={movement.id}
-                    className="clickable"
+                    className={`clickable ${selectedItems.has(movement.id) ? 'selected' : ''}`}
                     onClick={() => handleEdit(movement)}
                   >
+                    <td onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        checked={selectedItems.has(movement.id)}
+                        onChange={() => toggleSelect(movement.id)}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    </td>
                     <td>{movement.date}</td>
                     <td>{movement.movement_type === 'income' ? 'Поступление' : 'Оплата'}</td>
+                    <td>{getCompanyName(movement.company_id)}</td>
                     <td>{getItemName(movement)}</td>
                     <td>{getPaymentPlaceName(movement.payment_place_id)}</td>
-                    <td>{getCompanyName(movement.company_id)}</td>
                     <td className="text-right">{parseFloat(movement.amount).toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽</td>
                     <td>{movement.is_business ? 'Да' : 'Нет'}</td>
+                    <td>{movement.description || '-'}</td>
                     <td onClick={(e) => e.stopPropagation()}>
                       <Tooltip content="Удалить движение">
-                        <button 
-                          onClick={() => handleDelete(movement.id)} 
-                          className="danger" 
+                        <button
+                          onClick={() => handleDelete(movement.id)}
+                          className="danger"
                           style={{ padding: '4px 6px', fontSize: '16px', lineHeight: '1', minWidth: 'auto' }}
                         >✕</button>
                       </Tooltip>
@@ -691,11 +714,11 @@ const Input1 = () => {
             </tbody>
           </table>
         </div>
-        {!loading && movements.length > 0 && (
+        {!loading && totalCount > 0 && (
           <Pagination
             currentPage={currentPage}
-            totalPages={totalPages}
-            totalItems={movements.length}
+            totalPages={Math.ceil(totalCount / itemsPerPage)}
+            totalItems={totalCount}
             itemsPerPage={itemsPerPage}
             onPageChange={setCurrentPage}
             onItemsPerPageChange={(newItemsPerPage) => {

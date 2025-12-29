@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { realizationService, referenceService, productsService } from '../services/api'
 import { exportService } from '../services/exportService'
 import { useAuth } from '../contexts/AuthContext'
@@ -6,7 +6,14 @@ import { useToast } from '../contexts/ToastContext'
 import { useConfirm } from '../contexts/ConfirmContext'
 import FormField from '../components/FormField'
 import Modal from '../components/Modal'
+import Pagination from '../components/Pagination'
+import BulkActions from '../components/BulkActions'
+import LoadingSpinner from '../components/LoadingSpinner'
+import EmptyState from '../components/EmptyState'
 import { useFormValidation } from '../hooks/useFormValidation'
+import { useDebounce } from '../hooks/useDebounce'
+import { useTableData, TableColumn } from '../hooks/useTableData'
+import { useDraftSave } from '../hooks/useDraftSave'
 import { format } from 'date-fns'
 
 interface RealizationItem {
@@ -27,15 +34,18 @@ const Realization = () => {
     marketplace_id: { required: true },
   })
   const [realizations, setRealizations] = useState<any[]>([])
-  const [allRealizations, setAllRealizations] = useState<any[]>([])
+  const [totalCount, setTotalCount] = useState(0)
   const [marketplaces, setMarketplaces] = useState<any[]>([])
   const [products, setProducts] = useState<any[]>([])
   const [searchQuery, setSearchQuery] = useState('')
+  const debouncedSearchQuery = useDebounce(searchQuery, 300)
   const [filterCompanyId, setFilterCompanyId] = useState<string>('')
   const [showForm, setShowForm] = useState(false)
   const [editingItem, setEditingItem] = useState<any>(null)
-  const [sortColumn, setSortColumn] = useState<string | null>(null)
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
+  const [loading, setLoading] = useState(true)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(25)
+  
   const [formData, setFormData] = useState({
     date: format(new Date(), 'yyyy-MM-dd'),
     company_id: selectedCompanyId || '',
@@ -43,6 +53,13 @@ const Realization = () => {
     description: '',
     items: [] as RealizationItem[],
   })
+  
+  // Автосохранение черновика
+  const { hasDraft, loadDraft, clearDraft } = useDraftSave(
+    'realization-draft',
+    showForm && !editingItem ? formData : null,
+    showForm && !editingItem
+  )
 
   useEffect(() => {
     loadData()
@@ -55,6 +72,16 @@ const Realization = () => {
       setFormData(prev => ({ ...prev, company_id: selectedCompanyId }))
     }
   }, [selectedCompanyId])
+  
+  // Восстановление черновика при открытии формы
+  useEffect(() => {
+    if (showForm && !editingItem && hasDraft) {
+      const draft = loadDraft()
+      if (draft) {
+        setFormData(draft)
+      }
+    }
+  }, [showForm, editingItem, hasDraft])
 
   const loadMarketplaces = async () => {
     try {
@@ -76,13 +103,33 @@ const Realization = () => {
 
   const loadData = async () => {
     try {
-      const data = await realizationService.getRealizations({ limit: 1000 })
-      setAllRealizations(data)
-      setRealizations(data)
+      setLoading(true)
+      const skip = (currentPage - 1) * itemsPerPage
+      const response = await realizationService.getRealizations({
+        skip,
+        limit: itemsPerPage,
+        company_id: filterCompanyId ? parseInt(filterCompanyId) : undefined,
+      })
+      
+      // Поддержка старого формата (массив) и нового (объект с items)
+      if (Array.isArray(response)) {
+        setRealizations(response)
+        setTotalCount(response.length)
+      } else {
+        setRealizations(response.items || [])
+        setTotalCount(response.total || 0)
+      }
     } catch (error) {
       console.error('Error loading realizations:', error)
+      showError('Ошибка загрузки реализаций')
+    } finally {
+      setLoading(false)
     }
   }
+  
+  useEffect(() => {
+    loadData()
+  }, [currentPage, itemsPerPage, filterCompanyId])
 
   const getCompanyName = (id: number | null) => {
     if (!id) return '-'
@@ -90,105 +137,84 @@ const Realization = () => {
     return company?.name || '-'
   }
 
-  // Сортировка данных
-  const sortData = (data: any[], column: string | null, direction: 'asc' | 'desc') => {
-    if (!column) return data
+  // Определение колонок для таблицы
+  const columns: TableColumn<any>[] = useMemo(() => [
+    { key: 'date', label: 'Дата', sortable: true },
+    {
+      key: 'company',
+      label: 'Организация',
+      sortable: true,
+      getValue: (item) => getCompanyName(item.company_id),
+    },
+    {
+      key: 'marketplace',
+      label: 'Маркетплейс',
+      sortable: true,
+      getValue: (item) => marketplaces.find(m => m.id === item.marketplace_id)?.name || '',
+    },
+    {
+      key: 'revenue',
+      label: 'Выручка',
+      sortable: true,
+      getValue: (item) => parseFloat(item.revenue) || 0,
+    },
+    {
+      key: 'quantity',
+      label: 'Количество',
+      sortable: true,
+      getValue: (item) => parseInt(item.quantity) || 0,
+    },
+    {
+      key: 'description',
+      label: 'Описание',
+      sortable: true,
+      getValue: (item) => item.description || '',
+    },
+  ], [marketplaces, companies])
 
-    const sorted = [...data].sort((a, b) => {
-      let aVal: any
-      let bVal: any
-
-      switch (column) {
-        case 'date':
-          aVal = a.date || ''
-          bVal = b.date || ''
-          break
-        case 'company':
-          aVal = getCompanyName(a.company_id)
-          bVal = getCompanyName(b.company_id)
-          break
-        case 'marketplace':
-          const aMarketplace = marketplaces.find(m => m.id === a.marketplace_id)?.name || ''
-          const bMarketplace = marketplaces.find(m => m.id === b.marketplace_id)?.name || ''
-          aVal = aMarketplace
-          bVal = bMarketplace
-          break
-        case 'revenue':
-          aVal = parseFloat(a.revenue) || 0
-          bVal = parseFloat(b.revenue) || 0
-          break
-        case 'quantity':
-          aVal = parseInt(a.quantity) || 0
-          bVal = parseInt(b.quantity) || 0
-          break
-        case 'description':
-          aVal = a.description || ''
-          bVal = b.description || ''
-          break
-        default:
-          return 0
-      }
-
-      if (typeof aVal === 'number' && typeof bVal === 'number') {
-        return direction === 'asc' ? aVal - bVal : bVal - aVal
-      } else {
-        const aStr = String(aVal).toLowerCase()
-        const bStr = String(bVal).toLowerCase()
-        if (direction === 'asc') {
-          return aStr.localeCompare(bStr, 'ru')
-        } else {
-          return bStr.localeCompare(aStr, 'ru')
-        }
-      }
-    })
-
-    return sorted
-  }
-
-  // Фильтрация и сортировка по поисковому запросу
-  useEffect(() => {
-    let filtered = allRealizations
-
-    // Фильтрация по организации
-    if (filterCompanyId) {
-      const companyIdNum = parseInt(filterCompanyId)
-      filtered = filtered.filter((realization) => realization.company_id === companyIdNum)
-    }
-
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase().trim()
-      filtered = filtered.filter((realization) => {
-        const marketplace = marketplaces.find(m => m.id === realization.marketplace_id)
-        const companyName = getCompanyName(realization.company_id)?.toLowerCase() || ''
-        // Поиск по товарам
-        const itemsMatch = (realization.items || []).some((item: any) => {
-          const productName = products.find(p => p.id === item.product_id)?.name?.toLowerCase() || ''
-          return productName.includes(query)
-        })
-        return (
-          realization.date?.toLowerCase().includes(query) ||
-          marketplace?.name?.toLowerCase().includes(query) ||
-          companyName.includes(query) ||
-          realization.revenue?.toString().includes(query) ||
-          realization.quantity?.toString().includes(query) ||
-          realization.description?.toLowerCase().includes(query) ||
-          itemsMatch
-        )
+  // Фильтрация данных
+  const filteredData = useMemo(() => {
+    if (!debouncedSearchQuery.trim()) return realizations
+    
+    const query = debouncedSearchQuery.toLowerCase().trim()
+    return realizations.filter((realization) => {
+      const marketplace = marketplaces.find(m => m.id === realization.marketplace_id)
+      const companyName = getCompanyName(realization.company_id)?.toLowerCase() || ''
+      const itemsMatch = (realization.items || []).some((item: any) => {
+        const productName = products.find(p => p.id === item.product_id)?.name?.toLowerCase() || ''
+        return productName.includes(query)
       })
-    }
+      return (
+        realization.date?.toLowerCase().includes(query) ||
+        marketplace?.name?.toLowerCase().includes(query) ||
+        companyName.includes(query) ||
+        realization.revenue?.toString().includes(query) ||
+        realization.quantity?.toString().includes(query) ||
+        realization.description?.toLowerCase().includes(query) ||
+        itemsMatch
+      )
+    })
+  }, [realizations, debouncedSearchQuery, marketplaces, products, companies])
 
-    const sorted = sortData(filtered, sortColumn, sortDirection)
-    setRealizations(sorted)
-  }, [searchQuery, filterCompanyId, allRealizations, marketplaces, companies, products, sortColumn, sortDirection])
-
-  const handleSort = (column: string) => {
-    if (sortColumn === column) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
-    } else {
-      setSortColumn(column)
-      setSortDirection('asc')
-    }
-  }
+  // Использование хука useTableData
+  const {
+    paginatedData,
+    sortColumn,
+    sortDirection,
+    handleSort,
+    selectedItems,
+    toggleSelect,
+    toggleSelectAll,
+    clearSelection,
+    isAllSelected,
+    isSomeSelected,
+  } = useTableData({
+    data: filteredData,
+    columns,
+    searchFields: ['date', 'description'],
+    searchValue: debouncedSearchQuery,
+    enablePagination: false, // Пагинация на backend
+  })
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -242,8 +268,10 @@ const Realization = () => {
         await realizationService.createRealization(submitData)
       }
       handleClose()
+      clearDraft()
       showSuccess(editingItem ? 'Реализация успешно обновлена' : 'Реализация успешно добавлена')
       loadData()
+      clearSelection()
     } catch (error: any) {
       console.error('Error saving:', error)
       showError(error.response?.data?.detail || 'Ошибка сохранения')
@@ -341,9 +369,30 @@ const Realization = () => {
       await realizationService.deleteRealization(id)
       showSuccess('Запись успешно удалена')
       loadData()
+      clearSelection()
     } catch (error: any) {
       showError(error.response?.data?.detail || 'Ошибка удаления записи')
     }
+  }
+  
+  const handleBulkDelete = async () => {
+    const ids = Array.from(selectedItems).map(id => Number(id))
+    if (ids.length === 0) return
+    
+    try {
+      await realizationService.deleteMultiple(ids)
+      showSuccess(`Удалено ${ids.length} ${ids.length === 1 ? 'запись' : 'записей'}`)
+      loadData()
+      clearSelection()
+    } catch (error: any) {
+      showError(error.response?.data?.detail || 'Ошибка группового удаления')
+    }
+  }
+  
+  const handleBulkExport = () => {
+    const selectedData = realizations.filter(r => selectedItems.has(r.id))
+    // Здесь можно добавить экспорт выбранных записей
+    exportService.exportRealizations({ format: 'xlsx', data: selectedData })
   }
 
   return (
@@ -566,88 +615,120 @@ const Realization = () => {
             )}
           </div>
         </div>
-        <table>
-          <thead>
-            <tr>
-              <th 
-                onClick={() => handleSort('date')} 
-                style={{ cursor: 'pointer', userSelect: 'none' }}
-              >
-                Дата {sortColumn === 'date' && (sortDirection === 'asc' ? '▲' : '▼')}
-              </th>
-              <th 
-                onClick={() => handleSort('company')} 
-                style={{ cursor: 'pointer', userSelect: 'none' }}
-              >
-                Организация {sortColumn === 'company' && (sortDirection === 'asc' ? '▲' : '▼')}
-              </th>
-              <th 
-                onClick={() => handleSort('marketplace')} 
-                style={{ cursor: 'pointer', userSelect: 'none' }}
-              >
-                Маркетплейс {sortColumn === 'marketplace' && (sortDirection === 'asc' ? '▲' : '▼')}
-              </th>
-              <th 
-                className="text-right" 
-                onClick={() => handleSort('revenue')} 
-                style={{ cursor: 'pointer', userSelect: 'none' }}
-              >
-                Выручка {sortColumn === 'revenue' && (sortDirection === 'asc' ? '▲' : '▼')}
-              </th>
-              <th 
-                className="text-right" 
-                onClick={() => handleSort('quantity')} 
-                style={{ cursor: 'pointer', userSelect: 'none' }}
-              >
-                Количество {sortColumn === 'quantity' && (sortDirection === 'asc' ? '▲' : '▼')}
-              </th>
-              <th 
-                onClick={() => handleSort('description')} 
-                style={{ cursor: 'pointer', userSelect: 'none' }}
-              >
-                Описание {sortColumn === 'description' && (sortDirection === 'asc' ? '▲' : '▼')}
-              </th>
-              <th style={{ width: '100px' }}>Действия</th>
-            </tr>
-          </thead>
-          <tbody>
-            {realizations.length === 0 ? (
+        {selectedItems.size > 0 && (
+          <BulkActions
+            selectedCount={selectedItems.size}
+            onDelete={handleBulkDelete}
+            onExport={handleBulkExport}
+          />
+        )}
+        <div className="table-container">
+          <table>
+            <thead>
               <tr>
-                <td colSpan={7} className="text-center">Нет данных</td>
+                <th style={{ width: '40px' }}>
+                  <input
+                    type="checkbox"
+                    checked={isAllSelected}
+                    ref={(input) => {
+                      if (input) input.indeterminate = isSomeSelected
+                    }}
+                    onChange={toggleSelectAll}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                </th>
+                {columns.map((col) => (
+                  <th
+                    key={col.key}
+                    onClick={() => col.sortable && handleSort(col.key)}
+                    style={{
+                      cursor: col.sortable ? 'pointer' : 'default',
+                      userSelect: 'none',
+                      textAlign: col.key === 'revenue' || col.key === 'quantity' ? 'right' : 'left',
+                    }}
+                  >
+                    {col.label} {sortColumn === col.key && (sortDirection === 'asc' ? '▲' : '▼')}
+                  </th>
+                ))}
+                <th style={{ width: '100px' }}>Действия</th>
               </tr>
-            ) : (
-              realizations.map((realization) => (
-                <tr 
-                  key={realization.id}
-                  className="clickable"
-                  onClick={() => handleEdit(realization)}
-                >
-                  <td>{realization.date}</td>
-                  <td>{getCompanyName(realization.company_id)}</td>
-                  <td>{marketplaces.find(m => m.id === realization.marketplace_id)?.name || '-'}</td>
-                  <td className="text-right">{parseFloat(realization.revenue).toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽</td>
-                  <td className="text-right">
-                    {realization.quantity}
-                    {(realization.items && realization.items.length > 0) && (
-                      <div style={{ fontSize: '11px', color: '#666', marginTop: '2px' }}>
-                        ({realization.items.length} {realization.items.length === 1 ? 'товар' : 'товаров'})
-                      </div>
-                    )}
-                  </td>
-                  <td>{realization.description || '-'}</td>
-                  <td onClick={(e) => e.stopPropagation()}>
-                    <button 
-                      onClick={() => handleDelete(realization.id)} 
-                      className="danger" 
-                      title="Удалить"
-                      style={{ padding: '4px 6px', fontSize: '16px', lineHeight: '1', minWidth: 'auto' }}
-                    >✕</button>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan={columns.length + 2}>
+                    <LoadingSpinner message="Загрузка реализаций..." />
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : paginatedData.length === 0 ? (
+                <tr>
+                  <td colSpan={columns.length + 2}>
+                    <EmptyState
+                      icon="📊"
+                      title="Нет реализаций"
+                      message={debouncedSearchQuery ? 'Реализации не найдены по вашему запросу' : 'Добавьте первую реализацию, чтобы начать работу'}
+                      action={!debouncedSearchQuery ? {
+                        label: 'Добавить реализацию',
+                        onClick: () => { setShowForm(true); setEditingItem(null); resetForm() }
+                      } : undefined}
+                    />
+                  </td>
+                </tr>
+              ) : (
+                paginatedData.map((realization) => (
+                  <tr
+                    key={realization.id}
+                    className={`clickable ${selectedItems.has(realization.id) ? 'selected' : ''}`}
+                    onClick={() => handleEdit(realization)}
+                  >
+                    <td onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        checked={selectedItems.has(realization.id)}
+                        onChange={() => toggleSelect(realization.id)}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    </td>
+                    <td>{realization.date}</td>
+                    <td>{getCompanyName(realization.company_id)}</td>
+                    <td>{marketplaces.find(m => m.id === realization.marketplace_id)?.name || '-'}</td>
+                    <td className="text-right">{parseFloat(realization.revenue).toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽</td>
+                    <td className="text-right">
+                      {realization.quantity}
+                      {(realization.items && realization.items.length > 0) && (
+                        <div style={{ fontSize: '11px', color: '#666', marginTop: '2px' }}>
+                          ({realization.items.length} {realization.items.length === 1 ? 'товар' : 'товаров'})
+                        </div>
+                      )}
+                    </td>
+                    <td>{realization.description || '-'}</td>
+                    <td onClick={(e) => e.stopPropagation()}>
+                      <button
+                        onClick={() => handleDelete(realization.id)}
+                        className="danger"
+                        title="Удалить"
+                        style={{ padding: '4px 6px', fontSize: '16px', lineHeight: '1', minWidth: 'auto' }}
+                      >✕</button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+        {!loading && totalCount > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={Math.ceil(totalCount / itemsPerPage)}
+            totalItems={totalCount}
+            itemsPerPage={itemsPerPage}
+            onPageChange={setCurrentPage}
+            onItemsPerPageChange={(newItemsPerPage) => {
+              setItemsPerPage(newItemsPerPage)
+              setCurrentPage(1)
+            }}
+          />
+        )}
       </div>
     </div>
   )

@@ -1,6 +1,7 @@
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Body
 from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import func
 from datetime import date
 from decimal import Decimal
 from app.database import get_db
@@ -8,6 +9,7 @@ from app.models.user import User
 from app.models.realization import Realization, RealizationItem
 from app.models.product import Product
 from app.schemas.realization import RealizationCreate, RealizationResponse, RealizationItemResponse
+from app.schemas.common import PaginatedResponse
 from app.auth.security import get_current_user
 
 router = APIRouter()
@@ -39,7 +41,7 @@ def build_realization_response(realization: Realization) -> dict:
         "items": items_data
     }
 
-@router.get("/", response_model=List[RealizationResponse])
+@router.get("/", response_model=PaginatedResponse[RealizationResponse])
 def get_realizations(
     skip: int = 0,
     limit: int = 100,
@@ -61,8 +63,18 @@ def get_realizations(
     if company_id:
         query = query.filter(Realization.company_id == company_id)
     
+    # Получаем общее количество записей
+    total = query.count()
+    
+    # Получаем данные с пагинацией
     realizations = query.order_by(Realization.date.desc()).offset(skip).limit(limit).all()
-    return [build_realization_response(r) for r in realizations]
+    
+    return {
+        "items": [build_realization_response(r) for r in realizations],
+        "total": total,
+        "skip": skip,
+        "limit": limit
+    }
 
 @router.post("/", response_model=RealizationResponse)
 def create_realization(
@@ -195,4 +207,22 @@ def delete_realization(
     db.delete(db_realization)
     db.commit()
     return {"message": "Realization deleted"}
+
+@router.post("/delete-multiple")
+def delete_multiple_realizations(
+    ids: List[int] = Body(..., embed=True),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Групповое удаление реализаций"""
+    if not ids:
+        raise HTTPException(status_code=400, detail="No IDs provided")
+    
+    deleted_count = db.query(Realization).filter(Realization.id.in_(ids)).delete(synchronize_session=False)
+    db.commit()
+    
+    return {
+        "message": f"Deleted {deleted_count} realization(s)",
+        "deleted_count": deleted_count
+    }
 

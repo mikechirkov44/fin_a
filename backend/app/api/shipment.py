@@ -1,16 +1,17 @@
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Body
 from sqlalchemy.orm import Session
 from datetime import date
 from app.database import get_db
 from app.models.user import User
 from app.models.shipment import Shipment
 from app.schemas.shipment import ShipmentCreate, ShipmentResponse
+from app.schemas.common import PaginatedResponse
 from app.auth.security import get_current_user
 
 router = APIRouter()
 
-@router.get("/", response_model=List[ShipmentResponse])
+@router.get("/", response_model=PaginatedResponse[ShipmentResponse])
 def get_shipments(
     skip: int = 0,
     limit: int = 100,
@@ -32,8 +33,18 @@ def get_shipments(
     if company_id:
         query = query.filter(Shipment.company_id == company_id)
     
+    # Получаем общее количество записей
+    total = query.count()
+    
+    # Получаем данные с пагинацией
     shipments = query.order_by(Shipment.date.desc()).offset(skip).limit(limit).all()
-    return shipments
+    
+    return {
+        "items": shipments,
+        "total": total,
+        "skip": skip,
+        "limit": limit
+    }
 
 @router.post("/", response_model=ShipmentResponse)
 def create_shipment(
@@ -75,4 +86,22 @@ def delete_shipment(
     db.delete(db_shipment)
     db.commit()
     return {"message": "Shipment deleted"}
+
+@router.post("/delete-multiple")
+def delete_multiple_shipments(
+    ids: List[int] = Body(..., embed=True),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Групповое удаление отгрузок"""
+    if not ids:
+        raise HTTPException(status_code=400, detail="No IDs provided")
+    
+    deleted_count = db.query(Shipment).filter(Shipment.id.in_(ids)).delete(synchronize_session=False)
+    db.commit()
+    
+    return {
+        "message": f"Deleted {deleted_count} shipment(s)",
+        "deleted_count": deleted_count
+    }
 

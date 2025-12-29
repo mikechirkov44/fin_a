@@ -252,6 +252,14 @@ table tr.clickable:active td {
   background-color: var(--hover-bg);
 }
 
+table tr.selected td {
+  background-color: var(--hover-bg-strong, #CCE5FF) !important;
+}
+
+table tr.clickable.selected:hover td {
+  background-color: var(--hover-bg-strong, #CCE5FF);
+}
+
 /* Кнопки */
 button {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;

@@ -1,6 +1,8 @@
 import axios, { AxiosInstance } from 'axios'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+// Используем относительные пути для работы через прокси Vite в разработке
+// В production можно использовать переменную окружения VITE_API_URL
+const API_URL = import.meta.env.VITE_API_URL || ''
 
 class ApiService {
   private client: AxiosInstance
@@ -128,6 +130,7 @@ export const input1Service = {
   createMovement: (data: any) => apiService.post('/api/input1/', data),
   updateMovement: (id: number, data: any) => apiService.put(`/api/input1/${id}`, data),
   deleteMovement: (id: number) => apiService.delete(`/api/input1/${id}`),
+  deleteMultiple: (ids: number[]) => apiService.post('/api/input1/delete-multiple', { ids }),
 }
 
 export const input2Service = {
@@ -177,6 +180,7 @@ export const realizationService = {
   createRealization: (data: any) => apiService.post('/api/realization/', data),
   updateRealization: (id: number, data: any) => apiService.put(`/api/realization/${id}`, data),
   deleteRealization: (id: number) => apiService.delete(`/api/realization/${id}`),
+  deleteMultiple: (ids: number[]) => apiService.post('/api/realization/delete-multiple', { ids }),
 }
 
 export const shipmentService = {
@@ -184,6 +188,7 @@ export const shipmentService = {
   createShipment: (data: any) => apiService.post('/api/shipment/', data),
   updateShipment: (id: number, data: any) => apiService.put(`/api/shipment/${id}`, data),
   deleteShipment: (id: number) => apiService.delete(`/api/shipment/${id}`),
+  deleteMultiple: (ids: number[]) => apiService.post('/api/shipment/delete-multiple', { ids }),
 }
 
 export const productsService = {
