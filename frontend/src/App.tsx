@@ -25,6 +25,7 @@ import Budget from './pages/Budget'
 import Users from './pages/Users'
 import Warehouses from './pages/Warehouses'
 import Inventory from './pages/Inventory'
+import Settings from './pages/Settings'
 
 function App() {
   return (
@@ -63,6 +64,7 @@ function App() {
                     <Route path="users" element={<Users />} />
                     <Route path="warehouses" element={<Warehouses />} />
                     <Route path="inventory" element={<Inventory />} />
+                    <Route path="settings" element={<Settings />} />
                   </Route>
                 </Routes>
               </Router>

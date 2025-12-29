@@ -17,7 +17,7 @@ interface MenuItem {
 
 const Layout = () => {
   const { user, logout, selectedCompanyId, setSelectedCompany, isAdmin } = useAuth()
-  const { theme, toggleTheme } = useTheme()
+  const { theme, toggleTheme, isDark } = useTheme()
   const location = useLocation()
   const [companies, setCompanies] = useState<any[]>([])
   
@@ -93,6 +93,7 @@ const Layout = () => {
     { path: '/marketplace-integration', label: 'Интеграции', icon: '🔌' },
     { path: '/budget', label: 'Бюджетирование', icon: '📈' },
     { path: '/audit-log', label: 'История изменений', icon: '📋' },
+    { path: '/settings', label: 'Настройки', icon: '⚙️' },
     ...(isAdmin ? [{ path: '/users', label: 'Пользователи', icon: '👥' }] : []),
   ]
 
@@ -129,6 +130,7 @@ const Layout = () => {
     '/marketplace-integration': 'Интеграции с маркетплейсами',
     '/budget': 'Бюджетирование',
     '/audit-log': 'История изменений',
+    '/settings': 'Настройки',
     '/users': 'Управление пользователями',
   }
 
@@ -148,9 +150,9 @@ const Layout = () => {
           <button 
             className="theme-toggle" 
             onClick={toggleTheme}
-            title={theme === 'light' ? 'Переключить на темную тему' : 'Переключить на светлую тему'}
+            title={isDark ? 'Переключить на светлую тему' : 'Переключить на темную тему'}
           >
-            {theme === 'light' ? '🌙' : '☀️'}
+            {isDark ? '☀️' : '🌙'}
           </button>
           {user && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginLeft: 'auto' }}>

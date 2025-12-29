@@ -47,8 +47,8 @@
 /* Боковая панель */
 .sidebar {
   width: 240px;
-  background-color: var(--bg-primary);
-  border-right: 1px solid var(--border-color-strong);
+  background-color: var(--sidebar-bg, var(--bg-secondary));
+  border-right: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
@@ -88,7 +88,10 @@
   background-position: right 10px center;
 }
 
-[data-theme="light"] .sidebar-company-select {
+[data-theme="light-1"] .sidebar-company-select,
+[data-theme="light-2"] .sidebar-company-select,
+[data-theme="light-4"] .sidebar-company-select,
+[data-theme="light-5"] .sidebar-company-select {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23333' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
 }
 
@@ -102,9 +105,9 @@
 
 .sidebar-company-select:focus {
   outline: none;
-  border-color: #4a90e2;
-  box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%234a90e2' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%233366FF' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
 }
 
 .sidebar-nav {
@@ -139,8 +142,11 @@
   transform: translateX(2px);
 }
 
-[data-theme="light"] .sidebar-item.active {
-  background: linear-gradient(90deg, #fff 0%, #f8f9ff 100%);
+[data-theme="light-1"] .sidebar-item.active,
+[data-theme="light-2"] .sidebar-item.active,
+[data-theme="light-4"] .sidebar-item.active,
+[data-theme="light-5"] .sidebar-item.active {
+  background: linear-gradient(90deg, var(--bg-secondary) 0%, var(--hover-bg) 100%);
 }
 
 [data-theme="dark"] .sidebar-item.active {
@@ -148,9 +154,9 @@
 }
 
 .sidebar-item.active {
-  border-left-color: #4a90e2;
+  border-left-color: var(--primary-color);
   font-weight: 600;
-  color: #4a90e2;
+  color: var(--primary-color);
   box-shadow: 0 2px 4px var(--shadow);
 }
 
@@ -174,9 +180,9 @@
 
 .sidebar-arrow {
   font-size: 16px;
-  color: #999;
+  color: var(--text-secondary);
   margin-left: 8px;
-  transition: transform 0.2s ease;
+  transition: transform 0.2s ease, color 0.2s ease;
 }
 
 .sidebar-arrow.expanded {
@@ -214,9 +220,9 @@
 
 .sidebar-submenu-item.active {
   background-color: var(--bg-secondary);
-  color: #4a90e2;
+  color: var(--primary-color);
   font-weight: 600;
-  border-left-color: #4a90e2;
+  border-left-color: var(--primary-color);
   box-shadow: 0 1px 3px var(--shadow);
 }
 
@@ -233,12 +239,13 @@
 
 .content-header {
   padding: 16px 24px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--header-gradient, linear-gradient(135deg, #3366FF 0%, #0033CC 100%));
   border-bottom: none;
   flex-shrink: 0;
   position: relative;
   z-index: 1;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: background 0.3s ease;
 }
 
 .page-title {
@@ -261,7 +268,10 @@
   transition: background-color 0.3s ease;
 }
 
-[data-theme="light"] .content-body {
+[data-theme="light-1"] .content-body,
+[data-theme="light-2"] .content-body,
+[data-theme="light-4"] .content-body,
+[data-theme="light-5"] .content-body {
   scrollbar-color: #c0c0c0 #fff;
 }
 
@@ -273,7 +283,10 @@
   width: 12px;
 }
 
-[data-theme="light"] .content-body::-webkit-scrollbar-track {
+[data-theme="light-1"] .content-body::-webkit-scrollbar-track,
+[data-theme="light-2"] .content-body::-webkit-scrollbar-track,
+[data-theme="light-4"] .content-body::-webkit-scrollbar-track,
+[data-theme="light-5"] .content-body::-webkit-scrollbar-track {
   background: #f5f5f5;
 }
 
@@ -285,7 +298,10 @@
   border-radius: 6px;
 }
 
-[data-theme="light"] .content-body::-webkit-scrollbar-thumb {
+[data-theme="light-1"] .content-body::-webkit-scrollbar-thumb,
+[data-theme="light-2"] .content-body::-webkit-scrollbar-thumb,
+[data-theme="light-4"] .content-body::-webkit-scrollbar-thumb,
+[data-theme="light-5"] .content-body::-webkit-scrollbar-thumb {
   background: #c0c0c0;
 }
 

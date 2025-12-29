@@ -30,6 +30,7 @@ const Breadcrumbs = () => {
       'audit-log': 'История изменений',
       users: 'Пользователи',
       shipment: 'Отгрузка',
+      settings: 'Настройки',
     }
     return labels[path] || path
   }
