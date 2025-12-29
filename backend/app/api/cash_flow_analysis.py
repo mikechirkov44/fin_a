@@ -90,9 +90,12 @@ def get_cash_flow_analysis(
             MoneyMovement.movement_type == "expense",
             MoneyMovement.date >= start_date,
             MoneyMovement.date <= end_date,
-            MoneyMovement.is_business == True,
-            MoneyMovement.expense_item_id.in_(production_expense_ids) if production_expense_ids else True
+            MoneyMovement.is_business == True
         )
+        if production_expense_ids:
+            direct_production_costs_query = direct_production_costs_query.filter(
+                MoneyMovement.expense_item_id.in_(production_expense_ids)
+            )
         if company_id:
             direct_production_costs_query = direct_production_costs_query.filter(MoneyMovement.company_id == company_id)
         direct_production_costs = direct_production_costs_query.scalar() or 0
@@ -108,12 +111,6 @@ def get_cash_flow_analysis(
             if company_id:
                 all_expenses_query = all_expenses_query.filter(MoneyMovement.company_id == company_id)
             direct_production_costs = all_expenses_query.scalar() or 0
-        
-        # Маржинальный доход по каналам (вычисляется в channels_data)
-        total_marginal_income = sum(ch["marginal_income"] for ch in channels_data)
-        
-        # Валовая прибыль (маржинальный доход - прямые производственные расходы)
-        gross_profit = total_marginal_income - float(direct_production_costs)
         
         # Косвенные расходы (административные + коммерческие)
         # Административные расходы
@@ -131,9 +128,12 @@ def get_cash_flow_analysis(
             MoneyMovement.movement_type == "expense",
             MoneyMovement.date >= start_date,
             MoneyMovement.date <= end_date,
-            MoneyMovement.is_business == True,
-            MoneyMovement.expense_item_id.in_(admin_expense_ids) if admin_expense_ids else True
+            MoneyMovement.is_business == True
         )
+        if admin_expense_ids:
+            administrative_expenses_query = administrative_expenses_query.filter(
+                MoneyMovement.expense_item_id.in_(admin_expense_ids)
+            )
         if company_id:
             administrative_expenses_query = administrative_expenses_query.filter(MoneyMovement.company_id == company_id)
         administrative_expenses = administrative_expenses_query.scalar() or 0
@@ -152,9 +152,12 @@ def get_cash_flow_analysis(
             MoneyMovement.movement_type == "expense",
             MoneyMovement.date >= start_date,
             MoneyMovement.date <= end_date,
-            MoneyMovement.is_business == True,
-            MoneyMovement.expense_item_id.in_(commercial_expense_ids) if commercial_expense_ids else True
+            MoneyMovement.is_business == True
         )
+        if commercial_expense_ids:
+            commercial_expenses_query = commercial_expenses_query.filter(
+                MoneyMovement.expense_item_id.in_(commercial_expense_ids)
+            )
         if company_id:
             commercial_expenses_query = commercial_expenses_query.filter(MoneyMovement.company_id == company_id)
         commercial_expenses = commercial_expenses_query.scalar() or 0
@@ -174,9 +177,6 @@ def get_cash_flow_analysis(
             commercial_expenses = float(all_expenses) * 0.5
         
         total_indirect_expenses = float(administrative_expenses) + float(commercial_expenses)
-        
-        # Операционная прибыль (EBITDA)
-        operating_profit = gross_profit - total_indirect_expenses
         
         # Общая выручка
         total_revenue = sum(revenue_by_channel.values())
@@ -199,6 +199,15 @@ def get_cash_flow_analysis(
                 "marginal_income": marginal,
                 "marginal_margin": round(margin, 2)
             })
+        
+        # Маржинальный доход по каналам (вычисляется после создания channels_data)
+        total_marginal_income = sum(ch["marginal_income"] for ch in channels_data)
+        
+        # Валовая прибыль (маржинальный доход - прямые производственные расходы)
+        gross_profit = total_marginal_income - float(direct_production_costs)
+        
+        # Операционная прибыль (EBITDA)
+        operating_profit = gross_profit - total_indirect_expenses
         
         # Генерация выводов и рекомендаций
         insights = []
