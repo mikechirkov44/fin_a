@@ -381,7 +381,7 @@ const Reference = () => {
     if (activeTab === 'expenseGroup') return 'Группы статей расходов'
     if (activeTab === 'expenseCategory') return 'Категории расходов'
     if (activeTab === 'salesChannel') return 'Каналы продаж'
-    if (activeTab === 'product') return 'Продукты'
+    if (activeTab === 'product') return 'Номенклатура'
     return ''
   }
 
@@ -443,7 +443,7 @@ const Reference = () => {
           onClick={() => { setActiveTab('product'); setShowForm(false); setEditingItem(null) }}
           className={activeTab === 'product' ? 'primary' : ''}
         >
-          Продукты
+          Номенклатура
         </button>
       </div>
 

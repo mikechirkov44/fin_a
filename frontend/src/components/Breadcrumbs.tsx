@@ -16,7 +16,6 @@ const Breadcrumbs = () => {
       realization: 'Продажи',
       input1: 'Закупки',
       input2: 'Активы/Пассивы',
-      products: 'Товарные запасы',
       warehouses: 'Склады',
       inventory: 'Остатки',
       'cash-flow': 'ОДДС',
