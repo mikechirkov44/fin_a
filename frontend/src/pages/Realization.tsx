@@ -3,11 +3,24 @@ import { realizationService, referenceService } from '../services/api'
 import { exportService, importService } from '../services/exportService'
 import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
+import { useConfirm } from '../contexts/ConfirmContext'
+import FormField from '../components/FormField'
+import Modal from '../components/Modal'
+import { useFormValidation } from '../hooks/useFormValidation'
 import { format } from 'date-fns'
 
 const Realization = () => {
   const { selectedCompanyId, companies } = useAuth()
   const { showSuccess, showError } = useToast()
+  const confirm = useConfirm()
+  
+  const validation = useFormValidation({
+    date: { required: true },
+    company_id: { required: true },
+    marketplace_id: { required: true },
+    revenue: { required: true, min: 0 },
+    quantity: { min: 0 },
+  })
   const [realizations, setRealizations] = useState<any[]>([])
   const [allRealizations, setAllRealizations] = useState<any[]>([])
   const [marketplaces, setMarketplaces] = useState<any[]>([])
@@ -158,14 +171,15 @@ const Realization = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    if (!validation.validate(formData)) {
+      showError('Исправьте ошибки в форме')
+      return
+    }
+    
     try {
       const companyId = parseInt(String(formData.company_id))
       const marketplaceId = parseInt(String(formData.marketplace_id))
-      
-      if (!companyId || !marketplaceId) {
-        showError('Пожалуйста, выберите организацию и маркетплейс')
-        return
-      }
       
       const submitData = {
         date: formData.date,
@@ -180,9 +194,7 @@ const Realization = () => {
       } else {
         await realizationService.createRealization(submitData)
       }
-      setShowForm(false)
-      setEditingItem(null)
-      resetForm()
+      handleClose()
       showSuccess(editingItem ? 'Реализация успешно обновлена' : 'Реализация успешно добавлена')
       loadData()
     } catch (error: any) {
@@ -202,6 +214,13 @@ const Realization = () => {
     })
   }
 
+  const handleClose = () => {
+    setShowForm(false)
+    setEditingItem(null)
+    resetForm()
+    validation.clearAllErrors()
+  }
+
   const handleEdit = (item: any) => {
     setEditingItem(item)
     setFormData({
@@ -216,91 +235,111 @@ const Realization = () => {
   }
 
   const handleDelete = async (id: number) => {
-    if (!window.confirm('Удалить запись?')) return
+    const confirmed = await confirm({
+      title: 'Удаление записи',
+      message: 'Вы уверены, что хотите удалить эту запись о реализации?',
+      confirmText: 'Удалить',
+      cancelText: 'Отмена',
+      type: 'danger',
+    })
+    if (!confirmed) return
     try {
       await realizationService.deleteRealization(id)
+      showSuccess('Запись успешно удалена')
       loadData()
-    } catch (error) {
-      console.error('Error deleting:', error)
+    } catch (error: any) {
+      showError(error.response?.data?.detail || 'Ошибка удаления записи')
     }
   }
 
   return (
     <div>
-      {showForm && (
-        <div className="card" style={{ marginBottom: '16px' }}>
-          <div className="card-header">{editingItem ? 'Редактировать' : 'Добавить'} реализацию</div>
-          <form onSubmit={handleSubmit}>
-            <div className="form-row">
-              <div className="form-group">
-                <label>Дата *</label>
-                <input
-                  type="date"
-                  value={formData.date}
-                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label>Организация *</label>
-                <select
-                  value={formData.company_id}
-                  onChange={(e) => setFormData({ ...formData, company_id: e.target.value })}
-                  required
-                >
-                  <option value="">Выберите...</option>
-                  {companies.filter(c => c.is_active).map(company => (
-                    <option key={company.id} value={company.id}>{company.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="form-group">
-                <label>Маркетплейс *</label>
-                <select
-                  value={formData.marketplace_id}
-                  onChange={(e) => setFormData({ ...formData, marketplace_id: e.target.value })}
-                  required
-                >
-                  <option value="">Выберите...</option>
-                  {marketplaces.filter(m => m.is_active).map(marketplace => (
-                    <option key={marketplace.id} value={marketplace.id}>{marketplace.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="form-group">
-                <label>Выручка *</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={formData.revenue}
-                  onChange={(e) => setFormData({ ...formData, revenue: e.target.value })}
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label>Количество</label>
-                <input
-                  type="number"
-                  value={formData.quantity}
-                  onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-                />
-              </div>
-            </div>
-            <div className="form-group">
-              <label>Описание</label>
-              <textarea
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                rows={2}
+      <Modal
+        isOpen={showForm}
+        onClose={handleClose}
+        title={editingItem ? 'Редактировать реализацию' : 'Добавить реализацию'}
+      >
+        <form onSubmit={handleSubmit}>
+          <div className="form-row">
+            <FormField label="Дата" required error={validation.errors.date}>
+              <input
+                type="date"
+                value={formData.date}
+                onChange={(e) => {
+                  setFormData({ ...formData, date: e.target.value })
+                  validation.clearError('date')
+                }}
               />
-            </div>
-            <button type="submit" className="primary mr-8">Сохранить</button>
-            <button type="button" onClick={() => { setShowForm(false); setEditingItem(null); resetForm() }}>
+            </FormField>
+            <FormField label="Организация" required error={validation.errors.company_id}>
+              <select
+                value={formData.company_id}
+                onChange={(e) => {
+                  setFormData({ ...formData, company_id: e.target.value })
+                  validation.clearError('company_id')
+                }}
+              >
+                <option value="">Выберите...</option>
+                {companies.filter(c => c.is_active).map(company => (
+                  <option key={company.id} value={company.id}>{company.name}</option>
+                ))}
+              </select>
+            </FormField>
+            <FormField label="Маркетплейс" required error={validation.errors.marketplace_id}>
+              <select
+                value={formData.marketplace_id}
+                onChange={(e) => {
+                  setFormData({ ...formData, marketplace_id: e.target.value })
+                  validation.clearError('marketplace_id')
+                }}
+              >
+                <option value="">Выберите...</option>
+                {marketplaces.filter(m => m.is_active).map(marketplace => (
+                  <option key={marketplace.id} value={marketplace.id}>{marketplace.name}</option>
+                ))}
+              </select>
+            </FormField>
+            <FormField label="Выручка" required error={validation.errors.revenue}>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={formData.revenue}
+                onChange={(e) => {
+                  setFormData({ ...formData, revenue: e.target.value })
+                  validation.clearError('revenue')
+                }}
+              />
+            </FormField>
+            <FormField label="Количество" error={validation.errors.quantity}>
+              <input
+                type="number"
+                min="0"
+                value={formData.quantity}
+                onChange={(e) => {
+                  setFormData({ ...formData, quantity: e.target.value })
+                  validation.clearError('quantity')
+                }}
+              />
+            </FormField>
+          </div>
+          <FormField label="Описание">
+            <textarea
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              rows={2}
+            />
+          </FormField>
+          <div style={{ display: 'flex', gap: '12px', marginTop: '20px', justifyContent: 'flex-end' }}>
+            <button type="button" onClick={handleClose}>
               Отмена
             </button>
-          </form>
-        </div>
-      )}
+            <button type="submit" className="primary">
+              Сохранить
+            </button>
+          </div>
+        </form>
+      </Modal>
 
       <div className="card">
         <div style={{ marginBottom: '12px', display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'space-between' }}>

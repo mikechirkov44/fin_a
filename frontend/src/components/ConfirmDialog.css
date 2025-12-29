@@ -1,0 +1,126 @@
+.confirm-dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.2s ease;
+}
+
+.confirm-dialog {
+  background-color: var(--bg-secondary);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  max-width: 500px;
+  width: 90%;
+  z-index: 10001;
+  animation: slideUp 0.3s ease;
+  border: 1px solid var(--border-color);
+}
+
+.confirm-dialog-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.confirm-dialog-icon {
+  font-size: 24px;
+}
+
+.confirm-dialog-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.confirm-dialog-body {
+  padding: 20px 24px;
+  color: var(--text-primary);
+  line-height: 1.6;
+}
+
+.confirm-dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--border-color);
+}
+
+.confirm-dialog-button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 100px;
+}
+
+.confirm-dialog-button-cancel {
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.confirm-dialog-button-cancel:hover {
+  background-color: var(--hover-bg);
+}
+
+.confirm-dialog-button-confirm {
+  color: white;
+}
+
+.confirm-dialog-button-info {
+  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+}
+
+.confirm-dialog-button-info:hover {
+  background: linear-gradient(135deg, #357abd 0%, #2a6399 100%);
+}
+
+.confirm-dialog-button-warning {
+  background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+}
+
+.confirm-dialog-button-warning:hover {
+  background: linear-gradient(135deg, #e67e22 0%, #d35400 100%);
+}
+
+.confirm-dialog-button-danger {
+  background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+}
+
+.confirm-dialog-button-danger:hover {
+  background: linear-gradient(135deg, #c0392b 0%, #a93226 100%);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+

@@ -2,10 +2,21 @@ import { useState, useEffect } from 'react'
 import { shipmentService, productsService, referenceService } from '../services/api'
 import { exportService, importService } from '../services/exportService'
 import { useAuth } from '../contexts/AuthContext'
+import { useToast } from '../contexts/ToastContext'
+import { useConfirm } from '../contexts/ConfirmContext'
+import FormField from '../components/FormField'
+import Pagination from '../components/Pagination'
+import Tooltip from '../components/Tooltip'
+import LoadingSpinner from '../components/LoadingSpinner'
+import EmptyState from '../components/EmptyState'
+import { useFormValidation } from '../hooks/useFormValidation'
+import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
 import { format } from 'date-fns'
 
 const Shipment = () => {
   const { selectedCompanyId, companies } = useAuth()
+  const { showSuccess, showError } = useToast()
+  const confirm = useConfirm()
   const [shipments, setShipments] = useState<any[]>([])
   const [allShipments, setAllShipments] = useState<any[]>([])
   const [searchQuery, setSearchQuery] = useState('')
@@ -16,6 +27,18 @@ const Shipment = () => {
   const [editingItem, setEditingItem] = useState<any>(null)
   const [sortColumn, setSortColumn] = useState<string | null>(null)
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
+  const [loading, setLoading] = useState(true)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(25)
+  
+  const validation = useFormValidation({
+    date: { required: true },
+    company_id: { required: true },
+    product_id: { required: true },
+    marketplace_id: { required: true },
+    quantity: { required: true, min: 0 },
+    cost_price: { required: true, min: 0 },
+  })
   const [formData, setFormData] = useState({
     date: format(new Date(), 'yyyy-MM-dd'),
     company_id: selectedCompanyId || '',
@@ -49,10 +72,14 @@ const Shipment = () => {
 
   const loadData = async () => {
     try {
+      setLoading(true)
       const data = await shipmentService.getShipments({ limit: 1000 })
       setAllShipments(data)
     } catch (error) {
       console.error('Error loading shipments:', error)
+      showError('Ошибка загрузки отгрузок')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -194,14 +221,15 @@ const Shipment = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    if (!validation.validate(formData)) {
+      showError('Исправьте ошибки в форме')
+      return
+    }
+    
     try {
       const companyId = parseInt(String(formData.company_id))
       const marketplaceId = parseInt(String(formData.marketplace_id))
-      
-      if (!companyId || !marketplaceId) {
-        alert('Пожалуйста, выберите организацию и маркетплейс')
-        return
-      }
       
       const submitData = {
         date: formData.date,
@@ -220,10 +248,12 @@ const Shipment = () => {
       setShowForm(false)
       setEditingItem(null)
       resetForm()
+      validation.clearAllErrors()
+      showSuccess(editingItem ? 'Отгрузка успешно обновлена' : 'Отгрузка успешно добавлена')
       loadData()
     } catch (error: any) {
       console.error('Error saving:', error)
-      alert(error.response?.data?.detail || 'Ошибка сохранения')
+      showError(error.response?.data?.detail || 'Ошибка сохранения')
     }
   }
 
@@ -237,6 +267,7 @@ const Shipment = () => {
       cost_price: '',
       description: '',
     })
+    validation.clearAllErrors()
   }
 
   const handleEdit = (item: any) => {
@@ -254,14 +285,61 @@ const Shipment = () => {
   }
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Удалить запись?')) return
+    const confirmed = await confirm({
+      title: 'Удаление записи',
+      message: 'Вы уверены, что хотите удалить эту запись об отгрузке?',
+      confirmText: 'Удалить',
+      cancelText: 'Отмена',
+      type: 'danger',
+    })
+    if (!confirmed) return
     try {
       await shipmentService.deleteShipment(id)
+      showSuccess('Запись успешно удалена')
       loadData()
-    } catch (error) {
-      console.error('Error deleting:', error)
+    } catch (error: any) {
+      showError(error.response?.data?.detail || 'Ошибка удаления записи')
     }
   }
+
+  // Горячие клавиши
+  useKeyboardShortcuts([
+    {
+      key: 'n',
+      ctrl: true,
+      action: () => {
+        if (!showForm) {
+          setShowForm(true)
+          setEditingItem(null)
+          resetForm()
+        }
+      },
+      description: 'Создать новую отгрузку',
+    },
+    {
+      key: 'Escape',
+      action: () => {
+        if (showForm) {
+          setShowForm(false)
+          setEditingItem(null)
+          resetForm()
+        }
+      },
+      description: 'Закрыть форму',
+    },
+  ])
+
+  // Пагинация
+  const totalPages = Math.ceil(shipments.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const paginatedShipments = shipments.slice(startIndex, endIndex)
+
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(1)
+    }
+  }, [totalPages, currentPage])
 
   return (
     <div>
@@ -270,83 +348,91 @@ const Shipment = () => {
           <div className="card-header">{editingItem ? 'Редактировать' : 'Добавить'} отгрузку</div>
           <form onSubmit={handleSubmit}>
             <div className="form-row">
-              <div className="form-group">
-                <label>Дата *</label>
+              <FormField label="Дата" required error={validation.errors.date}>
                 <input
                   type="date"
                   value={formData.date}
-                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                  required
+                  onChange={(e) => {
+                    setFormData({ ...formData, date: e.target.value })
+                    validation.clearError('date')
+                  }}
                 />
-              </div>
-              <div className="form-group">
-                <label>Товар</label>
+              </FormField>
+              <FormField label="Товар" error={validation.errors.product_id}>
                 <select
                   value={formData.product_id}
-                  onChange={(e) => setFormData({ ...formData, product_id: e.target.value })}
+                  onChange={(e) => {
+                    setFormData({ ...formData, product_id: e.target.value })
+                    validation.clearError('product_id')
+                  }}
                 >
                   <option value="">Не указан</option>
                   {products.map(product => (
                     <option key={product.id} value={product.id}>{product.name}</option>
                   ))}
                 </select>
-              </div>
-              <div className="form-group">
-                <label>Организация *</label>
+              </FormField>
+              <FormField label="Организация" required error={validation.errors.company_id}>
                 <select
                   value={formData.company_id}
-                  onChange={(e) => setFormData({ ...formData, company_id: e.target.value })}
-                  required
+                  onChange={(e) => {
+                    setFormData({ ...formData, company_id: e.target.value })
+                    validation.clearError('company_id')
+                  }}
                 >
                   <option value="">Выберите...</option>
                   {companies.filter(c => c.is_active).map(company => (
                     <option key={company.id} value={company.id}>{company.name}</option>
                   ))}
                 </select>
-              </div>
-              <div className="form-group">
-                <label>Маркетплейс *</label>
+              </FormField>
+              <FormField label="Маркетплейс" required error={validation.errors.marketplace_id}>
                 <select
                   value={formData.marketplace_id}
-                  onChange={(e) => setFormData({ ...formData, marketplace_id: e.target.value })}
-                  required
+                  onChange={(e) => {
+                    setFormData({ ...formData, marketplace_id: e.target.value })
+                    validation.clearError('marketplace_id')
+                  }}
                 >
                   <option value="">Выберите...</option>
                   {marketplaces.filter(m => m.is_active).map(marketplace => (
                     <option key={marketplace.id} value={marketplace.id}>{marketplace.name}</option>
                   ))}
                 </select>
-              </div>
+              </FormField>
             </div>
             <div className="form-row">
-              <div className="form-group">
-                <label>Количество *</label>
+              <FormField label="Количество" required error={validation.errors.quantity}>
                 <input
                   type="number"
+                  min="0"
                   value={formData.quantity}
-                  onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-                  required
+                  onChange={(e) => {
+                    setFormData({ ...formData, quantity: e.target.value })
+                    validation.clearError('quantity')
+                  }}
                 />
-              </div>
-              <div className="form-group">
-                <label>Себестоимость (за единицу) *</label>
+              </FormField>
+              <FormField label="Себестоимость (за единицу)" required error={validation.errors.cost_price}>
                 <input
                   type="number"
                   step="0.01"
+                  min="0"
                   value={formData.cost_price}
-                  onChange={(e) => setFormData({ ...formData, cost_price: e.target.value })}
-                  required
+                  onChange={(e) => {
+                    setFormData({ ...formData, cost_price: e.target.value })
+                    validation.clearError('cost_price')
+                  }}
                 />
-              </div>
+              </FormField>
             </div>
-            <div className="form-group">
-              <label>Описание</label>
+            <FormField label="Описание">
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 rows={2}
               />
-            </div>
+            </FormField>
             <button type="submit" className="primary mr-8">Сохранить</button>
             <button type="button" onClick={() => { setShowForm(false); setEditingItem(null); resetForm() }}>
               Отмена
@@ -357,37 +443,45 @@ const Shipment = () => {
 
       <div className="card">
         <div style={{ marginBottom: '12px', display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'space-between' }}>
-            <button onClick={() => { setShowForm(true); setEditingItem(null); resetForm() }} className="primary">
-              Добавить
-            </button>
-            <button onClick={() => exportService.exportShipments({ format: 'xlsx' })}>
-              Экспорт Excel
-            </button>
-            <label style={{ fontSize: '13px', padding: '4px 8px', border: '1px solid #808080', cursor: 'pointer', borderRadius: '4px' }}>
-              Импорт
-              <input
-                type="file"
-                accept=".xlsx,.xls,.csv"
-                style={{ display: 'none' }}
-                onChange={async (e) => {
-                  const file = e.target.files?.[0]
-                  if (file) {
-                    try {
-                      const result = await importService.importShipments(file)
-                      alert(result.message)
-                      if (result.errors && result.errors.length > 0) {
-                        console.error('Ошибки импорта:', result.errors)
-                        alert(`Ошибки: ${result.errors.slice(0, 5).join('; ')}${result.errors.length > 5 ? '...' : ''}`)
+            <Tooltip content="Создать новую отгрузку (Ctrl+N)">
+              <button onClick={() => { setShowForm(true); setEditingItem(null); resetForm() }} className="primary">
+                Добавить
+              </button>
+            </Tooltip>
+            <Tooltip content="Экспортировать в Excel">
+              <button onClick={() => exportService.exportShipments({ format: 'xlsx' })}>
+                Экспорт Excel
+              </button>
+            </Tooltip>
+            <Tooltip content="Импортировать из файла">
+              <label style={{ display: 'inline-block' }}>
+                <input
+                  type="file"
+                  accept=".xlsx,.xls,.csv"
+                  id="import-file-input-shipment"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0]
+                    if (file) {
+                      try {
+                        const result = await importService.importShipments(file)
+                        showSuccess(result.message)
+                        if (result.errors && result.errors.length > 0) {
+                          showError(`Ошибки при импорте: ${result.errors.slice(0, 5).join(', ')}${result.errors.length > 5 ? '...' : ''}`)
+                        }
+                        loadData()
+                      } catch (error: any) {
+                        showError(`Ошибка импорта: ${error.response?.data?.detail || error.message}`)
                       }
-                      loadData()
-                    } catch (error: any) {
-                      alert(`Ошибка импорта: ${error.response?.data?.detail || error.message}`)
                     }
-                  }
-                  e.target.value = ''
-                }}
-              />
-            </label>
+                    e.target.value = ''
+                  }}
+                  style={{ display: 'none' }}
+                />
+                <button type="button" onClick={() => document.getElementById('import-file-input-shipment')?.click()}>
+                  Импорт
+                </button>
+              </label>
+            </Tooltip>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <select
               value={filterCompanyId}
@@ -429,8 +523,9 @@ const Shipment = () => {
             )}
           </div>
         </div>
-        <table>
-          <thead>
+        <div className="table-container">
+          <table>
+            <thead>
             <tr>
               <th 
                 onClick={(e) => {
@@ -510,42 +605,73 @@ const Shipment = () => {
               <th style={{ width: '100px' }}>Действия</th>
             </tr>
           </thead>
-          <tbody>
-            {shipments.length === 0 ? (
-              <tr>
-                <td colSpan={9} className="text-center">Нет данных</td>
-              </tr>
-            ) : (
-              shipments.map((shipment) => {
-                const total = parseFloat(shipment.cost_price) * shipment.quantity
-                return (
-                  <tr 
-                    key={shipment.id}
-                    className="clickable"
-                    onClick={() => handleEdit(shipment)}
-                  >
-                    <td>{shipment.date}</td>
-                    <td>{getCompanyName(shipment.company_id)}</td>
-                    <td>{getProductName(shipment.product_id)}</td>
-                    <td>{marketplaces.find(m => m.id === shipment.marketplace_id)?.name || '-'}</td>
-                    <td className="text-right">{shipment.quantity}</td>
-                    <td className="text-right">{parseFloat(shipment.cost_price).toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽</td>
-                    <td className="text-right">{total.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽</td>
-                    <td>{shipment.description || '-'}</td>
-                    <td onClick={(e) => e.stopPropagation()}>
-                      <button 
-                        onClick={() => handleDelete(shipment.id)} 
-                        className="danger" 
-                        title="Удалить"
-                        style={{ padding: '4px 6px', fontSize: '16px', lineHeight: '1', minWidth: 'auto' }}
-                      >✕</button>
-                    </td>
-                  </tr>
-                )
-              })
-            )}
-          </tbody>
-        </table>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan={9}>
+                    <LoadingSpinner message="Загрузка отгрузок..." />
+                  </td>
+                </tr>
+              ) : paginatedShipments.length === 0 ? (
+                <tr>
+                  <td colSpan={9}>
+                    <EmptyState
+                      icon="📦"
+                      title="Нет отгрузок"
+                      message={searchQuery ? 'Отгрузки не найдены по вашему запросу' : 'Добавьте первую отгрузку, чтобы начать работу'}
+                      action={!searchQuery ? {
+                        label: 'Добавить отгрузку',
+                        onClick: () => { setShowForm(true); setEditingItem(null); resetForm() }
+                      } : undefined}
+                    />
+                  </td>
+                </tr>
+              ) : (
+                paginatedShipments.map((shipment) => {
+                  const total = parseFloat(shipment.cost_price) * shipment.quantity
+                  return (
+                    <tr 
+                      key={shipment.id}
+                      className="clickable"
+                      onClick={() => handleEdit(shipment)}
+                    >
+                      <td>{shipment.date}</td>
+                      <td>{getCompanyName(shipment.company_id)}</td>
+                      <td>{getProductName(shipment.product_id)}</td>
+                      <td>{marketplaces.find(m => m.id === shipment.marketplace_id)?.name || '-'}</td>
+                      <td className="text-right">{shipment.quantity}</td>
+                      <td className="text-right">{parseFloat(shipment.cost_price).toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽</td>
+                      <td className="text-right">{total.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽</td>
+                      <td>{shipment.description || '-'}</td>
+                      <td onClick={(e) => e.stopPropagation()}>
+                        <Tooltip content="Удалить отгрузку">
+                          <button 
+                            onClick={() => handleDelete(shipment.id)} 
+                            className="danger" 
+                            style={{ padding: '4px 6px', fontSize: '16px', lineHeight: '1', minWidth: 'auto' }}
+                          >✕</button>
+                        </Tooltip>
+                      </td>
+                    </tr>
+                  )
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+        {!loading && shipments.length > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={shipments.length}
+            itemsPerPage={itemsPerPage}
+            onPageChange={setCurrentPage}
+            onItemsPerPageChange={(newItemsPerPage) => {
+              setItemsPerPage(newItemsPerPage)
+              setCurrentPage(1)
+            }}
+          />
+        )}
       </div>
     </div>
   )

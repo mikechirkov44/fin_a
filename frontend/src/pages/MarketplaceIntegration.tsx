@@ -1,10 +1,14 @@
 import { useState, useEffect } from 'react'
 import { marketplaceIntegrationService } from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
+import { useToast } from '../contexts/ToastContext'
+import { useConfirm } from '../contexts/ConfirmContext'
 import { format, subDays } from 'date-fns'
 
 const MarketplaceIntegration = () => {
   const { selectedCompanyId, companies } = useAuth()
+  const { showSuccess, showError } = useToast()
+  const confirm = useConfirm()
   const [integrations, setIntegrations] = useState<any[]>([])
   const [showForm, setShowForm] = useState(false)
   const [editingIntegration, setEditingIntegration] = useState<any>(null)
@@ -73,7 +77,7 @@ const MarketplaceIntegration = () => {
       resetForm()
       loadData()
     } catch (error: any) {
-      alert(`Ошибка сохранения: ${error.response?.data?.detail || error.message}`)
+      showError(`Ошибка сохранения: ${error.response?.data?.detail || error.message}`)
     }
   }
 
@@ -108,12 +112,20 @@ const MarketplaceIntegration = () => {
   }
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Удалить интеграцию?')) return
+    const confirmed = await confirm({
+      title: 'Удаление интеграции',
+      message: 'Вы уверены, что хотите удалить эту интеграцию?',
+      confirmText: 'Удалить',
+      cancelText: 'Отмена',
+      type: 'danger',
+    })
+    if (!confirmed) return
     try {
       await marketplaceIntegrationService.deleteIntegration(id)
+      showSuccess('Интеграция успешно удалена')
       loadData()
-    } catch (error) {
-      console.error('Error deleting:', error)
+    } catch (error: any) {
+      showError(error.response?.data?.detail || 'Ошибка удаления интеграции')
     }
   }
 
@@ -123,7 +135,13 @@ const MarketplaceIntegration = () => {
     const endDate = syncPeriod.end || format(new Date(), 'yyyy-MM-dd')
     
     const periodText = `с ${startDate} по ${endDate}`
-    if (!confirm(`Запустить синхронизацию для ${integration.marketplace_name || 'маркетплейса'} за период ${periodText}?`)) return
+    const confirmed = await confirm({
+      title: 'Запуск синхронизации',
+      message: `Запустить синхронизацию для ${integration.marketplace_name || 'маркетплейса'} за период ${periodText}?`,
+      confirmText: 'Запустить',
+      cancelText: 'Отмена',
+    })
+    if (!confirmed) return
     
     setSyncLoading(integration.id)
     try {
@@ -134,13 +152,13 @@ const MarketplaceIntegration = () => {
         end_date: endDate,
       })
       
-      alert(result.message + '\nСинхронизация запущена в фоне. Обновите страницу через несколько минут для проверки результатов.')
+      showSuccess(result.message + '\nСинхронизация запущена в фоне. Обновите страницу через несколько минут для проверки результатов.')
       // Обновляем данные через 2 секунды
       setTimeout(() => {
         loadData()
       }, 2000)
     } catch (error: any) {
-      alert(`Ошибка синхронизации: ${error.response?.data?.detail || error.message}`)
+      showError(`Ошибка синхронизации: ${error.response?.data?.detail || error.message}`)
     } finally {
       setSyncLoading(null)
     }
@@ -150,9 +168,9 @@ const MarketplaceIntegration = () => {
     setTestLoading(integration.id)
     try {
       const result = await marketplaceIntegrationService.testConnection(integration.id)
-      alert(result.message)
+      showSuccess(result.message)
     } catch (error: any) {
-      alert(`Ошибка: ${error.response?.data?.detail || error.message}`)
+      showError(`Ошибка: ${error.response?.data?.detail || error.message}`)
     } finally {
       setTestLoading(null)
     }

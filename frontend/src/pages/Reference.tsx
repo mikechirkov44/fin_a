@@ -1,9 +1,13 @@
 import { useState, useEffect } from 'react'
 import { referenceService, productsService } from '../services/api'
+import { useToast } from '../contexts/ToastContext'
+import { useConfirm } from '../contexts/ConfirmContext'
 
 type TabType = 'income' | 'expense' | 'payment' | 'company' | 'marketplace' | 'incomeGroup' | 'expenseGroup' | 'expenseCategory' | 'salesChannel' | 'product'
 
 const Reference = () => {
+  const { showSuccess, showError } = useToast()
+  const confirm = useConfirm()
   const [activeTab, setActiveTab] = useState<TabType>('income')
   const [incomeItems, setIncomeItems] = useState<any[]>([])
   const [expenseItems, setExpenseItems] = useState<any[]>([])
@@ -339,7 +343,14 @@ const Reference = () => {
   }
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Удалить запись?')) return
+    const confirmed = await confirm({
+      title: 'Удаление записи',
+      message: 'Вы уверены, что хотите удалить эту запись?',
+      confirmText: 'Удалить',
+      cancelText: 'Отмена',
+      type: 'danger',
+    })
+    if (!confirmed) return
     try {
       if (activeTab === 'income') await referenceService.deleteIncomeItem(id)
       else if (activeTab === 'expense') await referenceService.deleteExpenseItem(id)
@@ -351,9 +362,10 @@ const Reference = () => {
       else if (activeTab === 'expenseCategory') await referenceService.deleteExpenseCategory(id)
       else if (activeTab === 'salesChannel') await referenceService.deleteSalesChannel(id)
       else if (activeTab === 'product') await productsService.deleteProduct(id)
+      showSuccess('Запись успешно удалена')
       loadData()
-    } catch (error) {
-      console.error('Error deleting:', error)
+    } catch (error: any) {
+      showError(error.response?.data?.detail || 'Ошибка удаления записи')
     }
   }
 

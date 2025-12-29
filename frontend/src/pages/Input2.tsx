@@ -2,10 +2,22 @@ import { useState, useEffect } from 'react'
 import { input2Service } from '../services/api'
 import { exportService, importService } from '../services/exportService'
 import { useAuth } from '../contexts/AuthContext'
+import { useToast } from '../contexts/ToastContext'
+import { useConfirm } from '../contexts/ConfirmContext'
+import FormField from '../components/FormField'
+import Modal from '../components/Modal'
+import Pagination from '../components/Pagination'
+import Tooltip from '../components/Tooltip'
+import LoadingSpinner from '../components/LoadingSpinner'
+import EmptyState from '../components/EmptyState'
+import { useFormValidation } from '../hooks/useFormValidation'
+import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
 import { format } from 'date-fns'
 
 const Input2 = () => {
   const { selectedCompanyId, companies } = useAuth()
+  const { showSuccess, showError } = useToast()
+  const confirm = useConfirm()
   const [activeTab, setActiveTab] = useState<'assets' | 'liabilities'>('assets')
   const [assets, setAssets] = useState<any[]>([])
   const [liabilities, setLiabilities] = useState<any[]>([])
@@ -17,6 +29,17 @@ const Input2 = () => {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
   const [showForm, setShowForm] = useState(false)
   const [editingItem, setEditingItem] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(25)
+  
+  const validation = useFormValidation({
+    name: { required: true },
+    category: { required: true },
+    value: { required: true, min: 0 },
+    date: { required: true },
+    company_id: { required: true },
+  })
   const [formData, setFormData] = useState({
     name: '',
     category: '',
@@ -32,6 +55,7 @@ const Input2 = () => {
 
   const loadData = async () => {
     try {
+      setLoading(true)
       if (activeTab === 'assets') {
         const data = await input2Service.getAssets({ limit: 1000 })
         setAllAssets(data)
@@ -43,6 +67,9 @@ const Input2 = () => {
       }
     } catch (error) {
       console.error('Error loading data:', error)
+      showError('Ошибка загрузки данных')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -151,6 +178,12 @@ const Input2 = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    if (!validation.validate(formData)) {
+      showError('Исправьте ошибки в форме')
+      return
+    }
+    
     try {
       const submitData = {
         ...formData,
@@ -170,12 +203,11 @@ const Input2 = () => {
           await input2Service.createLiability(submitData)
         }
       }
-      setShowForm(false)
-      setEditingItem(null)
-      resetForm()
+      handleClose()
+      showSuccess(editingItem ? `${title} успешно обновлен` : `${title} успешно добавлен`)
       loadData()
-    } catch (error) {
-      console.error('Error saving:', error)
+    } catch (error: any) {
+      showError(error.response?.data?.detail || 'Ошибка сохранения')
     }
   }
 
@@ -188,6 +220,13 @@ const Input2 = () => {
       company_id: selectedCompanyId || '',
       description: '',
     })
+    validation.clearAllErrors()
+  }
+
+  const handleClose = () => {
+    setShowForm(false)
+    setEditingItem(null)
+    resetForm()
   }
 
   const handleEdit = (item: any) => {
@@ -210,20 +249,65 @@ const Input2 = () => {
   }, [selectedCompanyId])
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Удалить запись?')) return
+    const confirmed = await confirm({
+      title: 'Удаление записи',
+      message: `Вы уверены, что хотите удалить эту запись о ${activeTab === 'assets' ? 'активе' : 'обязательстве'}?`,
+      confirmText: 'Удалить',
+      cancelText: 'Отмена',
+      type: 'danger',
+    })
+    if (!confirmed) return
     try {
       if (activeTab === 'assets') {
         await input2Service.deleteAsset(id)
       } else {
         await input2Service.deleteLiability(id)
       }
+      showSuccess('Запись успешно удалена')
       loadData()
-    } catch (error) {
-      console.error('Error deleting:', error)
+    } catch (error: any) {
+      showError(error.response?.data?.detail || 'Ошибка удаления записи')
     }
   }
 
+  // Горячие клавиши
+  useKeyboardShortcuts([
+    {
+      key: 'n',
+      ctrl: true,
+      action: () => {
+        if (!showForm) {
+          setShowForm(true)
+          setEditingItem(null)
+          resetForm()
+        }
+      },
+      description: 'Создать новую запись',
+    },
+    {
+      key: 'Escape',
+      action: () => {
+        if (showForm) {
+          handleClose()
+        }
+      },
+      description: 'Закрыть форму',
+    },
+  ])
+
+  // Пагинация
   const currentItems = activeTab === 'assets' ? assets : liabilities
+  const totalPages = Math.ceil(currentItems.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const paginatedItems = currentItems.slice(startIndex, endIndex)
+
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(1)
+    }
+  }, [totalPages, currentPage])
+
   const title = activeTab === 'assets' ? 'Активы' : 'Обязательства'
   const categories = activeTab === 'assets'
     ? [
@@ -256,65 +340,74 @@ const Input2 = () => {
         </button>
       </div>
 
-      {showForm && (
-        <div className="card" style={{ marginBottom: '16px' }}>
-          <div className="card-header">{editingItem ? 'Редактировать' : 'Добавить'} {title}</div>
-          <form onSubmit={handleSubmit}>
+      <Modal
+        isOpen={showForm}
+        onClose={handleClose}
+        title={editingItem ? `Редактировать ${title}` : `Добавить ${title}`}
+        maxWidth="900px"
+      >
+        <form onSubmit={handleSubmit}>
             <div className="form-row">
-              <div className="form-group">
-                <label>Наименование *</label>
+              <FormField label="Наименование" required error={validation.errors.name}>
                 <input
                   type="text"
                   value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  required
+                  onChange={(e) => {
+                    setFormData({ ...formData, name: e.target.value })
+                    validation.clearError('name')
+                  }}
                 />
-              </div>
-              <div className="form-group">
-                <label>Категория *</label>
+              </FormField>
+              <FormField label="Категория" required error={validation.errors.category}>
                 <select
                   value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  required
+                  onChange={(e) => {
+                    setFormData({ ...formData, category: e.target.value })
+                    validation.clearError('category')
+                  }}
                 >
                   <option value="">Выберите...</option>
                   {categories.map(cat => (
                     <option key={cat.value} value={cat.value}>{cat.label}</option>
                   ))}
                 </select>
-              </div>
-              <div className="form-group">
-                <label>Стоимость *</label>
+              </FormField>
+              <FormField label="Стоимость" required error={validation.errors.value}>
                 <input
                   type="number"
                   step="0.01"
+                  min="0"
                   value={formData.value}
-                  onChange={(e) => setFormData({ ...formData, value: e.target.value })}
-                  required
+                  onChange={(e) => {
+                    setFormData({ ...formData, value: e.target.value })
+                    validation.clearError('value')
+                  }}
                 />
-              </div>
-              <div className="form-group">
-                <label>Дата *</label>
+              </FormField>
+              <FormField label="Дата" required error={validation.errors.date}>
                 <input
                   type="date"
                   value={formData.date}
-                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                  required
+                  onChange={(e) => {
+                    setFormData({ ...formData, date: e.target.value })
+                    validation.clearError('date')
+                  }}
                 />
-              </div>
-              <div className="form-group">
-                <label>Организация *</label>
+              </FormField>
+              <FormField label="Организация" required error={validation.errors.company_id}>
                 <select
                   value={formData.company_id}
-                  onChange={(e) => setFormData({ ...formData, company_id: e.target.value })}
-                  required
+                  onChange={(e) => {
+                    setFormData({ ...formData, company_id: e.target.value })
+                    validation.clearError('company_id')
+                  }}
                 >
                   <option value="">Выберите...</option>
                   {companies.filter(c => c.is_active).map(company => (
                     <option key={company.id} value={company.id}>{company.name}</option>
                   ))}
                 </select>
-              </div>
+              </FormField>
             </div>
             <div className="form-group">
               <label>Описание</label>
@@ -324,57 +417,68 @@ const Input2 = () => {
                 rows={2}
               />
             </div>
-            <button type="submit" className="primary mr-8">Сохранить</button>
-            <button type="button" onClick={() => { setShowForm(false); setEditingItem(null); resetForm() }}>
-              Отмена
-            </button>
+            <div style={{ display: 'flex', gap: '12px', marginTop: '20px', justifyContent: 'flex-end' }}>
+              <button type="button" onClick={handleClose}>
+                Отмена
+              </button>
+              <button type="submit" className="primary">
+                Сохранить
+              </button>
+            </div>
           </form>
-        </div>
-      )}
+      </Modal>
 
       <div className="card">
         <div className="card-header">{title}</div>
         <div style={{ marginBottom: '12px', display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', gap: '8px' }}>
-            <button onClick={() => { setShowForm(true); setEditingItem(null); resetForm() }} className="primary">
-              Добавить
-            </button>
-            <button 
-              onClick={() => activeTab === 'assets' 
-                ? exportService.exportAssets({ format: 'xlsx' })
-                : exportService.exportLiabilities({ format: 'xlsx' })
-              }
-              style={{ fontSize: '13px' }}
-            >
-              Экспорт Excel
-            </button>
-            <label style={{ fontSize: '13px', padding: '4px 8px', border: '1px solid #808080', cursor: 'pointer', borderRadius: '4px' }}>
-              Импорт
-              <input
-                type="file"
-                accept=".xlsx,.xls,.csv"
-                style={{ display: 'none' }}
-                onChange={async (e) => {
-                  const file = e.target.files?.[0]
-                  if (file) {
-                    try {
-                      const result = activeTab === 'assets'
-                        ? await importService.importAssets(file)
-                        : await importService.importLiabilities(file)
-                      alert(result.message)
-                      if (result.errors && result.errors.length > 0) {
-                        console.error('Ошибки импорта:', result.errors)
-                        alert(`Ошибки: ${result.errors.slice(0, 5).join('; ')}${result.errors.length > 5 ? '...' : ''}`)
+            <Tooltip content="Создать новую запись (Ctrl+N)">
+              <button onClick={() => { setShowForm(true); setEditingItem(null); resetForm() }} className="primary">
+                Добавить
+              </button>
+            </Tooltip>
+            <Tooltip content="Экспортировать в Excel">
+              <button 
+                onClick={() => activeTab === 'assets' 
+                  ? exportService.exportAssets({ format: 'xlsx' })
+                  : exportService.exportLiabilities({ format: 'xlsx' })
+                }
+                style={{ fontSize: '13px' }}
+              >
+                Экспорт Excel
+              </button>
+            </Tooltip>
+            <Tooltip content="Импортировать из файла">
+              <label style={{ display: 'inline-block' }}>
+                <input
+                  type="file"
+                  accept=".xlsx,.xls,.csv"
+                  id="import-file-input-input2"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0]
+                    if (file) {
+                      try {
+                        const result = activeTab === 'assets'
+                          ? await importService.importAssets(file)
+                          : await importService.importLiabilities(file)
+                        showSuccess(result.message)
+                        if (result.errors && result.errors.length > 0) {
+                          showError(`Ошибки при импорте: ${result.errors.slice(0, 5).join(', ')}${result.errors.length > 5 ? '...' : ''}`)
+                        }
+                        loadData()
+                      } catch (error: any) {
+                        showError(`Ошибка импорта: ${error.response?.data?.detail || error.message}`)
                       }
-                      loadData()
-                    } catch (error: any) {
-                      alert(`Ошибка импорта: ${error.response?.data?.detail || error.message}`)
                     }
-                  }
-                  e.target.value = ''
-                }}
-              />
-            </label>
+                    e.target.value = ''
+                  }}
+                  style={{ display: 'none' }}
+                />
+                <button type="button" onClick={() => document.getElementById('import-file-input-input2')?.click()}>
+                  Импорт
+                </button>
+              </label>
+            </Tooltip>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <select
@@ -417,15 +521,16 @@ const Input2 = () => {
             )}
           </div>
         </div>
-        <table>
-          <thead>
-            <tr>
-              <th 
-                style={{ cursor: 'pointer', userSelect: 'none' }}
-                onClick={() => handleSort('date')}
-              >
-                Дата {sortColumn === 'date' && (sortDirection === 'asc' ? '▲' : '▼')}
-              </th>
+        <div className="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th 
+                  style={{ cursor: 'pointer', userSelect: 'none' }}
+                  onClick={() => handleSort('date')}
+                >
+                  Дата {sortColumn === 'date' && (sortDirection === 'asc' ? '▲' : '▼')}
+                </th>
               <th 
                 style={{ cursor: 'pointer', userSelect: 'none' }}
                 onClick={() => handleSort('name')}
@@ -460,37 +565,68 @@ const Input2 = () => {
               <th style={{ width: '100px' }}>Действия</th>
             </tr>
           </thead>
-          <tbody>
-            {currentItems.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="text-center">Нет данных</td>
-              </tr>
-            ) : (
-              currentItems.map((item) => (
-                <tr 
-                  key={item.id}
-                  className="clickable"
-                  onClick={() => handleEdit(item)}
-                >
-                  <td>{item.date}</td>
-                  <td>{item.name}</td>
-                  <td>{categories.find(c => c.value === item.category)?.label || item.category}</td>
-                  <td>{getCompanyName(item.company_id)}</td>
-                  <td className="text-right">{parseFloat(item.value).toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽</td>
-                  <td>{item.description || '-'}</td>
-                  <td onClick={(e) => e.stopPropagation()}>
-                    <button 
-                      onClick={() => handleDelete(item.id)} 
-                      className="danger" 
-                      title="Удалить"
-                      style={{ padding: '4px 6px', fontSize: '16px', lineHeight: '1', minWidth: 'auto' }}
-                    >✕</button>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan={7}>
+                    <LoadingSpinner message={`Загрузка ${title.toLowerCase()}...`} />
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : paginatedItems.length === 0 ? (
+                <tr>
+                  <td colSpan={7}>
+                    <EmptyState
+                      icon={activeTab === 'assets' ? '💼' : '📋'}
+                      title={`Нет ${title.toLowerCase()}`}
+                      message={searchQuery ? `${title} не найдены по вашему запросу` : `Добавьте первый ${activeTab === 'assets' ? 'актив' : 'обязательство'}, чтобы начать работу`}
+                      action={!searchQuery ? {
+                        label: `Добавить ${activeTab === 'assets' ? 'актив' : 'обязательство'}`,
+                        onClick: () => { setShowForm(true); setEditingItem(null); resetForm() }
+                      } : undefined}
+                    />
+                  </td>
+                </tr>
+              ) : (
+                paginatedItems.map((item) => (
+                  <tr 
+                    key={item.id}
+                    className="clickable"
+                    onClick={() => handleEdit(item)}
+                  >
+                    <td>{item.date}</td>
+                    <td>{item.name}</td>
+                    <td>{categories.find(c => c.value === item.category)?.label || item.category}</td>
+                    <td>{getCompanyName(item.company_id)}</td>
+                    <td className="text-right">{parseFloat(item.value).toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽</td>
+                    <td>{item.description || '-'}</td>
+                    <td onClick={(e) => e.stopPropagation()}>
+                      <Tooltip content="Удалить запись">
+                        <button 
+                          onClick={() => handleDelete(item.id)} 
+                          className="danger" 
+                          style={{ padding: '4px 6px', fontSize: '16px', lineHeight: '1', minWidth: 'auto' }}
+                        >✕</button>
+                      </Tooltip>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+        {!loading && currentItems.length > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={currentItems.length}
+            itemsPerPage={itemsPerPage}
+            onPageChange={setCurrentPage}
+            onItemsPerPageChange={(newItemsPerPage) => {
+              setItemsPerPage(newItemsPerPage)
+              setCurrentPage(1)
+            }}
+          />
+        )}
       </div>
     </div>
   )

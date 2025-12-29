@@ -3,11 +3,22 @@ import { input1Service, referenceService } from '../services/api'
 import { exportService, importService } from '../services/exportService'
 import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
+import { useConfirm } from '../contexts/ConfirmContext'
+import FormField from '../components/FormField'
+import Modal from '../components/Modal'
+import Pagination from '../components/Pagination'
+import Tooltip from '../components/Tooltip'
+import LoadingSpinner from '../components/LoadingSpinner'
+import EmptyState from '../components/EmptyState'
+import SkeletonLoader from '../components/SkeletonLoader'
+import { useFormValidation } from '../hooks/useFormValidation'
+import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
 import { format } from 'date-fns'
 
 const Input1 = () => {
   const { selectedCompanyId, companies } = useAuth()
   const { showSuccess, showError } = useToast()
+  const confirm = useConfirm()
   const [movements, setMovements] = useState<any[]>([])
   const [allMovements, setAllMovements] = useState<any[]>([])
   const [searchQuery, setSearchQuery] = useState('')
@@ -19,6 +30,32 @@ const Input1 = () => {
   const [editingItem, setEditingItem] = useState<any>(null)
   const [sortColumn, setSortColumn] = useState<string | null>(null)
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
+  const [loading, setLoading] = useState(true)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(25)
+  
+  const validation = useFormValidation({
+    date: { required: true },
+    amount: { required: true, min: 0 },
+    company_id: { required: true },
+    payment_place_id: { required: true },
+    income_item_id: { 
+      custom: (value) => {
+        if (formData.movement_type === 'income' && !value) {
+          return 'Выберите статью дохода'
+        }
+        return null
+      }
+    },
+    expense_item_id: {
+      custom: (value) => {
+        if (formData.movement_type === 'expense' && !value) {
+          return 'Выберите статью расхода'
+        }
+        return null
+      }
+    },
+  })
   const [formData, setFormData] = useState({
     date: format(new Date(), 'yyyy-MM-dd'),
     amount: '',
@@ -44,10 +81,14 @@ const Input1 = () => {
 
   const loadData = async () => {
     try {
+      setLoading(true)
       const data = await input1Service.getMovements({ limit: 1000 })
       setAllMovements(data)
     } catch (error) {
       console.error('Error loading movements:', error)
+      showError('Ошибка загрузки движений')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -184,6 +225,12 @@ const Input1 = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    if (!validation.validate(formData)) {
+      showError('Исправьте ошибки в форме')
+      return
+    }
+    
     try {
       const submitData = {
         ...formData,
@@ -199,9 +246,7 @@ const Input1 = () => {
       } else {
         await input1Service.createMovement(submitData)
       }
-      setShowForm(false)
-      setEditingItem(null)
-      resetForm()
+      handleClose()
       showSuccess(editingItem ? 'Движение успешно обновлено' : 'Движение успешно добавлено')
       loadData()
     } catch (error: any) {
@@ -221,6 +266,13 @@ const Input1 = () => {
       description: '',
       is_business: true,
     })
+    validation.clearAllErrors()
+  }
+
+  const handleClose = () => {
+    setShowForm(false)
+    setEditingItem(null)
+    resetForm()
   }
 
   const handleEdit = (item: any) => {
@@ -240,109 +292,166 @@ const Input1 = () => {
   }
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Удалить запись?')) return
+    const confirmed = await confirm({
+      title: 'Удаление записи',
+      message: 'Вы уверены, что хотите удалить эту запись о движении денег?',
+      confirmText: 'Удалить',
+      cancelText: 'Отмена',
+      type: 'danger',
+    })
+    if (!confirmed) return
     try {
       await input1Service.deleteMovement(id)
+      showSuccess('Запись успешно удалена')
       loadData()
-    } catch (error) {
-      console.error('Error deleting:', error)
+    } catch (error: any) {
+      showError(error.response?.data?.detail || 'Ошибка удаления записи')
     }
   }
 
+  // Горячие клавиши
+  useKeyboardShortcuts([
+    {
+      key: 'n',
+      ctrl: true,
+      action: () => {
+        if (!showForm) {
+          setShowForm(true)
+          setEditingItem(null)
+          resetForm()
+        }
+      },
+      description: 'Создать новое движение',
+    },
+    {
+      key: 'Escape',
+      action: () => {
+        if (showForm) {
+          handleClose()
+        }
+      },
+      description: 'Закрыть форму',
+    },
+  ])
+
+  // Пагинация
+  const totalPages = Math.ceil(movements.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const paginatedMovements = movements.slice(startIndex, endIndex)
+
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(1)
+    }
+  }, [totalPages, currentPage])
+
   return (
     <div>
-      {showForm && (
-        <div className="card" style={{ marginBottom: '16px' }}>
-          <div className="card-header">{editingItem ? 'Редактировать' : 'Добавить'} движение</div>
-          <form onSubmit={handleSubmit}>
+      <Modal
+        isOpen={showForm}
+        onClose={handleClose}
+        title={editingItem ? 'Редактировать движение' : 'Добавить движение'}
+        maxWidth="900px"
+      >
+        <form onSubmit={handleSubmit}>
             <div className="form-row">
-              <div className="form-group">
-                <label>Дата *</label>
+              <FormField label="Дата" required error={validation.errors.date}>
                 <input
                   type="date"
                   value={formData.date}
-                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                  required
+                  onChange={(e) => {
+                    setFormData({ ...formData, date: e.target.value })
+                    validation.clearError('date')
+                  }}
                 />
-              </div>
-              <div className="form-group">
-                <label>Тип *</label>
+              </FormField>
+              <FormField label="Тип" required>
                 <select
                   value={formData.movement_type}
-                  onChange={(e) => setFormData({ ...formData, movement_type: e.target.value, income_item_id: '', expense_item_id: '' })}
-                  required
+                  onChange={(e) => {
+                    setFormData({ ...formData, movement_type: e.target.value, income_item_id: '', expense_item_id: '' })
+                    validation.clearError('income_item_id')
+                    validation.clearError('expense_item_id')
+                  }}
                 >
                   <option value="income">Поступление</option>
                   <option value="expense">Оплата</option>
                 </select>
-              </div>
-              <div className="form-group">
-                <label>Сумма *</label>
+              </FormField>
+              <FormField label="Сумма" required error={validation.errors.amount}>
                 <input
                   type="number"
                   step="0.01"
+                  min="0"
                   value={formData.amount}
-                  onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                  required
+                  onChange={(e) => {
+                    setFormData({ ...formData, amount: e.target.value })
+                    validation.clearError('amount')
+                  }}
                 />
-              </div>
+              </FormField>
             </div>
             <div className="form-row">
               {formData.movement_type === 'income' ? (
-                <div className="form-group">
-                  <label>Статья дохода *</label>
+                <FormField label="Статья дохода" required error={validation.errors.income_item_id}>
                   <select
                     value={formData.income_item_id}
-                    onChange={(e) => setFormData({ ...formData, income_item_id: e.target.value })}
-                    required
+                    onChange={(e) => {
+                      setFormData({ ...formData, income_item_id: e.target.value })
+                      validation.clearError('income_item_id')
+                    }}
                   >
                     <option value="">Выберите...</option>
                     {incomeItems.map(item => (
                       <option key={item.id} value={item.id}>{item.name}</option>
                     ))}
                   </select>
-                </div>
+                </FormField>
               ) : (
-                <div className="form-group">
-                  <label>Статья расхода *</label>
+                <FormField label="Статья расхода" required error={validation.errors.expense_item_id}>
                   <select
                     value={formData.expense_item_id}
-                    onChange={(e) => setFormData({ ...formData, expense_item_id: e.target.value })}
-                    required
+                    onChange={(e) => {
+                      setFormData({ ...formData, expense_item_id: e.target.value })
+                      validation.clearError('expense_item_id')
+                    }}
                   >
                     <option value="">Выберите...</option>
                     {expenseItems.map(item => (
                       <option key={item.id} value={item.id}>{item.name}</option>
                     ))}
                   </select>
-                </div>
+                </FormField>
               )}
-              <div className="form-group">
-                <label>Место оплаты *</label>
+              <FormField label="Место оплаты" required error={validation.errors.payment_place_id}>
                 <select
                   value={formData.payment_place_id}
-                  onChange={(e) => setFormData({ ...formData, payment_place_id: e.target.value })}
-                  required
+                  onChange={(e) => {
+                    setFormData({ ...formData, payment_place_id: e.target.value })
+                    validation.clearError('payment_place_id')
+                  }}
                 >
                   <option value="">Выберите...</option>
                   {paymentPlaces.map(place => (
                     <option key={place.id} value={place.id}>{place.name}</option>
                   ))}
                 </select>
-              </div>
-              <div className="form-group">
-                <label>Организация *</label>
+              </FormField>
+              <FormField label="Организация" required error={validation.errors.company_id}>
                 <select
                   value={formData.company_id}
-                  onChange={(e) => setFormData({ ...formData, company_id: e.target.value })}
-                  required
+                  onChange={(e) => {
+                    setFormData({ ...formData, company_id: e.target.value })
+                    validation.clearError('company_id')
+                  }}
                 >
                   <option value="">Выберите...</option>
                   {companies.filter(c => c.is_active).map(company => (
                     <option key={company.id} value={company.id}>{company.name}</option>
                   ))}
                 </select>
-              </div>
+              </FormField>
               <div className="form-group">
                 <label>
                   <input
@@ -354,61 +463,71 @@ const Input1 = () => {
                 </label>
               </div>
             </div>
-            <div className="form-group">
-              <label>Описание</label>
+            <FormField label="Описание">
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 rows={2}
               />
+            </FormField>
+            <div style={{ display: 'flex', gap: '12px', marginTop: '20px', justifyContent: 'flex-end' }}>
+              <button type="button" onClick={handleClose}>
+                Отмена
+              </button>
+              <button type="submit" className="primary">
+                Сохранить
+              </button>
             </div>
-            <button type="submit" className="primary mr-8">Сохранить</button>
-            <button type="button" onClick={() => { setShowForm(false); setEditingItem(null); resetForm() }}>
-              Отмена
-            </button>
           </form>
-        </div>
-      )}
+      </Modal>
 
       <div className="card">
         <div style={{ marginBottom: '12px', display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', gap: '8px' }}>
-            <button onClick={() => { setShowForm(true); setEditingItem(null); resetForm() }} className="primary">
-              Добавить
-            </button>
-            <button onClick={() => exportService.exportMoneyMovements({ format: 'xlsx' })}>
-              Экспорт Excel
-            </button>
-            <button onClick={() => exportService.exportMoneyMovements({ format: 'csv' })}>
-              Экспорт CSV
-            </button>
-            <label style={{ display: 'inline-block' }}>
-              <input
-                type="file"
-                accept=".xlsx,.xls,.csv"
-                id="import-file-input"
-                onChange={async (e) => {
-                  const file = e.target.files?.[0]
-                  if (file) {
-                    try {
-                      const result = await importService.importMoneyMovements(file)
-                      showSuccess(result.message)
-                      if (result.errors.length > 0) {
-                        showError('Ошибки при импорте: ' + result.errors.join(', '))
-                      }
-                      loadData()
-                    } catch (error: any) {
-                      showError('Ошибка импорта: ' + (error.response?.data?.detail || error.message))
-                    }
-                  }
-                  e.target.value = ''
-                }}
-                style={{ display: 'none' }}
-              />
-              <button type="button" onClick={() => document.getElementById('import-file-input')?.click()}>
-                Импорт
+            <Tooltip content="Создать новое движение (Ctrl+N)">
+              <button onClick={() => { setShowForm(true); setEditingItem(null); resetForm() }} className="primary">
+                Добавить
               </button>
-            </label>
+            </Tooltip>
+            <Tooltip content="Экспортировать в Excel">
+              <button onClick={() => exportService.exportMoneyMovements({ format: 'xlsx' })}>
+                Экспорт Excel
+              </button>
+            </Tooltip>
+            <Tooltip content="Экспортировать в CSV">
+              <button onClick={() => exportService.exportMoneyMovements({ format: 'csv' })}>
+                Экспорт CSV
+              </button>
+            </Tooltip>
+            <Tooltip content="Импортировать из файла">
+              <label style={{ display: 'inline-block' }}>
+                <input
+                  type="file"
+                  accept=".xlsx,.xls,.csv"
+                  id="import-file-input"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0]
+                    if (file) {
+                      try {
+                        const result = await importService.importMoneyMovements(file)
+                        showSuccess(result.message)
+                        if (result.errors.length > 0) {
+                          showError('Ошибки при импорте: ' + result.errors.join(', '))
+                        }
+                        loadData()
+                      } catch (error: any) {
+                        showError('Ошибка импорта: ' + (error.response?.data?.detail || error.message))
+                      }
+                    }
+                    e.target.value = ''
+                  }}
+                  style={{ display: 'none' }}
+                />
+                <button type="button" onClick={() => document.getElementById('import-file-input')?.click()}>
+                  Импорт
+                </button>
+              </label>
+            </Tooltip>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <select
@@ -451,18 +570,19 @@ const Input1 = () => {
             )}
           </div>
         </div>
-        <table>
-          <thead>
-            <tr>
-              <th 
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handleSort('date')
-                }} 
-                style={{ cursor: 'pointer', userSelect: 'none' }}
-              >
-                Дата {sortColumn === 'date' && (sortDirection === 'asc' ? '▲' : '▼')}
-              </th>
+        <div className="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th 
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleSort('date')
+                  }} 
+                  style={{ cursor: 'pointer', userSelect: 'none' }}
+                >
+                  Дата {sortColumn === 'date' && (sortDirection === 'asc' ? '▲' : '▼')}
+                </th>
               <th 
                 onClick={(e) => {
                   e.stopPropagation()
@@ -521,38 +641,69 @@ const Input1 = () => {
               <th style={{ width: '100px' }}>Действия</th>
             </tr>
           </thead>
-          <tbody>
-            {movements.length === 0 ? (
-              <tr>
-                <td colSpan={8} className="text-center">Нет данных</td>
-              </tr>
-            ) : (
-              movements.map((movement) => (
-                <tr 
-                  key={movement.id}
-                  className="clickable"
-                  onClick={() => handleEdit(movement)}
-                >
-                  <td>{movement.date}</td>
-                  <td>{movement.movement_type === 'income' ? 'Поступление' : 'Оплата'}</td>
-                  <td>{getItemName(movement)}</td>
-                  <td>{getPaymentPlaceName(movement.payment_place_id)}</td>
-                  <td>{getCompanyName(movement.company_id)}</td>
-                  <td className="text-right">{parseFloat(movement.amount).toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽</td>
-                  <td>{movement.is_business ? 'Да' : 'Нет'}</td>
-                  <td onClick={(e) => e.stopPropagation()}>
-                    <button 
-                      onClick={() => handleDelete(movement.id)} 
-                      className="danger" 
-                      title="Удалить"
-                      style={{ padding: '4px 6px', fontSize: '16px', lineHeight: '1', minWidth: 'auto' }}
-                    >✕</button>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan={8}>
+                    <LoadingSpinner message="Загрузка движений..." />
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : paginatedMovements.length === 0 ? (
+                <tr>
+                  <td colSpan={8}>
+                    <EmptyState
+                      icon="💰"
+                      title="Нет движений"
+                      message={searchQuery ? 'Движения не найдены по вашему запросу' : 'Добавьте первое движение, чтобы начать работу'}
+                      action={!searchQuery ? {
+                        label: 'Добавить движение',
+                        onClick: () => { setShowForm(true); setEditingItem(null); resetForm() }
+                      } : undefined}
+                    />
+                  </td>
+                </tr>
+              ) : (
+                paginatedMovements.map((movement) => (
+                  <tr 
+                    key={movement.id}
+                    className="clickable"
+                    onClick={() => handleEdit(movement)}
+                  >
+                    <td>{movement.date}</td>
+                    <td>{movement.movement_type === 'income' ? 'Поступление' : 'Оплата'}</td>
+                    <td>{getItemName(movement)}</td>
+                    <td>{getPaymentPlaceName(movement.payment_place_id)}</td>
+                    <td>{getCompanyName(movement.company_id)}</td>
+                    <td className="text-right">{parseFloat(movement.amount).toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽</td>
+                    <td>{movement.is_business ? 'Да' : 'Нет'}</td>
+                    <td onClick={(e) => e.stopPropagation()}>
+                      <Tooltip content="Удалить движение">
+                        <button 
+                          onClick={() => handleDelete(movement.id)} 
+                          className="danger" 
+                          style={{ padding: '4px 6px', fontSize: '16px', lineHeight: '1', minWidth: 'auto' }}
+                        >✕</button>
+                      </Tooltip>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+        {!loading && movements.length > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={movements.length}
+            itemsPerPage={itemsPerPage}
+            onPageChange={setCurrentPage}
+            onItemsPerPageChange={(newItemsPerPage) => {
+              setItemsPerPage(newItemsPerPage)
+              setCurrentPage(1)
+            }}
+          />
+        )}
       </div>
     </div>
   )

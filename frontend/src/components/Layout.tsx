@@ -4,6 +4,7 @@ import { useTheme } from '../contexts/ThemeContext'
 import { useState, useEffect } from 'react'
 import Notifications from './Notifications'
 import CompanySelector from './CompanySelector'
+import Breadcrumbs from './Breadcrumbs'
 import { referenceService } from '../services/api'
 import './Layout.css'
 
@@ -273,6 +274,7 @@ const Layout = () => {
           <div className="content-header">
             <h1 className="page-title">{getPageTitle()}</h1>
           </div>
+          <Breadcrumbs />
           <div className="content-body">
             <Outlet />
           </div>

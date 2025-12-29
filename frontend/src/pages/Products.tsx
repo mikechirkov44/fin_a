@@ -2,13 +2,19 @@ import { useState, useEffect } from 'react'
 import { productsService } from '../services/api'
 import { exportService, importService } from '../services/exportService'
 import { useToast } from '../contexts/ToastContext'
+import { useConfirm } from '../contexts/ConfirmContext'
 import LoadingSpinner from '../components/LoadingSpinner'
 import EmptyState from '../components/EmptyState'
 import SkeletonLoader from '../components/SkeletonLoader'
 import FormField from '../components/FormField'
+import Modal from '../components/Modal'
+import Pagination from '../components/Pagination'
+import Tooltip from '../components/Tooltip'
+import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
 
 const Products = () => {
   const { showSuccess, showError } = useToast()
+  const confirm = useConfirm()
   const [products, setProducts] = useState<any[]>([])
   const [allProducts, setAllProducts] = useState<any[]>([])
   const [searchQuery, setSearchQuery] = useState('')
@@ -17,6 +23,8 @@ const Products = () => {
   const [sortColumn, setSortColumn] = useState<string | null>(null)
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
   const [loading, setLoading] = useState(true)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(25)
   const [formData, setFormData] = useState({
     name: '',
     sku: '',
@@ -186,10 +194,7 @@ const Products = () => {
         await productsService.createProduct(submitData)
         showSuccess('Товар успешно добавлен')
       }
-      setShowForm(false)
-      setEditingItem(null)
-      resetForm()
-      setFormErrors({})
+      handleClose()
       loadData()
     } catch (error: any) {
       showError(error.response?.data?.detail || 'Ошибка сохранения')
@@ -207,6 +212,12 @@ const Products = () => {
     setFormErrors({})
   }
 
+  const handleClose = () => {
+    setShowForm(false)
+    setEditingItem(null)
+    resetForm()
+  }
+
   const handleEdit = (item: any) => {
     setEditingItem(item)
     setFormData({
@@ -220,7 +231,14 @@ const Products = () => {
   }
 
   const handleDelete = async (id: number) => {
-    if (!window.confirm('Удалить товар?')) return
+    const confirmed = await confirm({
+      title: 'Удаление товара',
+      message: 'Вы уверены, что хотите удалить этот товар?',
+      confirmText: 'Удалить',
+      cancelText: 'Отмена',
+      type: 'danger',
+    })
+    if (!confirmed) return
     try {
       await productsService.deleteProduct(id)
       showSuccess('Товар успешно удален')
@@ -230,121 +248,172 @@ const Products = () => {
     }
   }
 
+  // Горячие клавиши
+  useKeyboardShortcuts([
+    {
+      key: 'n',
+      ctrl: true,
+      action: () => {
+        if (!showForm) {
+          setShowForm(true)
+          setEditingItem(null)
+          resetForm()
+        }
+      },
+      description: 'Создать новый товар',
+    },
+    {
+      key: 'Escape',
+      action: () => {
+        if (showForm) {
+          handleClose()
+        }
+      },
+      description: 'Закрыть форму',
+    },
+  ])
+
+  // Пагинация
+  const totalPages = Math.ceil(products.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const paginatedProducts = products.slice(startIndex, endIndex)
+
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(1)
+    }
+  }, [totalPages, currentPage])
+
   return (
     <div>
-      {showForm && (
-        <div className="card" style={{ marginBottom: '16px' }}>
-          <div className="card-header">{editingItem ? 'Редактировать' : 'Добавить'} товар</div>
-          <form onSubmit={handleSubmit}>
-            <div className="form-row">
-              <FormField label="Наименование" required error={formErrors.name}>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => {
-                    setFormData({ ...formData, name: e.target.value })
-                    if (formErrors.name) {
-                      setFormErrors({ ...formErrors, name: '' })
-                    }
-                  }}
-                />
-              </FormField>
-              <FormField label="Артикул (SKU)" required error={formErrors.sku}>
-                <input
-                  type="text"
-                  value={formData.sku}
-                  onChange={(e) => {
-                    setFormData({ ...formData, sku: e.target.value })
-                    if (formErrors.sku) {
-                      setFormErrors({ ...formErrors, sku: '' })
-                    }
-                  }}
-                />
-              </FormField>
-            </div>
-            <div className="form-row">
-              <FormField label="Себестоимость" required error={formErrors.cost_price}>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={formData.cost_price}
-                  onChange={(e) => {
-                    setFormData({ ...formData, cost_price: e.target.value })
-                    if (formErrors.cost_price) {
-                      setFormErrors({ ...formErrors, cost_price: '' })
-                    }
-                  }}
-                />
-              </FormField>
-              <FormField label="Цена продажи" error={formErrors.selling_price}>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={formData.selling_price}
-                  onChange={(e) => {
-                    setFormData({ ...formData, selling_price: e.target.value })
-                    if (formErrors.selling_price) {
-                      setFormErrors({ ...formErrors, selling_price: '' })
-                    }
-                  }}
-                />
-              </FormField>
-            </div>
-            <FormField label="Описание">
-              <textarea
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                rows={3}
+      <Modal
+        isOpen={showForm}
+        onClose={handleClose}
+        title={editingItem ? 'Редактировать товар' : 'Добавить товар'}
+      >
+        <form onSubmit={handleSubmit}>
+          <div className="form-row">
+            <FormField label="Наименование" required error={formErrors.name}>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => {
+                  setFormData({ ...formData, name: e.target.value })
+                  if (formErrors.name) {
+                    setFormErrors({ ...formErrors, name: '' })
+                  }
+                }}
               />
             </FormField>
-            <button type="submit" className="primary mr-8">Сохранить</button>
-            <button type="button" onClick={() => { setShowForm(false); setEditingItem(null); resetForm() }}>
+            <FormField label="Артикул (SKU)" required error={formErrors.sku}>
+              <input
+                type="text"
+                value={formData.sku}
+                onChange={(e) => {
+                  setFormData({ ...formData, sku: e.target.value })
+                  if (formErrors.sku) {
+                    setFormErrors({ ...formErrors, sku: '' })
+                  }
+                }}
+              />
+            </FormField>
+          </div>
+          <div className="form-row">
+            <FormField label="Себестоимость" required error={formErrors.cost_price}>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={formData.cost_price}
+                onChange={(e) => {
+                  setFormData({ ...formData, cost_price: e.target.value })
+                  if (formErrors.cost_price) {
+                    setFormErrors({ ...formErrors, cost_price: '' })
+                  }
+                }}
+              />
+            </FormField>
+            <FormField label="Цена продажи" error={formErrors.selling_price}>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={formData.selling_price}
+                onChange={(e) => {
+                  setFormData({ ...formData, selling_price: e.target.value })
+                  if (formErrors.selling_price) {
+                    setFormErrors({ ...formErrors, selling_price: '' })
+                  }
+                }}
+              />
+            </FormField>
+          </div>
+          <FormField label="Описание">
+            <textarea
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              rows={3}
+            />
+          </FormField>
+          <div style={{ display: 'flex', gap: '12px', marginTop: '20px', justifyContent: 'flex-end' }}>
+            <button type="button" onClick={handleClose}>
               Отмена
             </button>
-          </form>
-        </div>
-      )}
+            <button type="submit" className="primary">
+              Сохранить
+            </button>
+          </div>
+        </form>
+      </Modal>
 
       <div className="card">
         <div style={{ marginBottom: '12px', display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', gap: '8px' }}>
-            <button onClick={() => { setShowForm(true); setEditingItem(null); resetForm() }} className="primary">
-              Добавить
-            </button>
-            <button onClick={() => exportService.exportProducts({ format: 'xlsx' })}>
-              Экспорт Excel
-            </button>
-            <button onClick={() => exportService.exportProducts({ format: 'csv' })}>
-              Экспорт CSV
-            </button>
-            <label style={{ display: 'inline-block' }}>
-              <input
-                type="file"
-                accept=".xlsx,.xls,.csv"
-                onChange={async (e) => {
-                  const file = e.target.files?.[0]
-                  if (file) {
-                    try {
-                      const result = await importService.importProducts(file)
-                      showSuccess(result.message)
-                      if (result.errors.length > 0) {
-                        showError('Ошибки при импорте: ' + result.errors.join(', '))
-                      }
-                      loadData()
-                    } catch (error: any) {
-                      showError('Ошибка импорта: ' + (error.response?.data?.detail || error.message))
-                    }
-                  }
-                  e.target.value = ''
-                }}
-                style={{ display: 'none' }}
-              />
-              <button type="button" onClick={() => (e.target as HTMLElement).parentElement?.querySelector('input')?.click()}>
-                Импорт
+            <Tooltip content="Создать новый товар (Ctrl+N)">
+              <button onClick={() => { setShowForm(true); setEditingItem(null); resetForm(); setFormErrors({}) }} className="primary">
+                Добавить
               </button>
-            </label>
+            </Tooltip>
+            <Tooltip content="Экспортировать в Excel">
+              <button onClick={() => exportService.exportProducts({ format: 'xlsx' })}>
+                Экспорт Excel
+              </button>
+            </Tooltip>
+            <Tooltip content="Экспортировать в CSV">
+              <button onClick={() => exportService.exportProducts({ format: 'csv' })}>
+                Экспорт CSV
+              </button>
+            </Tooltip>
+            <Tooltip content="Импортировать из файла">
+              <label style={{ display: 'inline-block' }}>
+                <input
+                  type="file"
+                  accept=".xlsx,.xls,.csv"
+                  id="import-file-input-products"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0]
+                    if (file) {
+                      try {
+                        const result = await importService.importProducts(file)
+                        showSuccess(result.message)
+                        if (result.errors.length > 0) {
+                          showError('Ошибки при импорте: ' + result.errors.join(', '))
+                        }
+                        loadData()
+                      } catch (error: any) {
+                        showError('Ошибка импорта: ' + (error.response?.data?.detail || error.message))
+                      }
+                    }
+                    e.target.value = ''
+                  }}
+                  style={{ display: 'none' }}
+                />
+                <button type="button" onClick={() => document.getElementById('import-file-input-products')?.click()}>
+                  Импорт
+                </button>
+              </label>
+            </Tooltip>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <input
@@ -433,13 +502,13 @@ const Products = () => {
                     message={searchQuery ? 'Товары не найдены по вашему запросу' : 'Добавьте первый товар, чтобы начать работу'}
                     action={!searchQuery ? {
                       label: 'Добавить товар',
-                      onClick: () => { setShowForm(true); setEditingItem(null); resetForm() }
+                      onClick: () => { setShowForm(true); setEditingItem(null); resetForm(); setFormErrors({}) }
                     } : undefined}
                   />
                 </td>
               </tr>
             ) : (
-              products.map((product) => {
+              paginatedProducts.map((product) => {
                 const margin = product.selling_price
                   ? ((parseFloat(product.selling_price) - parseFloat(product.cost_price)) / parseFloat(product.selling_price) * 100).toFixed(2)
                   : '-'
@@ -458,12 +527,13 @@ const Products = () => {
                     <td className="text-right">{margin !== '-' ? margin + '%' : '-'}</td>
                     <td>{product.description || '-'}</td>
                     <td onClick={(e) => e.stopPropagation()}>
-                      <button 
-                        onClick={() => handleDelete(product.id)} 
-                        className="danger" 
-                        title="Удалить"
-                        style={{ padding: '4px 6px', fontSize: '16px', lineHeight: '1', minWidth: 'auto' }}
-                      >✕</button>
+                      <Tooltip content="Удалить товар">
+                        <button 
+                          onClick={() => handleDelete(product.id)} 
+                          className="danger" 
+                          style={{ padding: '4px 6px', fontSize: '16px', lineHeight: '1', minWidth: 'auto' }}
+                        >✕</button>
+                      </Tooltip>
                     </td>
                   </tr>
                 )
@@ -471,6 +541,19 @@ const Products = () => {
             )}
           </tbody>
         </table>
+        {!loading && products.length > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={products.length}
+            itemsPerPage={itemsPerPage}
+            onPageChange={setCurrentPage}
+            onItemsPerPageChange={(newItemsPerPage) => {
+              setItemsPerPage(newItemsPerPage)
+              setCurrentPage(1)
+            }}
+          />
+        )}
       </div>
     </div>
   )

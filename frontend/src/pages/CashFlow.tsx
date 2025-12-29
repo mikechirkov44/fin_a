@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { cashFlowService } from '../services/api'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import { format, subMonths } from 'date-fns'
+import { translateChartLabels } from '../utils/dateUtils'
 
 const CashFlow = () => {
   const [report, setReport] = useState<any>(null)
@@ -40,7 +41,7 @@ const CashFlow = () => {
       if (error.response) {
         const errorMsg = error.response.data?.detail || error.message || 'Неизвестная ошибка'
         console.error('Ошибка API:', errorMsg)
-        alert(`Ошибка загрузки данных: ${errorMsg}`)
+        // Ошибка загрузки данных обрабатывается в catch блоке
       } else {
         console.error('Ошибка сети:', error.message)
       }
@@ -163,15 +164,15 @@ const CashFlow = () => {
       <div className="card">
         <div className="card-header">График движения денежных средств</div>
         <ResponsiveContainer width="100%" height={400}>
-          <LineChart data={report.periods}>
+          <LineChart data={translateChartLabels(report.periods)}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="period" />
             <YAxis />
             <Tooltip formatter={(value: number) => value.toLocaleString('ru-RU') + ' ₽'} />
             <Legend />
-            <Line type="monotone" dataKey="income" stroke="#27ae60" name="Поступления" strokeWidth={2} />
-            <Line type="monotone" dataKey="expense" stroke="#e74c3c" name="Выбытия" strokeWidth={2} />
-            <Line type="monotone" dataKey="net" stroke="#4a90e2" name="Чистый поток" strokeWidth={2} />
+            <Line type="monotone" dataKey="income" stroke="#27ae60" name="Поступления" strokeWidth={3} />
+            <Line type="monotone" dataKey="expense" stroke="#e74c3c" name="Выбытия" strokeWidth={3} />
+            <Line type="monotone" dataKey="net" stroke="#4a90e2" name="Чистый поток" strokeWidth={3} />
           </LineChart>
         </ResponsiveContainer>
       </div>

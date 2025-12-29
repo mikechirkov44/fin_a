@@ -1,15 +1,34 @@
 import { useState, useEffect } from 'react'
 import { inventoryService, productsService, warehousesService } from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
+import { useToast } from '../contexts/ToastContext'
+import { useConfirm } from '../contexts/ConfirmContext'
+import FormField from '../components/FormField'
+import Tooltip from '../components/Tooltip'
+import LoadingSpinner from '../components/LoadingSpinner'
+import EmptyState from '../components/EmptyState'
+import { useFormValidation } from '../hooks/useFormValidation'
+import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
 
 const Inventory = () => {
   const { selectedCompanyId, canWrite } = useAuth()
+  const { showSuccess, showError } = useToast()
+  const confirm = useConfirm()
   const [inventory, setInventory] = useState<any[]>([])
   const [products, setProducts] = useState<any[]>([])
   const [warehouses, setWarehouses] = useState<any[]>([])
   const [transactions, setTransactions] = useState<any[]>([])
   const [showTransactionForm, setShowTransactionForm] = useState(false)
   const [activeTab, setActiveTab] = useState<'inventory' | 'transactions' | 'turnover'>('inventory')
+  const [loading, setLoading] = useState(true)
+  
+  const transactionValidation = useFormValidation({
+    product_id: { required: true, custom: (value) => value === 0 ? 'Выберите товар' : null },
+    warehouse_id: { required: true, custom: (value) => value === 0 ? 'Выберите склад' : null },
+    quantity: { required: true, min: 0 },
+    cost_price: { required: true, min: 0 },
+    date: { required: true },
+  })
   const [transactionFormData, setTransactionFormData] = useState({
     transaction_type: 'INCOME',
     product_id: 0,
@@ -31,6 +50,7 @@ const Inventory = () => {
 
   const loadInventory = async () => {
     try {
+      setLoading(true)
       const params: any = {}
       if (selectedCompanyId) {
         params.company_id = selectedCompanyId
@@ -39,6 +59,9 @@ const Inventory = () => {
       setInventory(data)
     } catch (error) {
       console.error('Error loading inventory:', error)
+      showError('Ошибка загрузки остатков')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -79,6 +102,12 @@ const Inventory = () => {
 
   const handleTransactionSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    if (!transactionValidation.validate(transactionFormData)) {
+      showError('Исправьте ошибки в форме')
+      return
+    }
+    
     try {
       await inventoryService.createTransaction({
         ...transactionFormData,
@@ -95,10 +124,12 @@ const Inventory = () => {
         date: new Date().toISOString().split('T')[0],
         description: '',
       })
+      transactionValidation.clearAllErrors()
+      showSuccess('Транзакция успешно создана')
       loadInventory()
       loadTransactions()
     } catch (error: any) {
-      alert(error.response?.data?.detail || 'Ошибка при создании транзакции')
+      showError(error.response?.data?.detail || 'Ошибка при создании транзакции')
     }
   }
 

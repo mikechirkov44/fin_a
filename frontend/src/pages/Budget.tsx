@@ -1,12 +1,22 @@
 import { useState, useEffect } from 'react'
 import { budgetService, referenceService } from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
+import { useToast } from '../contexts/ToastContext'
+import { useConfirm } from '../contexts/ConfirmContext'
+import FormField from '../components/FormField'
+import Tooltip from '../components/Tooltip'
+import LoadingSpinner from '../components/LoadingSpinner'
+import EmptyState from '../components/EmptyState'
+import { useFormValidation } from '../hooks/useFormValidation'
+import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
 import { format } from 'date-fns'
 import { ru } from 'date-fns/locale'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, Cell } from 'recharts'
 
 const Budget = () => {
   const { selectedCompanyId, companies } = useAuth()
+  const { showSuccess, showError } = useToast()
+  const confirm = useConfirm()
   const [budgets, setBudgets] = useState<any[]>([])
   const [comparison, setComparison] = useState<any[]>([])
   const [incomeItems, setIncomeItems] = useState<any[]>([])
@@ -14,6 +24,31 @@ const Budget = () => {
   const [showForm, setShowForm] = useState(false)
   const [editingBudget, setEditingBudget] = useState<any>(null)
   const [activeTab, setActiveTab] = useState<'budgets' | 'comparison'>('budgets')
+  const [loading, setLoading] = useState(true)
+  
+  const validation = useFormValidation({
+    company_id: { required: true },
+    period_type: { required: true },
+    period_value: { required: true },
+    budget_type: { required: true },
+    planned_amount: { required: true, min: 0 },
+    income_item_id: {
+      custom: (value) => {
+        if (formData.budget_type === 'income' && !value) {
+          return 'Выберите статью дохода'
+        }
+        return null
+      }
+    },
+    expense_item_id: {
+      custom: (value) => {
+        if (formData.budget_type === 'expense' && !value) {
+          return 'Выберите статью расхода'
+        }
+        return null
+      }
+    },
+  })
   const [filters, setFilters] = useState({
     period_type: 'month',
     period_value: format(new Date(), 'yyyy-MM'),
@@ -63,6 +98,7 @@ const Budget = () => {
 
   const loadData = async () => {
     try {
+      setLoading(true)
       const params: any = {}
       if (selectedCompanyId) params.company_id = selectedCompanyId
       if (filters.period_type) params.period_type = filters.period_type
@@ -73,6 +109,9 @@ const Budget = () => {
       setBudgets(data)
     } catch (error) {
       console.error('Error loading budgets:', error)
+      showError('Ошибка загрузки бюджетов')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -92,6 +131,12 @@ const Budget = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    if (!validation.validate(formData)) {
+      showError('Исправьте ошибки в форме')
+      return
+    }
+    
     try {
       const submitData = {
         ...formData,
@@ -110,12 +155,14 @@ const Budget = () => {
       setShowForm(false)
       setEditingBudget(null)
       resetForm()
+      validation.clearAllErrors()
+      showSuccess(editingBudget ? 'Бюджет успешно обновлен' : 'Бюджет успешно создан')
       loadData()
       if (activeTab === 'comparison') {
         loadComparison()
       }
     } catch (error: any) {
-      alert(`Ошибка сохранения: ${error.response?.data?.detail || error.message}`)
+      showError(`Ошибка сохранения: ${error.response?.data?.detail || error.message}`)
     }
   }
 
@@ -130,6 +177,7 @@ const Budget = () => {
       planned_amount: '',
       description: '',
     })
+    validation.clearAllErrors()
   }
 
   const handleEdit = (budget: any) => {
@@ -148,17 +196,52 @@ const Budget = () => {
   }
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Удалить бюджет?')) return
+    const confirmed = await confirm({
+      title: 'Удаление бюджета',
+      message: 'Вы уверены, что хотите удалить этот бюджет?',
+      confirmText: 'Удалить',
+      cancelText: 'Отмена',
+      type: 'danger',
+    })
+    if (!confirmed) return
     try {
       await budgetService.deleteBudget(id)
+      showSuccess('Бюджет успешно удален')
       loadData()
       if (activeTab === 'comparison') {
         loadComparison()
       }
-    } catch (error) {
-      console.error('Error deleting budget:', error)
+    } catch (error: any) {
+      showError(error.response?.data?.detail || 'Ошибка удаления бюджета')
     }
   }
+
+  // Горячие клавиши
+  useKeyboardShortcuts([
+    {
+      key: 'n',
+      ctrl: true,
+      action: () => {
+        if (!showForm) {
+          setShowForm(true)
+          setEditingBudget(null)
+          resetForm()
+        }
+      },
+      description: 'Создать новый бюджет',
+    },
+    {
+      key: 'Escape',
+      action: () => {
+        if (showForm) {
+          setShowForm(false)
+          setEditingBudget(null)
+          resetForm()
+        }
+      },
+      description: 'Закрыть форму',
+    },
+  ])
 
   const getPeriodLabel = (periodType: string, periodValue: string) => {
     if (periodType === 'month') {
@@ -184,9 +267,11 @@ const Budget = () => {
     <div>
       <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h2>Бюджетирование</h2>
-        <button onClick={() => { setShowForm(true); setEditingBudget(null); resetForm() }} className="primary">
-          Добавить бюджет
-        </button>
+        <Tooltip content="Создать новый бюджет (Ctrl+N)">
+          <button onClick={() => { setShowForm(true); setEditingBudget(null); resetForm() }} className="primary">
+            Добавить бюджет
+          </button>
+        </Tooltip>
       </div>
 
       {/* Вкладки */}
@@ -282,12 +367,13 @@ const Budget = () => {
           </div>
           <form onSubmit={handleSubmit}>
             <div className="form-row">
-              <div className="form-group">
-                <label>Организация *</label>
+              <FormField label="Организация" required error={validation.errors.company_id}>
                 <select
                   value={formData.company_id}
-                  onChange={(e) => setFormData({ ...formData, company_id: e.target.value })}
-                  required
+                  onChange={(e) => {
+                    setFormData({ ...formData, company_id: e.target.value })
+                    validation.clearError('company_id')
+                  }}
                   disabled={!!editingBudget}
                 >
                   <option value="">Выберите...</option>
@@ -295,28 +381,30 @@ const Budget = () => {
                     <option key={c.id} value={c.id}>{c.name}</option>
                   ))}
                 </select>
-              </div>
-              <div className="form-group">
-                <label>Тип периода *</label>
+              </FormField>
+              <FormField label="Тип периода" required error={validation.errors.period_type}>
                 <select
                   value={formData.period_type}
-                  onChange={(e) => setFormData({ ...formData, period_type: e.target.value })}
-                  required
+                  onChange={(e) => {
+                    setFormData({ ...formData, period_type: e.target.value })
+                    validation.clearError('period_type')
+                  }}
                   disabled={!!editingBudget}
                 >
                   <option value="month">Месяц</option>
                   <option value="quarter">Квартал</option>
                   <option value="year">Год</option>
                 </select>
-              </div>
-              <div className="form-group">
-                <label>Период *</label>
+              </FormField>
+              <FormField label="Период" required error={validation.errors.period_value}>
                 {formData.period_type === 'month' ? (
                   <input
                     type="month"
                     value={formData.period_value}
-                    onChange={(e) => setFormData({ ...formData, period_value: e.target.value })}
-                    required
+                    onChange={(e) => {
+                      setFormData({ ...formData, period_value: e.target.value })
+                      validation.clearError('period_value')
+                    }}
                     disabled={!!editingBudget}
                   />
                 ) : formData.period_type === 'quarter' ? (
@@ -324,8 +412,10 @@ const Budget = () => {
                     type="text"
                     placeholder="2024-Q1"
                     value={formData.period_value}
-                    onChange={(e) => setFormData({ ...formData, period_value: e.target.value })}
-                    required
+                    onChange={(e) => {
+                      setFormData({ ...formData, period_value: e.target.value })
+                      validation.clearError('period_value')
+                    }}
                     disabled={!!editingBudget}
                   />
                 ) : (
@@ -333,38 +423,47 @@ const Budget = () => {
                     type="number"
                     placeholder="2024"
                     value={formData.period_value}
-                    onChange={(e) => setFormData({ ...formData, period_value: e.target.value })}
-                    required
+                    onChange={(e) => {
+                      setFormData({ ...formData, period_value: e.target.value })
+                      validation.clearError('period_value')
+                    }}
                     disabled={!!editingBudget}
                   />
                 )}
-              </div>
+              </FormField>
             </div>
             <div className="form-row">
-              <div className="form-group">
-                <label>Тип бюджета *</label>
+              <FormField label="Тип бюджета" required error={validation.errors.budget_type}>
                 <select
                   value={formData.budget_type}
-                  onChange={(e) => setFormData({ ...formData, budget_type: e.target.value, income_item_id: '', expense_item_id: '' })}
-                  required
+                  onChange={(e) => {
+                    setFormData({ ...formData, budget_type: e.target.value, income_item_id: '', expense_item_id: '' })
+                    validation.clearError('budget_type')
+                    validation.clearError('income_item_id')
+                    validation.clearError('expense_item_id')
+                  }}
                   disabled={!!editingBudget}
                 >
                   <option value="income">Доходы</option>
                   <option value="expense">Расходы</option>
                 </select>
-              </div>
-              <div className="form-group">
-                <label>{formData.budget_type === 'income' ? 'Статья дохода *' : 'Статья расхода *'}</label>
+              </FormField>
+              <FormField 
+                label={formData.budget_type === 'income' ? 'Статья дохода' : 'Статья расхода'} 
+                required 
+                error={formData.budget_type === 'income' ? validation.errors.income_item_id : validation.errors.expense_item_id}
+              >
                 <select
                   value={formData.budget_type === 'income' ? formData.income_item_id : formData.expense_item_id}
                   onChange={(e) => {
                     if (formData.budget_type === 'income') {
                       setFormData({ ...formData, income_item_id: e.target.value })
+                      validation.clearError('income_item_id')
                     } else {
                       setFormData({ ...formData, expense_item_id: e.target.value })
+                      validation.clearError('expense_item_id')
                     }
                   }}
-                  required
                   disabled={!!editingBudget}
                 >
                   <option value="">Выберите...</option>
@@ -372,26 +471,27 @@ const Budget = () => {
                     <option key={item.id} value={item.id}>{item.name}</option>
                   ))}
                 </select>
-              </div>
-              <div className="form-group">
-                <label>Плановая сумма *</label>
+              </FormField>
+              <FormField label="Плановая сумма" required error={validation.errors.planned_amount}>
                 <input
                   type="number"
                   step="0.01"
+                  min="0"
                   value={formData.planned_amount}
-                  onChange={(e) => setFormData({ ...formData, planned_amount: e.target.value })}
-                  required
+                  onChange={(e) => {
+                    setFormData({ ...formData, planned_amount: e.target.value })
+                    validation.clearError('planned_amount')
+                  }}
                 />
-              </div>
+              </FormField>
             </div>
-            <div className="form-group">
-              <label>Описание</label>
+            <FormField label="Описание">
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 rows={3}
               />
-            </div>
+            </FormField>
             <button type="submit" className="primary mr-8">Сохранить</button>
             <button type="button" onClick={() => { setShowForm(false); setEditingBudget(null); resetForm() }}>
               Отмена
@@ -404,39 +504,61 @@ const Budget = () => {
       {activeTab === 'budgets' && (
         <div className="card">
           <div className="card-header">Список бюджетов</div>
-          <table>
-            <thead>
-              <tr>
-                <th>Период</th>
-                <th>Тип</th>
-                <th>Статья</th>
-                <th>Плановая сумма</th>
-                <th>Организация</th>
-                <th>Действия</th>
-              </tr>
-            </thead>
-            <tbody>
-              {budgets.length === 0 ? (
+          <div className="table-container">
+            <table>
+              <thead>
                 <tr>
-                  <td colSpan={6} className="text-center">Нет бюджетов</td>
+                  <th>Период</th>
+                  <th>Тип</th>
+                  <th>Статья</th>
+                  <th>Плановая сумма</th>
+                  <th>Организация</th>
+                  <th>Действия</th>
                 </tr>
-              ) : (
-                budgets.map((budget) => (
-                  <tr key={budget.id}>
-                    <td>{getPeriodLabel(budget.period_type, budget.period_value)}</td>
-                    <td>{budget.budget_type === 'income' ? 'Доходы' : 'Расходы'}</td>
-                    <td>{budget.item_name || '-'}</td>
-                    <td className="text-right">{budget.planned_amount.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽</td>
-                    <td>{budget.company_name || '-'}</td>
-                    <td>
-                      <button onClick={() => handleEdit(budget)} style={{ marginRight: '8px' }}>✏️ Изменить</button>
-                      <button onClick={() => handleDelete(budget.id)} className="danger">🗑️ Удалить</button>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr>
+                    <td colSpan={6}>
+                      <LoadingSpinner message="Загрузка бюджетов..." />
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : budgets.length === 0 ? (
+                  <tr>
+                    <td colSpan={6}>
+                      <EmptyState
+                        icon="💰"
+                        title="Нет бюджетов"
+                        message="Добавьте первый бюджет, чтобы начать работу"
+                        action={{
+                          label: 'Добавить бюджет',
+                          onClick: () => { setShowForm(true); setEditingBudget(null); resetForm() }
+                        }}
+                      />
+                    </td>
+                  </tr>
+                ) : (
+                  budgets.map((budget) => (
+                    <tr key={budget.id}>
+                      <td>{getPeriodLabel(budget.period_type, budget.period_value)}</td>
+                      <td>{budget.budget_type === 'income' ? 'Доходы' : 'Расходы'}</td>
+                      <td>{budget.item_name || '-'}</td>
+                      <td className="text-right">{budget.planned_amount.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽</td>
+                      <td>{budget.company_name || '-'}</td>
+                      <td>
+                        <Tooltip content="Редактировать бюджет">
+                          <button onClick={() => handleEdit(budget)} style={{ marginRight: '8px' }}>✏️ Изменить</button>
+                        </Tooltip>
+                        <Tooltip content="Удалить бюджет">
+                          <button onClick={() => handleDelete(budget.id)} className="danger">🗑️ Удалить</button>
+                        </Tooltip>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
@@ -451,7 +573,7 @@ const Budget = () => {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" />
                   <YAxis />
-                  <Tooltip formatter={(value: number) => value.toLocaleString('ru-RU') + ' ₽'} />
+                  <RechartsTooltip formatter={(value: number) => value.toLocaleString('ru-RU') + ' ₽'} />
                   <Legend />
                   <Bar dataKey="План" fill="#4a90e2" />
                   <Bar dataKey="Факт" fill="#27ae60" />

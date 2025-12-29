@@ -21,7 +21,7 @@ const ProfitLoss = () => {
       console.error('Error loading profit loss:', error)
       setReport(null)
       if (error.response) {
-        alert(`Ошибка загрузки данных: ${error.response.data?.detail || error.message}`)
+        // Ошибка загрузки данных обрабатывается в catch блоке
       }
     } finally {
       setLoading(false)
