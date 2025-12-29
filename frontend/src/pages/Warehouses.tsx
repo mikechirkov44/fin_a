@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
 import { useConfirm } from '../contexts/ConfirmContext'
 import FormField from '../components/FormField'
+import Modal from '../components/Modal'
 import Tooltip from '../components/Tooltip'
 import LoadingSpinner from '../components/LoadingSpinner'
 import EmptyState from '../components/EmptyState'
@@ -76,15 +77,19 @@ const Warehouses = () => {
       } else {
         await warehousesService.createWarehouse(formData)
       }
-      setShowForm(false)
-      setEditingWarehouse(null)
-      setFormData({ name: '', address: '', description: '', company_id: selectedCompanyId || 0 })
-      validation.clearAllErrors()
+      handleClose()
       showSuccess(editingWarehouse ? 'Склад успешно обновлен' : 'Склад успешно добавлен')
       loadData()
     } catch (error: any) {
       showError(error.response?.data?.detail || 'Ошибка при сохранении склада')
     }
+  }
+
+  const handleClose = () => {
+    setShowForm(false)
+    setEditingWarehouse(null)
+    setFormData({ name: '', address: '', description: '', company_id: selectedCompanyId || 0 })
+    validation.clearAllErrors()
   }
 
   const handleEdit = (warehouse: any) => {
@@ -134,9 +139,7 @@ const Warehouses = () => {
       key: 'Escape',
       action: () => {
         if (showForm) {
-          setShowForm(false)
-          setEditingWarehouse(null)
-          setFormData({ name: '', address: '', description: '', company_id: selectedCompanyId || 0 })
+          handleClose()
         }
       },
       description: 'Закрыть форму',
@@ -171,12 +174,13 @@ const Warehouses = () => {
         </div>
       )}
 
-      {showForm && (
-        <div className="card" style={{ marginBottom: '20px' }}>
-          <div className="card-header">
-            {editingWarehouse ? 'Редактировать склад' : 'Добавить склад'}
-          </div>
-          <form onSubmit={handleSubmit} style={{ padding: '20px' }}>
+      <Modal
+        isOpen={showForm}
+        onClose={handleClose}
+        title={editingWarehouse ? 'Редактировать склад' : 'Добавить склад'}
+        maxWidth="700px"
+      >
+        <form onSubmit={handleSubmit}>
             <FormField label="Название" required error={validation.errors.name}>
               <input
                 type="text"
@@ -217,15 +221,16 @@ const Warehouses = () => {
                 ))}
               </select>
             </FormField>
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <button type="submit">Сохранить</button>
-              <button type="button" onClick={() => { setShowForm(false); setEditingWarehouse(null) }}>
+            <div style={{ display: 'flex', gap: '12px', marginTop: '20px', justifyContent: 'flex-end' }}>
+              <button type="button" onClick={handleClose}>
                 Отмена
+              </button>
+              <button type="submit" className="primary">
+                Сохранить
               </button>
             </div>
           </form>
-        </div>
-      )}
+      </Modal>
 
       <div className="card">
         <div className="table-container">

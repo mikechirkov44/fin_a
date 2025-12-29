@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
 import { useConfirm } from '../contexts/ConfirmContext'
 import FormField from '../components/FormField'
+import Modal from '../components/Modal'
 import Tooltip from '../components/Tooltip'
 import LoadingSpinner from '../components/LoadingSpinner'
 import EmptyState from '../components/EmptyState'
@@ -76,15 +77,19 @@ const Users = () => {
       } else {
         await usersService.createUser(formData)
       }
-      setShowForm(false)
-      setEditingUser(null)
-      setFormData({ email: '', username: '', password: '', role: 'VIEWER' })
-      validation.clearAllErrors()
+      handleClose()
       showSuccess(editingUser ? 'Пользователь успешно обновлен' : 'Пользователь успешно создан')
       loadData()
     } catch (error: any) {
       showError(error.response?.data?.detail || 'Ошибка при сохранении пользователя')
     }
+  }
+
+  const handleClose = () => {
+    setShowForm(false)
+    setEditingUser(null)
+    setFormData({ email: '', username: '', password: '', role: 'VIEWER' })
+    validation.clearAllErrors()
   }
 
   const handleEdit = (user: any) => {
@@ -134,9 +139,7 @@ const Users = () => {
       key: 'Escape',
       action: () => {
         if (showForm) {
-          setShowForm(false)
-          setEditingUser(null)
-          setFormData({ email: '', username: '', password: '', role: 'VIEWER' })
+          handleClose()
         }
       },
       description: 'Закрыть форму',
@@ -163,12 +166,13 @@ const Users = () => {
         </Tooltip>
       </div>
 
-      {showForm && (
-        <div className="card" style={{ marginBottom: '20px' }}>
-          <div className="card-header">
-            {editingUser ? 'Редактировать пользователя' : 'Добавить пользователя'}
-          </div>
-          <form onSubmit={handleSubmit} style={{ padding: '20px' }}>
+      <Modal
+        isOpen={showForm}
+        onClose={handleClose}
+        title={editingUser ? 'Редактировать пользователя' : 'Добавить пользователя'}
+        maxWidth="600px"
+      >
+        <form onSubmit={handleSubmit}>
             <FormField label="Email" required error={validation.errors.email}>
               <input
                 type="email"
@@ -217,15 +221,16 @@ const Users = () => {
                 <option value="VIEWER">Просмотр</option>
               </select>
             </FormField>
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <button type="submit">Сохранить</button>
-              <button type="button" onClick={() => { setShowForm(false); setEditingUser(null) }}>
+            <div style={{ display: 'flex', gap: '12px', marginTop: '20px', justifyContent: 'flex-end' }}>
+              <button type="button" onClick={handleClose}>
                 Отмена
+              </button>
+              <button type="submit" className="primary">
+                Сохранить
               </button>
             </div>
           </form>
-        </div>
-      )}
+      </Modal>
 
       <div className="card">
         <div className="table-container">

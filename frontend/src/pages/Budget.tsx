@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
 import { useConfirm } from '../contexts/ConfirmContext'
 import FormField from '../components/FormField'
+import Modal from '../components/Modal'
 import Tooltip from '../components/Tooltip'
 import LoadingSpinner from '../components/LoadingSpinner'
 import EmptyState from '../components/EmptyState'
@@ -152,10 +153,7 @@ const Budget = () => {
         await budgetService.createBudget(submitData)
       }
       
-      setShowForm(false)
-      setEditingBudget(null)
-      resetForm()
-      validation.clearAllErrors()
+      handleClose()
       showSuccess(editingBudget ? 'Бюджет успешно обновлен' : 'Бюджет успешно создан')
       loadData()
       if (activeTab === 'comparison') {
@@ -178,6 +176,12 @@ const Budget = () => {
       description: '',
     })
     validation.clearAllErrors()
+  }
+
+  const handleClose = () => {
+    setShowForm(false)
+    setEditingBudget(null)
+    resetForm()
   }
 
   const handleEdit = (budget: any) => {
@@ -234,9 +238,7 @@ const Budget = () => {
       key: 'Escape',
       action: () => {
         if (showForm) {
-          setShowForm(false)
-          setEditingBudget(null)
-          resetForm()
+          handleClose()
         }
       },
       description: 'Закрыть форму',
@@ -360,12 +362,13 @@ const Budget = () => {
       </div>
 
       {/* Форма создания/редактирования */}
-      {showForm && (
-        <div className="card" style={{ marginBottom: '16px' }}>
-          <div className="card-header">
-            {editingBudget ? 'Редактировать бюджет' : 'Добавить бюджет'}
-          </div>
-          <form onSubmit={handleSubmit}>
+      <Modal
+        isOpen={showForm}
+        onClose={handleClose}
+        title={editingBudget ? 'Редактировать бюджет' : 'Добавить бюджет'}
+        maxWidth="900px"
+      >
+        <form onSubmit={handleSubmit}>
             <div className="form-row">
               <FormField label="Организация" required error={validation.errors.company_id}>
                 <select
@@ -492,13 +495,16 @@ const Budget = () => {
                 rows={3}
               />
             </FormField>
-            <button type="submit" className="primary mr-8">Сохранить</button>
-            <button type="button" onClick={() => { setShowForm(false); setEditingBudget(null); resetForm() }}>
-              Отмена
-            </button>
+            <div style={{ display: 'flex', gap: '12px', marginTop: '20px', justifyContent: 'flex-end' }}>
+              <button type="button" onClick={handleClose}>
+                Отмена
+              </button>
+              <button type="submit" className="primary">
+                Сохранить
+              </button>
+            </div>
           </form>
-        </div>
-      )}
+      </Modal>
 
       {/* Таблица бюджетов */}
       {activeTab === 'budgets' && (

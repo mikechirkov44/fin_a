@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { referenceService, productsService } from '../services/api'
 import { useToast } from '../contexts/ToastContext'
 import { useConfirm } from '../contexts/ConfirmContext'
+import Modal from '../components/Modal'
 
 type TabType = 'income' | 'expense' | 'payment' | 'company' | 'marketplace' | 'incomeGroup' | 'expenseGroup' | 'expenseCategory' | 'salesChannel' | 'product'
 
@@ -318,13 +319,17 @@ const Reference = () => {
           await productsService.createProduct(submitData)
         }
       }
-      setShowForm(false)
-      setEditingItem(null)
-      setFormData({ name: '', description: '', group_id: null, parent_group_id: null, subgroup_type: null, sku: '', cost_price: '', selling_price: '' })
+      handleClose()
       loadData()
     } catch (error) {
       console.error('Error saving:', error)
     }
+  }
+
+  const handleClose = () => {
+    setShowForm(false)
+    setEditingItem(null)
+    setFormData({ name: '', description: '', group_id: null, parent_group_id: null, subgroup_type: null, sku: '', cost_price: '', selling_price: '' })
   }
 
   const handleEdit = (item: any) => {
@@ -465,10 +470,13 @@ const Reference = () => {
         </button>
       </div>
 
-      {showForm && (
-        <div className="card" style={{ marginBottom: '16px' }}>
-          <div className="card-header">{editingItem ? 'Редактировать' : 'Добавить'} {title}</div>
-          <form onSubmit={handleSubmit}>
+      <Modal
+        isOpen={showForm}
+        onClose={handleClose}
+        title={editingItem ? `Редактировать ${title}` : `Добавить ${title}`}
+        maxWidth="800px"
+      >
+        <form onSubmit={handleSubmit}>
             <div className="form-group">
               <label>Наименование *</label>
               <input
@@ -563,13 +571,16 @@ const Reference = () => {
                 rows={3}
               />
             </div>
-            <button type="submit" className="primary mr-8">Сохранить</button>
-            <button type="button" onClick={() => { setShowForm(false); setEditingItem(null); setFormData({ name: '', description: '', group_id: null, parent_group_id: null, subgroup_type: null, sku: '', cost_price: '', selling_price: '' }) }}>
-              Отмена
-            </button>
+            <div style={{ display: 'flex', gap: '12px', marginTop: '20px', justifyContent: 'flex-end' }}>
+              <button type="button" onClick={handleClose}>
+                Отмена
+              </button>
+              <button type="submit" className="primary">
+                Сохранить
+              </button>
+            </div>
           </form>
-        </div>
-      )}
+      </Modal>
 
       <div className="card">
         <div className="card-header">{title}</div>

@@ -3,6 +3,7 @@ import { marketplaceIntegrationService } from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
 import { useConfirm } from '../contexts/ConfirmContext'
+import Modal from '../components/Modal'
 import { format, subDays } from 'date-fns'
 
 const MarketplaceIntegration = () => {
@@ -72,9 +73,7 @@ const MarketplaceIntegration = () => {
         await marketplaceIntegrationService.createIntegration(submitData)
       }
       
-      setShowForm(false)
-      setEditingIntegration(null)
-      resetForm()
+      handleClose()
       loadData()
     } catch (error: any) {
       showError(`Ошибка сохранения: ${error.response?.data?.detail || error.message}`)
@@ -93,6 +92,12 @@ const MarketplaceIntegration = () => {
       auto_sync: false,
       sync_interval_hours: 24,
     })
+  }
+
+  const handleClose = () => {
+    setShowForm(false)
+    setEditingIntegration(null)
+    resetForm()
   }
 
   const handleEdit = (integration: any) => {
@@ -199,12 +204,13 @@ const MarketplaceIntegration = () => {
         </button>
       </div>
 
-      {showForm && (
-        <div className="card" style={{ marginBottom: '16px' }}>
-          <div className="card-header">
-            {editingIntegration ? 'Редактировать интеграцию' : 'Добавить интеграцию'}
-          </div>
-          <form onSubmit={handleSubmit}>
+      <Modal
+        isOpen={showForm}
+        onClose={handleClose}
+        title={editingIntegration ? 'Редактировать интеграцию' : 'Добавить интеграцию'}
+        maxWidth="900px"
+      >
+        <form onSubmit={handleSubmit}>
             <div className="form-row">
               <div className="form-group">
                 <label>Маркетплейс *</label>
@@ -329,13 +335,16 @@ const MarketplaceIntegration = () => {
               )}
             </div>
 
-            <button type="submit" className="primary mr-8">Сохранить</button>
-            <button type="button" onClick={() => { setShowForm(false); setEditingIntegration(null); resetForm() }}>
-              Отмена
-            </button>
+            <div style={{ display: 'flex', gap: '12px', marginTop: '20px', justifyContent: 'flex-end' }}>
+              <button type="button" onClick={handleClose}>
+                Отмена
+              </button>
+              <button type="submit" className="primary">
+                Сохранить
+              </button>
+            </div>
           </form>
-        </div>
-      )}
+      </Modal>
 
       <div className="card" style={{ marginBottom: '16px' }}>
         <div className="card-header">Параметры синхронизации</div>

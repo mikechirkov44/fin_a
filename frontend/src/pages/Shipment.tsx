@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
 import { useConfirm } from '../contexts/ConfirmContext'
 import FormField from '../components/FormField'
+import Modal from '../components/Modal'
 import Pagination from '../components/Pagination'
 import Tooltip from '../components/Tooltip'
 import LoadingSpinner from '../components/LoadingSpinner'
@@ -16,7 +17,7 @@ import { format } from 'date-fns'
 const Shipment = () => {
   const { selectedCompanyId, companies } = useAuth()
   const { showSuccess, showError } = useToast()
-  const confirm = useConfirm()
+  const { confirm } = useConfirm()
   const [shipments, setShipments] = useState<any[]>([])
   const [allShipments, setAllShipments] = useState<any[]>([])
   const [searchQuery, setSearchQuery] = useState('')
@@ -245,10 +246,7 @@ const Shipment = () => {
       } else {
         await shipmentService.createShipment(submitData)
       }
-      setShowForm(false)
-      setEditingItem(null)
-      resetForm()
-      validation.clearAllErrors()
+      handleClose()
       showSuccess(editingItem ? 'Отгрузка успешно обновлена' : 'Отгрузка успешно добавлена')
       loadData()
     } catch (error: any) {
@@ -268,6 +266,12 @@ const Shipment = () => {
       description: '',
     })
     validation.clearAllErrors()
+  }
+
+  const handleClose = () => {
+    setShowForm(false)
+    setEditingItem(null)
+    resetForm()
   }
 
   const handleEdit = (item: any) => {
@@ -320,9 +324,7 @@ const Shipment = () => {
       key: 'Escape',
       action: () => {
         if (showForm) {
-          setShowForm(false)
-          setEditingItem(null)
-          resetForm()
+          handleClose()
         }
       },
       description: 'Закрыть форму',
@@ -343,10 +345,13 @@ const Shipment = () => {
 
   return (
     <div>
-      {showForm && (
-        <div className="card" style={{ marginBottom: '16px' }}>
-          <div className="card-header">{editingItem ? 'Редактировать' : 'Добавить'} отгрузку</div>
-          <form onSubmit={handleSubmit}>
+      <Modal
+        isOpen={showForm}
+        onClose={handleClose}
+        title={editingItem ? 'Редактировать отгрузку' : 'Добавить отгрузку'}
+        maxWidth="900px"
+      >
+        <form onSubmit={handleSubmit}>
             <div className="form-row">
               <FormField label="Дата" required error={validation.errors.date}>
                 <input
@@ -433,13 +438,16 @@ const Shipment = () => {
                 rows={2}
               />
             </FormField>
-            <button type="submit" className="primary mr-8">Сохранить</button>
-            <button type="button" onClick={() => { setShowForm(false); setEditingItem(null); resetForm() }}>
-              Отмена
-            </button>
+            <div style={{ display: 'flex', gap: '12px', marginTop: '20px', justifyContent: 'flex-end' }}>
+              <button type="button" onClick={handleClose}>
+                Отмена
+              </button>
+              <button type="submit" className="primary">
+                Сохранить
+              </button>
+            </div>
           </form>
-        </div>
-      )}
+      </Modal>
 
       <div className="card">
         <div style={{ marginBottom: '12px', display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'space-between' }}>
