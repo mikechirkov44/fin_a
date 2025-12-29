@@ -12,6 +12,7 @@ const CashFlowAnalysis = () => {
   const [endDate, setEndDate] = useState(format(new Date(), 'yyyy-MM-dd'))
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>('')
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     loadData()
@@ -19,15 +20,30 @@ const CashFlowAnalysis = () => {
 
   const loadData = async () => {
     setLoading(true)
+    setError(null)
     try {
       const params: any = { start_date: startDate, end_date: endDate }
       if (selectedCompanyId) {
         params.company_id = parseInt(selectedCompanyId)
       }
+      console.log('Запрос анализа ДДС:', params)
       const data = await cashFlowAnalysisService.getAnalysis(params)
-      setReport(data)
-    } catch (error) {
+      console.log('Получены данные анализа ДДС:', data)
+      if (data && data.channels !== undefined) {
+        setReport(data)
+        // Если нет данных, но структура есть - это нормально, просто покажем пустые таблицы
+        if (data.total_revenue === 0 && (!data.channels || data.channels.length === 0)) {
+          setError(null) // Убираем ошибку, показываем пустые таблицы
+        }
+      } else {
+        setReport(null)
+        setError('Нет данных за выбранный период')
+      }
+    } catch (error: any) {
       console.error('Error loading cash flow analysis:', error)
+      setReport(null)
+      const errorMessage = error.response?.data?.detail || error.message || 'Ошибка загрузки данных'
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }
@@ -35,8 +51,94 @@ const CashFlowAnalysis = () => {
 
   const COLORS = ['#4a90e2', '#27ae60', '#e74c3c', '#f39c12', '#9b59b6', '#1abc9c']
 
-  if (loading) return <div>Загрузка...</div>
-  if (!report) return <div>Нет данных</div>
+  if (loading) {
+    return (
+      <div>
+        <div className="card" style={{ marginBottom: '16px' }}>
+          <div className="form-row">
+            <div className="form-group">
+              <label>Организация</label>
+              <select
+                value={selectedCompanyId}
+                onChange={(e) => setSelectedCompanyId(e.target.value)}
+              >
+                <option value="">Все организации</option>
+                {companies.filter(c => c.is_active).map(company => (
+                  <option key={company.id} value={company.id}>{company.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="form-group">
+              <label>Начало периода</label>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+              />
+            </div>
+            <div className="form-group">
+              <label>Конец периода</label>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+              />
+            </div>
+          </div>
+        </div>
+        <div className="card">
+          <div style={{ textAlign: 'center', padding: '40px' }}>Загрузка данных...</div>
+        </div>
+      </div>
+    )
+  }
+
+  if (error || !report) {
+    return (
+      <div>
+        <div className="card" style={{ marginBottom: '16px' }}>
+          <div className="form-row">
+            <div className="form-group">
+              <label>Организация</label>
+              <select
+                value={selectedCompanyId}
+                onChange={(e) => setSelectedCompanyId(e.target.value)}
+              >
+                <option value="">Все организации</option>
+                {companies.filter(c => c.is_active).map(company => (
+                  <option key={company.id} value={company.id}>{company.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="form-group">
+              <label>Начало периода</label>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+              />
+            </div>
+            <div className="form-group">
+              <label>Конец периода</label>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+              />
+            </div>
+          </div>
+        </div>
+        <div className="card">
+          <div style={{ textAlign: 'center', padding: '40px', color: error ? '#e74c3c' : '#666' }}>
+            {error || 'Нет данных за выбранный период'}
+            <div style={{ marginTop: '16px', fontSize: '14px', color: '#999' }}>
+              Проверьте, что в системе есть данные о реализациях и отгрузках за указанный период
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div>
@@ -173,21 +275,29 @@ const CashFlowAnalysis = () => {
             </tr>
           </thead>
           <tbody>
-            {report.channels.map((channel: any) => (
-              <tr key={channel.channel}>
-                <td>{channel.channel}</td>
-                <td className="text-right">
-                  {channel.revenue.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽
+            {report.channels && report.channels.length > 0 ? (
+              report.channels.map((channel: any) => (
+                <tr key={channel.channel}>
+                  <td>{channel.channel}</td>
+                  <td className="text-right">
+                    {channel.revenue.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽
+                  </td>
+                  <td className="text-right" style={{ color: '#e74c3c' }}>
+                    -{channel.marketplace_costs.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽
+                  </td>
+                  <td className="text-right" style={{ color: channel.marginal_income >= 0 ? '#27ae60' : '#e74c3c' }}>
+                    {channel.marginal_income.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽
+                  </td>
+                  <td className="text-right">{channel.marginal_margin}%</td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={5} style={{ textAlign: 'center', padding: '20px', color: '#999' }}>
+                  Нет данных по каналам за выбранный период
                 </td>
-                <td className="text-right" style={{ color: '#e74c3c' }}>
-                  -{channel.marketplace_costs.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽
-                </td>
-                <td className="text-right" style={{ color: channel.marginal_income >= 0 ? '#27ae60' : '#e74c3c' }}>
-                  {channel.marginal_income.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽
-                </td>
-                <td className="text-right">{channel.marginal_margin}%</td>
               </tr>
-            ))}
+            )}
             <tr style={{ backgroundColor: '#e0e0e0', fontWeight: 'bold' }}>
               <td><strong>ИТОГО</strong></td>
               <td className="text-right">
