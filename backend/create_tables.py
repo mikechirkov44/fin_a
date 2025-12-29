@@ -9,7 +9,7 @@ from app.models import (
     ExpenseGroup, ExpenseItem, 
     PaymentPlace, Company, Marketplace,
     ExpenseCategory, SalesChannel,
-    MoneyMovement, Asset, Liability, Realization, Shipment, Product,
+    MoneyMovement, Asset, Liability, Realization, RealizationItem, Shipment, Product,
     MarketplaceIntegration, AuditLog, Budget, Notification
 )
 

@@ -12,7 +12,7 @@ from .reference import (
 )
 from .input1 import MoneyMovementCreate, MoneyMovementResponse
 from .input2 import AssetCreate, AssetResponse, LiabilityCreate, LiabilityResponse
-from .realization import RealizationCreate, RealizationResponse
+from .realization import RealizationCreate, RealizationResponse, RealizationItemCreate, RealizationItemResponse
 from .shipment import ShipmentCreate, ShipmentResponse
 from .product import ProductCreate, ProductResponse
 from .marketplace_integration import (
@@ -53,6 +53,8 @@ __all__ = [
     "LiabilityResponse",
     "RealizationCreate",
     "RealizationResponse",
+    "RealizationItemCreate",
+    "RealizationItemResponse",
     "ShipmentCreate",
     "ShipmentResponse",
     "ProductCreate",

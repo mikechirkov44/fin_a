@@ -310,8 +310,10 @@ def get_turnover_analysis(
             }
         product_inventory[inv.product_id]["total_quantity"] += inv.quantity
     
-    # Получаем реализацию за период
-    realizations = db.query(Realization).filter(
+    # Получаем детализацию реализации за период
+    from app.models.realization import RealizationItem
+    
+    realization_items = db.query(RealizationItem).join(Realization).filter(
         Realization.company_id == company_id,
         Realization.date >= start_date,
         Realization.date <= end_date
@@ -319,19 +321,18 @@ def get_turnover_analysis(
     
     # Группируем реализацию по товарам
     product_sales = {}
-    for real in realizations:
-        if real.product_id:
-            if real.product_id not in product_sales:
-                product_sales[real.product_id] = {
-                    "quantity": Decimal('0'),
-                    "revenue": Decimal('0'),
-                    "cogs": Decimal('0')  # Cost of Goods Sold
-                }
-            product_sales[real.product_id]["quantity"] += real.quantity
-            product_sales[real.product_id]["revenue"] += real.revenue or Decimal('0')
-            # Используем среднюю себестоимость для расчета COGS
-            avg_cost = calculate_average_cost(real.product_id, warehouse_ids[0], db)
-            product_sales[real.product_id]["cogs"] += avg_cost * real.quantity
+    for item in realization_items:
+        product_id = item.product_id
+        if product_id not in product_sales:
+            product_sales[product_id] = {
+                "quantity": Decimal('0'),
+                "revenue": Decimal('0'),
+                "cogs": Decimal('0')  # Cost of Goods Sold
+            }
+        product_sales[product_id]["quantity"] += item.quantity
+        product_sales[product_id]["revenue"] += item.price * Decimal(item.quantity)
+        # Используем себестоимость из детализации для расчета COGS
+        product_sales[product_id]["cogs"] += item.cost_price * Decimal(item.quantity)
     
     # Рассчитываем оборачиваемость
     result = []

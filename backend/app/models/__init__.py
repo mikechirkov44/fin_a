@@ -8,7 +8,7 @@ from .reference import (
 )
 from .input1 import MoneyMovement
 from .input2 import Asset, Liability
-from .realization import Realization
+from .realization import Realization, RealizationItem
 from .shipment import Shipment
 from .product import Product
 from .marketplace_integration import MarketplaceIntegration
@@ -37,6 +37,7 @@ __all__ = [
     "Asset",
     "Liability",
     "Realization",
+    "RealizationItem",
     "Shipment",
     "Product",
     "MarketplaceIntegration",
