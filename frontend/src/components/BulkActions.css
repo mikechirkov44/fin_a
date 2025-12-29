@@ -42,13 +42,15 @@
 }
 
 .bulk-action-btn.danger {
+  background-color: var(--danger-color, #dc3545);
   border-color: var(--danger-color, #dc3545);
-  color: var(--danger-color, #dc3545);
+  color: #fff;
 }
 
 .bulk-action-btn.danger:hover {
-  background-color: var(--danger-color, #dc3545);
-  color: var(--danger-text, #fff);
+  background-color: var(--danger-hover, #c0392b);
+  border-color: var(--danger-hover, #c0392b);
+  color: #fff;
 }
 
 [data-theme='dark'] .bulk-actions {

@@ -36,6 +36,8 @@ const Input1 = () => {
   const [loading, setLoading] = useState(true)
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(25)
+  const [sortColumn, setSortColumn] = useState<string | null>(null)
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
   
   const validation = useFormValidation({
     date: { required: true },
@@ -84,7 +86,7 @@ const Input1 = () => {
   
   useEffect(() => {
     loadData()
-  }, [currentPage, itemsPerPage, filterCompanyId])
+  }, [currentPage, itemsPerPage])
 
   useEffect(() => {
     if (selectedCompanyId && !formData.company_id) {
@@ -106,11 +108,16 @@ const Input1 = () => {
     try {
       setLoading(true)
       const skip = (currentPage - 1) * itemsPerPage
-      const response = await input1Service.getMovements({
+      const params: any = {
         skip,
         limit: itemsPerPage,
-        company_id: filterCompanyId ? parseInt(filterCompanyId) : undefined,
-      })
+      }
+      
+      if (filterCompanyId) {
+        params.company_id = parseInt(filterCompanyId)
+      }
+      
+      const response = await input1Service.getMovements(params)
       
       // Поддержка старого формата (массив) и нового (объект с items)
       if (Array.isArray(response)) {
@@ -149,91 +156,122 @@ const Input1 = () => {
     return company?.name || '-'
   }
 
-  // Фильтрация и сортировка
+  // Определение колонок для таблицы
+  const columns: TableColumn<any>[] = useMemo(() => [
+    { key: 'date', label: 'Дата', sortable: true },
+    { key: 'type', label: 'Тип', sortable: true },
+    {
+      key: 'company',
+      label: 'Организация',
+      sortable: true,
+      getValue: (item) => getCompanyName(item.company_id),
+    },
+    {
+      key: 'item',
+      label: 'Статья',
+      sortable: true,
+      getValue: (item) => getItemName(item),
+    },
+    {
+      key: 'payment_place',
+      label: 'Место оплаты',
+      sortable: true,
+      getValue: (item) => getPaymentPlaceName(item.payment_place_id),
+    },
+    {
+      key: 'amount',
+      label: 'Сумма',
+      sortable: true,
+      getValue: (item) => parseFloat(String(item.amount)) || 0,
+    },
+    {
+      key: 'is_business',
+      label: 'Бизнес',
+      sortable: true,
+      getValue: (item) => item.is_business ? 1 : 0,
+    },
+    {
+      key: 'description',
+      label: 'Описание',
+      sortable: true,
+      getValue: (item) => item.description || '',
+    },
+  ], [incomeItems, expenseItems, paymentPlaces, companies])
+
+  // Перезагрузка данных при изменении фильтров или поиска
   useEffect(() => {
-    let filtered = allMovements
+    setCurrentPage(1) // Сбрасываем на первую страницу при изменении фильтров
+    loadData()
+  }, [debouncedSearchQuery, filterCompanyId])
 
-    // Фильтрация по организации
-    if (filterCompanyId) {
-      const companyIdNum = parseInt(filterCompanyId)
-      filtered = filtered.filter((movement) => movement.company_id === companyIdNum)
-    }
+  // Клиентская сортировка загруженных данных
+  const sortedMovements = useMemo(() => {
+    if (!sortColumn) return movements
+    
+    return [...movements].sort((a, b) => {
+      let aVal: any
+      let bVal: any
 
-    // Фильтрация по поисковому запросу
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase().trim()
-      filtered = filtered.filter((movement) => {
-        const itemName = getItemName(movement)?.toLowerCase() || ''
-        const paymentPlaceName = getPaymentPlaceName(movement.payment_place_id)?.toLowerCase() || ''
-        const companyName = getCompanyName(movement.company_id)?.toLowerCase() || ''
-        return (
-          movement.date?.toLowerCase().includes(query) ||
-          (movement.movement_type === 'income' ? 'поступление' : 'оплата').includes(query) ||
-          itemName.includes(query) ||
-          paymentPlaceName.includes(query) ||
-          companyName.includes(query) ||
-          movement.amount?.toString().includes(query) ||
-          movement.description?.toLowerCase().includes(query) ||
-          (movement.is_business ? 'да' : 'нет').includes(query)
-        )
-      })
-    }
+      switch (sortColumn) {
+        case 'date':
+          aVal = a.date || ''
+          bVal = b.date || ''
+          break
+        case 'type':
+          aVal = a.movement_type === 'income' ? 'поступление' : 'оплата'
+          bVal = b.movement_type === 'income' ? 'поступление' : 'оплата'
+          break
+        case 'item':
+          aVal = getItemName(a)
+          bVal = getItemName(b)
+          break
+        case 'payment_place':
+          aVal = getPaymentPlaceName(a.payment_place_id)
+          bVal = getPaymentPlaceName(b.payment_place_id)
+          break
+        case 'amount':
+          aVal = parseFloat(String(a.amount)) || 0
+          bVal = parseFloat(String(b.amount)) || 0
+          break
+        case 'is_business':
+          aVal = a.is_business ? 1 : 0
+          bVal = b.is_business ? 1 : 0
+          break
+        case 'company':
+          aVal = getCompanyName(a.company_id)
+          bVal = getCompanyName(b.company_id)
+          break
+        default:
+          return 0
+      }
 
-    // Сортировка данных
-    if (sortColumn) {
-      filtered = [...filtered].sort((a, b) => {
-        let aVal: any
-        let bVal: any
-
-        switch (sortColumn) {
-          case 'date':
-            aVal = a.date || ''
-            bVal = b.date || ''
-            break
-          case 'type':
-            aVal = a.movement_type === 'income' ? 'поступление' : 'оплата'
-            bVal = b.movement_type === 'income' ? 'поступление' : 'оплата'
-            break
-          case 'item':
-            aVal = getItemName(a)
-            bVal = getItemName(b)
-            break
-          case 'payment_place':
-            aVal = getPaymentPlaceName(a.payment_place_id)
-            bVal = getPaymentPlaceName(b.payment_place_id)
-            break
-          case 'amount':
-            aVal = parseFloat(String(a.amount)) || 0
-            bVal = parseFloat(String(b.amount)) || 0
-            break
-          case 'is_business':
-            aVal = a.is_business ? 1 : 0
-            bVal = b.is_business ? 1 : 0
-            break
-          case 'company':
-            aVal = getCompanyName(a.company_id)
-            bVal = getCompanyName(b.company_id)
-            break
-          default:
-            return 0
-        }
-
-        if (typeof aVal === 'number' && typeof bVal === 'number') {
-          return sortDirection === 'asc' ? aVal - bVal : bVal - aVal
+      if (typeof aVal === 'number' && typeof bVal === 'number') {
+        return sortDirection === 'asc' ? aVal - bVal : bVal - aVal
+      } else {
+        const aStr = String(aVal).toLowerCase()
+        const bStr = String(bVal).toLowerCase()
+        if (sortDirection === 'asc') {
+          return aStr.localeCompare(bStr, 'ru')
         } else {
-          const aStr = String(aVal).toLowerCase()
-          const bStr = String(bVal).toLowerCase()
-          if (sortDirection === 'asc') {
-            return aStr.localeCompare(bStr, 'ru')
-          } else {
-            return bStr.localeCompare(aStr, 'ru')
-          }
+          return bStr.localeCompare(aStr, 'ru')
         }
-      })
-    }
+      }
+    })
+  }, [movements, sortColumn, sortDirection, incomeItems, expenseItems, paymentPlaces, companies])
 
-    setMovements(filtered)
-  }, [searchQuery, filterCompanyId, allMovements, incomeItems, expenseItems, paymentPlaces, companies, sortColumn, sortDirection])
+  // Использование хука useTableData для выбора элементов
+  const {
+    selectedItems,
+    toggleSelect,
+    toggleSelectAll,
+    clearSelection,
+    isAllSelected,
+    isSomeSelected,
+  } = useTableData({
+    data: sortedMovements,
+    columns,
+    enablePagination: false, // Пагинация на backend
+  })
 
   const handleSort = (column: string) => {
     if (sortColumn === column) {
@@ -243,6 +281,9 @@ const Input1 = () => {
       setSortDirection('asc')
     }
   }
+
+  // Данные для отображения (отсортированные)
+  const paginatedData = sortedMovements
 
   const loadReferences = async () => {
     try {

@@ -1,5 +1,5 @@
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, Query, Body
+from fastapi import APIRouter, Depends, HTTPException, Query, Body, Request
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func
 from datetime import date
@@ -11,6 +11,7 @@ from app.models.product import Product
 from app.schemas.realization import RealizationCreate, RealizationResponse, RealizationItemResponse
 from app.schemas.common import PaginatedResponse
 from app.auth.security import get_current_user
+from app.utils.audit_logger import log_create, log_update, log_delete, model_to_dict
 
 router = APIRouter()
 
@@ -79,6 +80,7 @@ def get_realizations(
 @router.post("/", response_model=RealizationResponse)
 def create_realization(
     realization: RealizationCreate,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -127,6 +129,13 @@ def create_realization(
     db.commit()
     db.refresh(db_realization)
     
+    # Логирование создания
+    ip_address = request.client.host if request.client else None
+    log_create(db, db_realization, current_user.id,
+               description=f"Создана реализация: выручка {total_revenue}, количество {total_quantity}",
+               ip_address=ip_address)
+    db.commit()  # Коммитим логирование
+    
     # Загружаем связанные данные для ответа
     db_realization = db.query(Realization).options(
         joinedload(Realization.items).joinedload(RealizationItem.product)
@@ -138,12 +147,16 @@ def create_realization(
 def update_realization(
     realization_id: int,
     realization: RealizationCreate,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     db_realization = db.query(Realization).filter(Realization.id == realization_id).first()
     if not db_realization:
         raise HTTPException(status_code=404, detail="Realization not found")
+    
+    # Сохраняем старые значения для логирования
+    old_values = model_to_dict(db_realization, exclude_fields=['created_at', 'updated_at'])
     
     # Валидация: должен быть хотя бы один товар
     if not realization.items:
@@ -188,6 +201,14 @@ def update_realization(
     
     db.commit()
     
+    # Логирование обновления
+    ip_address = request.client.host if request.client else None
+    log_update(db, db_realization, current_user.id,
+               old_values=old_values,
+               description=f"Обновлена реализация ID: {realization_id}",
+               ip_address=ip_address)
+    db.commit()  # Коммитим логирование
+    
     # Загружаем связанные данные для ответа
     db_realization = db.query(Realization).options(
         joinedload(Realization.items).joinedload(RealizationItem.product)
@@ -198,18 +219,27 @@ def update_realization(
 @router.delete("/{realization_id}")
 def delete_realization(
     realization_id: int,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     db_realization = db.query(Realization).filter(Realization.id == realization_id).first()
     if not db_realization:
         raise HTTPException(status_code=404, detail="Realization not found")
+    
+    # Логирование удаления (до удаления из БД)
+    ip_address = request.client.host if request.client else None
+    log_delete(db, db_realization, current_user.id,
+               description=f"Удалена реализация ID: {realization_id}",
+               ip_address=ip_address)
+    
     db.delete(db_realization)
     db.commit()
     return {"message": "Realization deleted"}
 
 @router.post("/delete-multiple")
 def delete_multiple_realizations(
+    request: Request,
     ids: List[int] = Body(..., embed=True),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
@@ -217,6 +247,14 @@ def delete_multiple_realizations(
     """Групповое удаление реализаций"""
     if not ids:
         raise HTTPException(status_code=400, detail="No IDs provided")
+    
+    # Логирование удаления для каждой записи
+    ip_address = request.client.host if request.client else None
+    realizations = db.query(Realization).filter(Realization.id.in_(ids)).all()
+    for realization in realizations:
+        log_delete(db, realization, current_user.id,
+                   description=f"Удалена реализация ID: {realization.id}",
+                   ip_address=ip_address)
     
     deleted_count = db.query(Realization).filter(Realization.id.in_(ids)).delete(synchronize_session=False)
     db.commit()

@@ -8,7 +8,7 @@ from app.models.input1 import MoneyMovement
 from app.schemas.input1 import MoneyMovementCreate, MoneyMovementResponse
 from app.schemas.common import PaginatedResponse
 from app.auth.security import get_current_user
-from app.utils.audit_logger import log_create, log_update, log_delete
+from app.utils.audit_logger import log_create, log_update, log_delete, model_to_dict
 
 router = APIRouter()
 
@@ -70,6 +70,7 @@ def create_money_movement(
     log_create(db, db_movement, current_user.id, 
                description=f"Создано движение денег: {movement.movement_type}, сумма: {movement.amount}",
                ip_address=ip_address)
+    db.commit()  # Коммитим логирование
     
     return db_movement
 
@@ -91,7 +92,6 @@ def update_money_movement(
         raise HTTPException(status_code=400, detail="Expense item is required for expense movement")
     
     # Сохраняем старые значения для логирования
-    from app.utils.audit_logger import model_to_dict
     old_values = model_to_dict(db_movement)
     
     for key, value in movement.dict().items():
@@ -104,6 +104,7 @@ def update_money_movement(
     log_update(db, db_movement, current_user.id, old_values=old_values,
                description=f"Обновлено движение денег ID: {movement_id}",
                ip_address=ip_address)
+    db.commit()  # Коммитим логирование
     
     return db_movement
 

@@ -76,7 +76,7 @@ def log_create(
         ip_address=ip_address
     )
     db.add(audit_log)
-    db.commit()
+    db.flush()  # Используем flush вместо commit, чтобы быть частью той же транзакции
 
 def log_update(
     db: Session,
@@ -107,7 +107,7 @@ def log_update(
         ip_address=ip_address
     )
     db.add(audit_log)
-    db.commit()
+    db.flush()  # Используем flush вместо commit, чтобы быть частью той же транзакции
 
 def log_delete(
     db: Session,
@@ -131,5 +131,5 @@ def log_delete(
         ip_address=ip_address
     )
     db.add(audit_log)
-    db.commit()
+    db.flush()  # Используем flush вместо commit, чтобы быть частью той же транзакции
 

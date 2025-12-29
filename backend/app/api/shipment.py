@@ -1,5 +1,5 @@
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, Query, Body
+from fastapi import APIRouter, Depends, HTTPException, Query, Body, Request
 from sqlalchemy.orm import Session
 from datetime import date
 from app.database import get_db
@@ -8,6 +8,7 @@ from app.models.shipment import Shipment
 from app.schemas.shipment import ShipmentCreate, ShipmentResponse
 from app.schemas.common import PaginatedResponse
 from app.auth.security import get_current_user
+from app.utils.audit_logger import log_create, log_update, log_delete, model_to_dict
 
 router = APIRouter()
 
@@ -49,6 +50,7 @@ def get_shipments(
 @router.post("/", response_model=ShipmentResponse)
 def create_shipment(
     shipment: ShipmentCreate,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -56,39 +58,70 @@ def create_shipment(
     db.add(db_shipment)
     db.commit()
     db.refresh(db_shipment)
+    
+    # Логирование создания
+    ip_address = request.client.host if request.client else None
+    log_create(db, db_shipment, current_user.id,
+               description=f"Создана отгрузка: количество {shipment.quantity}, себестоимость {shipment.cost_price}",
+               ip_address=ip_address)
+    db.commit()  # Коммитим логирование
+    
     return db_shipment
 
 @router.put("/{shipment_id}", response_model=ShipmentResponse)
 def update_shipment(
     shipment_id: int,
     shipment: ShipmentCreate,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     db_shipment = db.query(Shipment).filter(Shipment.id == shipment_id).first()
     if not db_shipment:
         raise HTTPException(status_code=404, detail="Shipment not found")
+    
+    # Сохраняем старые значения для логирования
+    old_values = model_to_dict(db_shipment, exclude_fields=['created_at', 'updated_at'])
+    
     for key, value in shipment.dict().items():
         setattr(db_shipment, key, value)
     db.commit()
     db.refresh(db_shipment)
+    
+    # Логирование обновления
+    ip_address = request.client.host if request.client else None
+    log_update(db, db_shipment, current_user.id,
+               old_values=old_values,
+               description=f"Обновлена отгрузка ID: {shipment_id}",
+               ip_address=ip_address)
+    db.commit()  # Коммитим логирование
+    
     return db_shipment
 
 @router.delete("/{shipment_id}")
 def delete_shipment(
     shipment_id: int,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     db_shipment = db.query(Shipment).filter(Shipment.id == shipment_id).first()
     if not db_shipment:
         raise HTTPException(status_code=404, detail="Shipment not found")
+    
+    # Логирование удаления (до удаления из БД)
+    ip_address = request.client.host if request.client else None
+    log_delete(db, db_shipment, current_user.id,
+               description=f"Удалена отгрузка ID: {shipment_id}",
+               ip_address=ip_address)
+    
     db.delete(db_shipment)
     db.commit()
     return {"message": "Shipment deleted"}
 
 @router.post("/delete-multiple")
 def delete_multiple_shipments(
+    request: Request,
     ids: List[int] = Body(..., embed=True),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
@@ -96,6 +129,14 @@ def delete_multiple_shipments(
     """Групповое удаление отгрузок"""
     if not ids:
         raise HTTPException(status_code=400, detail="No IDs provided")
+    
+    # Логирование удаления для каждой записи
+    ip_address = request.client.host if request.client else None
+    shipments = db.query(Shipment).filter(Shipment.id.in_(ids)).all()
+    for shipment in shipments:
+        log_delete(db, shipment, current_user.id,
+                   description=f"Удалена отгрузка ID: {shipment.id}",
+                   ip_address=ip_address)
     
     deleted_count = db.query(Shipment).filter(Shipment.id.in_(ids)).delete(synchronize_session=False)
     db.commit()
