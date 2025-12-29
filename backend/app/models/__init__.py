@@ -3,7 +3,7 @@ from .user_company import UserCompany
 from .reference import (
     IncomeGroup, IncomeItem, 
     ExpenseGroup, ExpenseItem, 
-    PaymentPlace, Company, Marketplace,
+    PaymentPlace, Company,
     ExpenseCategory, SalesChannel
 )
 from .input1 import MoneyMovement
@@ -30,7 +30,6 @@ __all__ = [
     "ExpenseItem",
     "PaymentPlace",
     "Company",
-    "Marketplace",
     "ExpenseCategory",
     "SalesChannel",
     "MoneyMovement",

@@ -6,7 +6,7 @@ class ShipmentCreate(BaseModel):
     date: date
     company_id: int
     product_id: int | None = None
-    marketplace_id: int
+    sales_channel_id: int
     quantity: int
     cost_price: Decimal
     description: str | None = None
@@ -16,7 +16,7 @@ class ShipmentResponse(BaseModel):
     date: date
     company_id: int
     product_id: int | None
-    marketplace_id: int
+    sales_channel_id: int
     quantity: int
     cost_price: Decimal
     description: str | None

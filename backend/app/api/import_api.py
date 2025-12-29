@@ -9,7 +9,7 @@ from app.models.input2 import Asset, Liability
 from app.models.realization import Realization
 from app.models.shipment import Shipment
 from app.models.product import Product
-from app.models.reference import IncomeItem, ExpenseItem, PaymentPlace, Company, Marketplace
+from app.models.reference import IncomeItem, ExpenseItem, PaymentPlace, Company, SalesChannel
 from app.auth.security import get_current_user
 
 router = APIRouter()

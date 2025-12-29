@@ -6,7 +6,7 @@ from app.models.user import User
 from app.models.reference import (
     IncomeGroup, IncomeItem, 
     ExpenseGroup, ExpenseItem, 
-    PaymentPlace, Company, Marketplace,
+    PaymentPlace, Company,
     ExpenseCategory, SalesChannel
 )
 from app.schemas.reference import (
@@ -16,7 +16,6 @@ from app.schemas.reference import (
     ExpenseItemCreate, ExpenseItemResponse,
     PaymentPlaceCreate, PaymentPlaceResponse,
     CompanyCreate, CompanyResponse,
-    MarketplaceCreate, MarketplaceResponse,
     ExpenseCategoryCreate, ExpenseCategoryResponse,
     SalesChannelCreate, SalesChannelResponse
 )
@@ -227,40 +226,6 @@ def delete_company(item_id: int, db: Session = Depends(get_db), current_user: Us
     db_item.is_active = False
     db.commit()
     return {"message": "Company deleted"}
-
-# Marketplaces
-@router.get("/marketplaces", response_model=List[MarketplaceResponse])
-def get_marketplaces(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    items = db.query(Marketplace).filter(Marketplace.is_active == True).offset(skip).limit(limit).all()
-    return items
-
-@router.post("/marketplaces", response_model=MarketplaceResponse)
-def create_marketplace(item: MarketplaceCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    db_item = Marketplace(**item.dict())
-    db.add(db_item)
-    db.commit()
-    db.refresh(db_item)
-    return db_item
-
-@router.put("/marketplaces/{item_id}", response_model=MarketplaceResponse)
-def update_marketplace(item_id: int, item: MarketplaceCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    db_item = db.query(Marketplace).filter(Marketplace.id == item_id).first()
-    if not db_item:
-        raise HTTPException(status_code=404, detail="Marketplace not found")
-    for key, value in item.dict().items():
-        setattr(db_item, key, value)
-    db.commit()
-    db.refresh(db_item)
-    return db_item
-
-@router.delete("/marketplaces/{item_id}")
-def delete_marketplace(item_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    db_item = db.query(Marketplace).filter(Marketplace.id == item_id).first()
-    if not db_item:
-        raise HTTPException(status_code=404, detail="Marketplace not found")
-    db_item.is_active = False
-    db.commit()
-    return {"message": "Marketplace deleted"}
 
 # Expense Categories
 @router.get("/expense-categories", response_model=List[ExpenseCategoryResponse])

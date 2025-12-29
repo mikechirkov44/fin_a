@@ -1,13 +1,13 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import func, case, or_
+from sqlalchemy import func, case
 from datetime import date
 from app.database import get_db
 from app.models.user import User
 from app.models.input1 import MoneyMovement
 from app.models.realization import Realization
 from app.models.shipment import Shipment
-from app.models.reference import Marketplace, SalesChannel
+from app.models.reference import SalesChannel
 from app.auth.security import get_current_user
 
 router = APIRouter()
@@ -32,178 +32,45 @@ def get_cash_flow_analysis(
         
         # Получаем каналы продаж из справочника
         sales_channels = db.query(SalesChannel).filter(SalesChannel.is_active == True).all()
-        channels = [channel.name for channel in sales_channels]
+        channel_map = {channel.id: channel.name for channel in sales_channels}
         
-        # Если справочник пуст, используем дефолтные каналы
-        if not channels:
-            channels = ['WB', 'Ozon', 'WB Gold', 'Яндекс', 'Частные заказы', 'Аренда']
-        
-        # Выручка по каналам из реализации (используем marketplace_id через join)
+        # Выручка по каналам из реализации (используем sales_channel_id напрямую)
         revenue_by_channel = {}
         
-        # Сначала получаем все маркетплейсы для отладки
-        all_marketplaces = db.query(Marketplace).filter(Marketplace.is_active == True).all()
-        print(f"[DEBUG] Всего активных маркетплейсов: {len(all_marketplaces)}")
-        for mp in all_marketplaces:
-            print(f"  - {mp.name} (ID: {mp.id})")
-        
-        # Проверяем, есть ли данные в реализации
-        total_realizations = db.query(func.count(Realization.id)).filter(
-            Realization.date >= start_date,
-            Realization.date <= end_date
-        ).scalar() or 0
-        print(f"[DEBUG] Всего записей реализации за период: {total_realizations}")
-        
-        for channel in channels:
-            # Определяем фильтр по названию маркетплейса через join
-            # Используем более гибкие фильтры
-            marketplace_filters = []
-            
-            if channel == 'WB' or channel == 'Wildberries':
-                marketplace_filters = [
-                    func.lower(Marketplace.name).like('%wildberries%'),
-                    func.lower(Marketplace.name).like('%wb%'),
-                    func.lower(Marketplace.name) == 'wb',
-                    func.lower(Marketplace.name) == 'wildberries',
-                ]
-            elif channel == 'WB Gold':
-                marketplace_filters = [
-                    func.lower(Marketplace.name).like('%gold%'),
-                    func.lower(Marketplace.name).like('%wb gold%'),
-                ]
-            elif channel == 'Ozon' or channel == 'OZON':
-                marketplace_filters = [
-                    func.lower(Marketplace.name).like('%ozon%'),
-                    func.lower(Marketplace.name) == 'ozon',
-                    func.lower(Marketplace.name) == 'ozon.ru',
-                ]
-            elif channel == 'Яндекс':
-                marketplace_filters = [
-                    func.lower(Marketplace.name).like('%яндекс%'),
-                    func.lower(Marketplace.name).like('%yandex%'),
-                ]
-            elif channel == 'Частные заказы':
-                marketplace_filters = [
-                    func.lower(Marketplace.name).like('%частн%'),
-                    func.lower(Marketplace.name).like('%private%'),
-                ]
-            elif channel == 'Аренда':
-                marketplace_filters = [
-                    func.lower(Marketplace.name).like('%аренд%'),
-                    func.lower(Marketplace.name).like('%rent%'),
-                ]
-            else:
-                # Точное совпадение или LIKE
-                marketplace_filters = [
-                    func.lower(Marketplace.name) == channel.lower(),
-                    func.lower(Marketplace.name).like(f'%{channel.lower()}%'),
-                ]
-            
-            # Используем OR для всех фильтров
-            marketplace_name_filter = or_(*marketplace_filters)
-            
+        for channel_id, channel_name in channel_map.items():
             try:
-                revenue_query = db.query(func.sum(Realization.revenue)).join(
-                    Marketplace, Realization.marketplace_id == Marketplace.id
-                ).filter(
+                revenue_query = db.query(func.sum(Realization.revenue)).filter(
                     Realization.date >= start_date,
                     Realization.date <= end_date,
-                    marketplace_name_filter
+                    Realization.sales_channel_id == channel_id
                 )
                 if company_id:
                     revenue_query = revenue_query.filter(Realization.company_id == company_id)
                 revenue = revenue_query.scalar() or 0
-                
-                # Отладка
-                if revenue > 0:
-                    print(f"[DEBUG] Канал '{channel}': найдена выручка {revenue}")
+                revenue_by_channel[channel_name] = float(revenue)
             except Exception as e:
-                print(f"[ERROR] Ошибка запроса выручки для канала {channel}: {e}")
-                import traceback
-                traceback.print_exc()
-                revenue = 0
-            
-            revenue_by_channel[channel] = float(revenue)
+                print(f"[ERROR] Ошибка запроса выручки для канала {channel_name}: {e}")
+                revenue_by_channel[channel_name] = 0
         
-        # Затраты на маркетплейсах по каналам (из отгрузок)
+        # Затраты по каналам (из отгрузок)
         marketplace_costs_by_channel = {}
-        for channel in channels:
-            # Используем ту же логику фильтрации, что и для выручки
-            marketplace_filters = []
-            
-            if channel == 'WB' or channel == 'Wildberries':
-                marketplace_filters = [
-                    func.lower(Marketplace.name).like('%wildberries%'),
-                    func.lower(Marketplace.name).like('%wb%'),
-                    func.lower(Marketplace.name) == 'wb',
-                    func.lower(Marketplace.name) == 'wildberries',
-                ]
-            elif channel == 'WB Gold':
-                marketplace_filters = [
-                    func.lower(Marketplace.name).like('%gold%'),
-                    func.lower(Marketplace.name).like('%wb gold%'),
-                ]
-            elif channel == 'Ozon' or channel == 'OZON':
-                marketplace_filters = [
-                    func.lower(Marketplace.name).like('%ozon%'),
-                    func.lower(Marketplace.name) == 'ozon',
-                    func.lower(Marketplace.name) == 'ozon.ru',
-                ]
-            elif channel == 'Яндекс':
-                marketplace_filters = [
-                    func.lower(Marketplace.name).like('%яндекс%'),
-                    func.lower(Marketplace.name).like('%yandex%'),
-                ]
-            elif channel == 'Частные заказы':
-                marketplace_filters = [
-                    func.lower(Marketplace.name).like('%частн%'),
-                    func.lower(Marketplace.name).like('%private%'),
-                ]
-            elif channel == 'Аренда':
-                marketplace_filters = [
-                    func.lower(Marketplace.name).like('%аренд%'),
-                    func.lower(Marketplace.name).like('%rent%'),
-                ]
-            else:
-                marketplace_filters = [
-                    func.lower(Marketplace.name) == channel.lower(),
-                    func.lower(Marketplace.name).like(f'%{channel.lower()}%'),
-                ]
-            
-            marketplace_name_filter = or_(*marketplace_filters)
-            
+        for channel_id, channel_name in channel_map.items():
             try:
-                # Затраты на маркетплейсах = сумма (cost_price * quantity) для отгрузок
-                cost_query = db.query(func.sum(Shipment.cost_price * Shipment.quantity)).join(
-                    Marketplace, Shipment.marketplace_id == Marketplace.id
-                ).filter(
+                # Затраты = сумма (cost_price * quantity) для отгрузок
+                cost_query = db.query(func.sum(Shipment.cost_price * Shipment.quantity)).filter(
                     Shipment.date >= start_date,
                     Shipment.date <= end_date,
-                    marketplace_name_filter
+                    Shipment.sales_channel_id == channel_id
                 )
                 if company_id:
                     cost_query = cost_query.filter(Shipment.company_id == company_id)
                 cost = cost_query.scalar() or 0
+                marketplace_costs_by_channel[channel_name] = float(cost)
             except Exception as e:
-                print(f"[ERROR] Ошибка запроса затрат для канала {channel}: {e}")
-                cost = 0
-            
-            marketplace_costs_by_channel[channel] = float(cost)
+                print(f"[ERROR] Ошибка запроса затрат для канала {channel_name}: {e}")
+                marketplace_costs_by_channel[channel_name] = 0
         
-        # Маржинальный доход по каналам (выручка - затраты на маркетплейсах)
-        marginal_income_by_channel = {}
-        for channel in channels:
-            revenue = revenue_by_channel.get(channel, 0)
-            marketplace_cost = marketplace_costs_by_channel.get(channel, 0)
-            marginal_income_by_channel[channel] = revenue - marketplace_cost
-        
-        # Рентабельность по маржинальному доходу
-        marginal_margin_by_channel = {}
-        for channel in channels:
-            revenue = revenue_by_channel.get(channel, 0)
-            marginal = marginal_income_by_channel.get(channel, 0)
-            margin = (marginal / revenue * 100) if revenue > 0 else 0
-            marginal_margin_by_channel[channel] = round(margin, 2)
+        # Маржинальный доход по каналам (вычисляется в channels_data)
         
         # Прямые производственные расходы (из ВВОД 1, статьи расходов связанные с производством)
         # Для упрощения берем все расходы, связанные с производством
@@ -242,8 +109,10 @@ def get_cash_flow_analysis(
                 all_expenses_query = all_expenses_query.filter(MoneyMovement.company_id == company_id)
             direct_production_costs = all_expenses_query.scalar() or 0
         
+        # Маржинальный доход по каналам (вычисляется в channels_data)
+        total_marginal_income = sum(ch["marginal_income"] for ch in channels_data)
+        
         # Валовая прибыль (маржинальный доход - прямые производственные расходы)
-        total_marginal_income = sum(marginal_income_by_channel.values())
         gross_profit = total_marginal_income - float(direct_production_costs)
         
         # Косвенные расходы (административные + коммерческие)
@@ -317,19 +186,114 @@ def get_cash_flow_analysis(
         
         # Формируем результат по каналам
         channels_data = []
-        for channel in channels:
-            revenue = revenue_by_channel.get(channel, 0)
-            marketplace_cost = marketplace_costs_by_channel.get(channel, 0)
-            marginal = marginal_income_by_channel.get(channel, 0)
-            margin = marginal_margin_by_channel.get(channel, 0)
+        for channel_name in channel_map.values():
+            revenue = revenue_by_channel.get(channel_name, 0)
+            marketplace_cost = marketplace_costs_by_channel.get(channel_name, 0)
+            marginal = revenue - marketplace_cost
+            margin = (marginal / revenue * 100) if revenue > 0 else 0
             
             channels_data.append({
-                "channel": channel,
+                "channel": channel_name,
                 "revenue": revenue,
                 "marketplace_costs": marketplace_cost,
                 "marginal_income": marginal,
-                "marginal_margin": margin
+                "marginal_margin": round(margin, 2)
             })
+        
+        # Генерация выводов и рекомендаций
+        insights = []
+        recommendations = []
+        
+        # Анализ общей выручки
+        if total_revenue == 0:
+            insights.append("⚠️ За выбранный период отсутствует выручка. Проверьте корректность введенных данных о реализациях.")
+            recommendations.append("Убедитесь, что все реализации за период зарегистрированы в системе.")
+        elif total_revenue < 100000:
+            insights.append(f"💰 Общая выручка составляет {total_revenue:,.0f} ₽. Это низкий уровень для большинства бизнесов.")
+            recommendations.append("Рассмотрите возможности увеличения объемов продаж или расширения ассортимента.")
+        
+        # Анализ маржинального дохода
+        if total_revenue > 0:
+            marginal_margin = (total_marginal_income / total_revenue) * 100
+            if marginal_margin < 0:
+                insights.append(f"🔴 Маржинальный доход отрицательный ({marginal_margin:.1f}%). Затраты на маркетплейсах превышают выручку.")
+                recommendations.append("Срочно пересмотрите ценообразование или снизьте затраты на маркетплейсы.")
+            elif marginal_margin < 10:
+                insights.append(f"⚠️ Низкая маржинальность ({marginal_margin:.1f}%). Маржинальный доход недостаточен для покрытия расходов.")
+                recommendations.append("Оптимизируйте цены или пересмотрите условия работы с маркетплейсами.")
+            elif marginal_margin < 20:
+                insights.append(f"📊 Маржинальность на приемлемом уровне ({marginal_margin:.1f}%), но есть потенциал для улучшения.")
+                recommendations.append("Проанализируйте возможность повышения цен или снижения себестоимости товаров.")
+            else:
+                insights.append(f"✅ Хорошая маржинальность ({marginal_margin:.1f}%). Маржинальный доход достаточен для покрытия расходов.")
+        
+        # Анализ по каналам
+        unprofitable_channels = [ch for ch in channels_data if ch["marginal_income"] < 0]
+        if unprofitable_channels:
+            channel_names = ", ".join([ch["channel"] for ch in unprofitable_channels])
+            insights.append(f"🔴 Убыточные каналы: {channel_names}. Маржинальный доход отрицательный.")
+            recommendations.append(f"Пересмотрите работу с каналами {channel_names}: оптимизируйте цены, снизьте затраты или рассмотрите возможность прекращения работы.")
+        
+        profitable_channels = [ch for ch in channels_data if ch["marginal_income"] > 0]
+        if profitable_channels:
+            best_channel = max(profitable_channels, key=lambda x: x["marginal_margin"])
+            insights.append(f"⭐ Наиболее рентабельный канал: {best_channel['channel']} (рентабельность МД: {best_channel['marginal_margin']:.1f}%).")
+            recommendations.append(f"Увеличьте объемы продаж через канал {best_channel['channel']} для максимизации прибыли.")
+        
+        # Анализ производственных расходов
+        if total_revenue > 0:
+            production_cost_ratio = (float(direct_production_costs) / total_revenue) * 100
+            if production_cost_ratio > 50:
+                insights.append(f"⚠️ Высокая доля производственных расходов ({production_cost_ratio:.1f}% от выручки).")
+                recommendations.append("Оптимизируйте производственные процессы, рассмотрите возможность снижения себестоимости или аутсорсинга.")
+            elif production_cost_ratio > 30:
+                insights.append(f"📊 Производственные расходы составляют {production_cost_ratio:.1f}% от выручки.")
+                recommendations.append("Проанализируйте возможности снижения производственных затрат без ущерба качеству.")
+        
+        # Анализ валовой прибыли
+        if total_revenue > 0:
+            gross_margin = (gross_profit / total_revenue) * 100
+            if gross_margin < 0:
+                insights.append(f"🔴 Валовая прибыль отрицательная ({gross_margin:.1f}%). Бизнес работает в убыток на уровне производства.")
+                recommendations.append("Критическая ситуация! Срочно пересмотрите ценообразование и себестоимость продукции.")
+            elif gross_margin < 10:
+                insights.append(f"⚠️ Низкая валовая прибыль ({gross_margin:.1f}%). Недостаточно для покрытия косвенных расходов.")
+                recommendations.append("Повысьте цены или снизите производственные затраты для улучшения валовой прибыли.")
+        
+        # Анализ косвенных расходов
+        if total_revenue > 0:
+            indirect_expenses_ratio = (total_indirect_expenses / total_revenue) * 100
+            if indirect_expenses_ratio > 30:
+                insights.append(f"⚠️ Высокая доля косвенных расходов ({indirect_expenses_ratio:.1f}% от выручки).")
+                recommendations.append("Оптимизируйте административные и коммерческие расходы. Рассмотрите возможность сокращения непроизводственных затрат.")
+            elif indirect_expenses_ratio > 20:
+                insights.append(f"📊 Косвенные расходы составляют {indirect_expenses_ratio:.1f}% от выручки.")
+                recommendations.append("Проанализируйте структуру косвенных расходов на предмет оптимизации.")
+        
+        # Анализ операционной прибыли (EBITDA)
+        if total_revenue > 0:
+            operating_margin = (operating_profit / total_revenue) * 100
+            if operating_profit < 0:
+                insights.append(f"🔴 Операционная прибыль (EBITDA) отрицательная ({operating_margin:.1f}%). Бизнес убыточен на операционном уровне.")
+                recommendations.append("Критическая ситуация! Необходимы срочные меры: повышение выручки, снижение всех видов расходов или пересмотр бизнес-модели.")
+            elif operating_profit < 50000:
+                insights.append(f"⚠️ Низкая операционная прибыль ({operating_profit:,.0f} ₽, {operating_margin:.1f}%).")
+                recommendations.append("Увеличьте объемы продаж или оптимизируйте расходы для повышения операционной прибыли.")
+            elif operating_margin < 5:
+                insights.append(f"📊 Операционная прибыль на низком уровне ({operating_margin:.1f}%).")
+                recommendations.append("Работайте над повышением операционной эффективности для увеличения прибыли.")
+            else:
+                insights.append(f"✅ Операционная прибыль (EBITDA) положительная ({operating_margin:.1f}%). Бизнес работает прибыльно.")
+        
+        # Анализ структуры выручки по каналам
+        if len(channels_data) > 1:
+            revenue_by_channel_sorted = sorted([ch for ch in channels_data if ch["revenue"] > 0], key=lambda x: x["revenue"], reverse=True)
+            if revenue_by_channel_sorted:
+                top_channel = revenue_by_channel_sorted[0]
+                top_channel_share = (top_channel["revenue"] / total_revenue) * 100
+                if top_channel_share > 80:
+                    insights.append(f"📊 Высокая концентрация выручки на одном канале ({top_channel['channel']}: {top_channel_share:.1f}%).")
+                    recommendations.append("Диверсифицируйте каналы продаж для снижения рисков зависимости от одного канала.")
         
         return {
             "start_date": start_date,
@@ -343,7 +307,9 @@ def get_cash_flow_analysis(
             "commercial_expenses": float(commercial_expenses),
             "total_indirect_expenses": total_indirect_expenses,
             "operating_profit": operating_profit,
-            "channels": channels_data
+            "channels": channels_data,
+            "insights": insights,
+            "recommendations": recommendations
         }
     except Exception as e:
         import traceback

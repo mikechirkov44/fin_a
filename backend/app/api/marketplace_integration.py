@@ -6,7 +6,7 @@ from app.database import get_db
 from app.models.user import User
 from app.models.marketplace_integration import MarketplaceIntegration
 from app.models.realization import Realization
-from app.models.reference import Marketplace, Company
+from app.models.reference import SalesChannel, Company
 from app.schemas.marketplace_integration import (
     MarketplaceIntegrationCreate,
     MarketplaceIntegrationUpdate,
@@ -205,21 +205,21 @@ def perform_sync(integration_id: int, marketplace_name: str, start_date: date, e
                     except Exception as e2:
                         raise Exception(f"Не удалось получить данные: {str(e)}; {str(e2)}")
             
-            # Находим или создаем маркетплейс в справочнике
-            marketplace = db.query(Marketplace).filter(
-                Marketplace.name.ilike(f"%{integration.marketplace_name}%")
+            # Находим или создаем канал продаж в справочнике
+            sales_channel = db.query(SalesChannel).filter(
+                SalesChannel.name.ilike(f"%{integration.marketplace_name}%")
             ).first()
             
-            if not marketplace:
-                # Создаем маркетплейс в справочнике, если его нет
-                marketplace = Marketplace(
+            if not sales_channel:
+                # Создаем канал продаж в справочнике, если его нет
+                sales_channel = SalesChannel(
                     name=integration.marketplace_name,
                     description=f"Автоматически создан из интеграции",
                     is_active=True
                 )
-                db.add(marketplace)
+                db.add(sales_channel)
                 db.commit()
-                db.refresh(marketplace)
+                db.refresh(sales_channel)
             
             # Сохраняем данные о реализациях
             imported = 0
@@ -229,7 +229,7 @@ def perform_sync(integration_id: int, marketplace_name: str, start_date: date, e
                     # Проверяем, нет ли уже такой записи
                     existing = db.query(Realization).filter(
                         Realization.date == sale["date"],
-                        Realization.marketplace_id == marketplace.id,
+                        Realization.sales_channel_id == sales_channel.id,
                         Realization.company_id == integration.company_id,
                         Realization.revenue == sale["revenue"]
                     ).first()
@@ -240,7 +240,7 @@ def perform_sync(integration_id: int, marketplace_name: str, start_date: date, e
                     # SQLAlchemy автоматически конвертирует float в Numeric
                     realization = Realization(
                         date=sale["date"],
-                        marketplace_id=marketplace.id,
+                        sales_channel_id=sales_channel.id,
                         company_id=integration.company_id,
                         revenue=float(sale["revenue"]),
                         quantity=sale.get("quantity", 1),

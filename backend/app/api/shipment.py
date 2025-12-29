@@ -18,7 +18,7 @@ def get_shipments(
     limit: int = 100,
     start_date: date | None = Query(None),
     end_date: date | None = Query(None),
-    marketplace_id: int | None = Query(None),
+    sales_channel_id: int | None = Query(None),
     company_id: int | None = Query(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
@@ -29,8 +29,8 @@ def get_shipments(
         query = query.filter(Shipment.date >= start_date)
     if end_date:
         query = query.filter(Shipment.date <= end_date)
-    if marketplace_id:
-        query = query.filter(Shipment.marketplace_id == marketplace_id)
+    if sales_channel_id:
+        query = query.filter(Shipment.sales_channel_id == sales_channel_id)
     if company_id:
         query = query.filter(Shipment.company_id == company_id)
     

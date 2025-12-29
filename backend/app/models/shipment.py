@@ -10,7 +10,7 @@ class Shipment(Base):
     date = Column(Date, nullable=False, index=True)
     company_id = Column(Integer, ForeignKey("companies.id"), nullable=False, index=True)
     product_id = Column(Integer, ForeignKey("products.id"), nullable=True)
-    marketplace_id = Column(Integer, ForeignKey("marketplaces.id"), nullable=False)
+    sales_channel_id = Column(Integer, ForeignKey("sales_channels.id"), nullable=False, index=True)
     quantity = Column(Integer, nullable=False)
     cost_price = Column(Numeric(15, 2), nullable=False)  # сырьевая себестоимость
     description = Column(String)
@@ -19,5 +19,5 @@ class Shipment(Base):
 
     company = relationship("Company", foreign_keys=[company_id])
     product = relationship("Product", foreign_keys=[product_id])
-    marketplace = relationship("Marketplace", foreign_keys=[marketplace_id])
+    sales_channel = relationship("SalesChannel", foreign_keys=[sales_channel_id])
 

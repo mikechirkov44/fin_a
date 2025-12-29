@@ -97,20 +97,6 @@ class CompanyResponse(BaseModel):
     class Config:
         from_attributes = True
 
-class MarketplaceCreate(BaseModel):
-    name: str
-    description: str | None = None
-
-class MarketplaceResponse(BaseModel):
-    id: int
-    name: str
-    description: str | None
-    is_active: bool
-    created_at: datetime
-
-    class Config:
-        from_attributes = True
-
 class ExpenseCategoryCreate(BaseModel):
     name: str
     description: str | None = None

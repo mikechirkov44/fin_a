@@ -6,7 +6,6 @@ from .reference import (
     ExpenseItemCreate, ExpenseItemResponse, 
     PaymentPlaceCreate, PaymentPlaceResponse,
     CompanyCreate, CompanyResponse,
-    MarketplaceCreate, MarketplaceResponse,
     ExpenseCategoryCreate, ExpenseCategoryResponse,
     SalesChannelCreate, SalesChannelResponse
 )
@@ -39,8 +38,6 @@ __all__ = [
     "PaymentPlaceResponse",
     "CompanyCreate",
     "CompanyResponse",
-    "MarketplaceCreate",
-    "MarketplaceResponse",
     "ExpenseCategoryCreate",
     "ExpenseCategoryResponse",
     "SalesChannelCreate",

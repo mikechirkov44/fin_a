@@ -25,7 +25,7 @@ class RealizationItemResponse(BaseModel):
 class RealizationCreate(BaseModel):
     date: date
     company_id: int
-    marketplace_id: int
+    sales_channel_id: int
     description: str | None = None
     items: List[RealizationItemCreate]
 
@@ -33,7 +33,7 @@ class RealizationResponse(BaseModel):
     id: int
     date: date
     company_id: int
-    marketplace_id: int
+    sales_channel_id: int
     revenue: Decimal
     quantity: int
     description: str | None

@@ -34,7 +34,7 @@ def build_realization_response(realization: Realization) -> dict:
         "id": realization.id,
         "date": realization.date,
         "company_id": realization.company_id,
-        "marketplace_id": realization.marketplace_id,
+        "sales_channel_id": realization.sales_channel_id,
         "revenue": realization.revenue,
         "quantity": realization.quantity,
         "description": realization.description,
@@ -48,7 +48,7 @@ def get_realizations(
     limit: int = 100,
     start_date: date | None = Query(None),
     end_date: date | None = Query(None),
-    marketplace_id: int | None = Query(None),
+    sales_channel_id: int | None = Query(None),
     company_id: int | None = Query(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
@@ -59,8 +59,8 @@ def get_realizations(
         query = query.filter(Realization.date >= start_date)
     if end_date:
         query = query.filter(Realization.date <= end_date)
-    if marketplace_id:
-        query = query.filter(Realization.marketplace_id == marketplace_id)
+    if sales_channel_id:
+        query = query.filter(Realization.sales_channel_id == sales_channel_id)
     if company_id:
         query = query.filter(Realization.company_id == company_id)
     
@@ -107,7 +107,7 @@ def create_realization(
     db_realization = Realization(
         date=realization.date,
         company_id=realization.company_id,
-        marketplace_id=realization.marketplace_id,
+        sales_channel_id=realization.sales_channel_id,
         revenue=total_revenue,
         quantity=total_quantity,
         description=realization.description
@@ -180,7 +180,7 @@ def update_realization(
     # Обновляем основные поля реализации
     db_realization.date = realization.date
     db_realization.company_id = realization.company_id
-    db_realization.marketplace_id = realization.marketplace_id
+    db_realization.sales_channel_id = realization.sales_channel_id
     db_realization.revenue = total_revenue
     db_realization.quantity = total_quantity
     db_realization.description = realization.description

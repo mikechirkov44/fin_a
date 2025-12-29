@@ -7,7 +7,7 @@ from app.models import (
     User, 
     IncomeGroup, IncomeItem, 
     ExpenseGroup, ExpenseItem, 
-    PaymentPlace, Company, Marketplace,
+    PaymentPlace, Company,
     ExpenseCategory, SalesChannel,
     MoneyMovement, Asset, Liability, Realization, RealizationItem, Shipment, Product,
     MarketplaceIntegration, AuditLog, Budget, Notification
