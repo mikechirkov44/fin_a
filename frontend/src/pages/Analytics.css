@@ -59,8 +59,8 @@
 }
 
 .abc-b {
-  background-color: #fff3cd;
-  color: #856404;
+  background-color: var(--warning-bg, #fff3cd);
+  color: var(--warning-text, #856404);
 }
 
 .abc-c {

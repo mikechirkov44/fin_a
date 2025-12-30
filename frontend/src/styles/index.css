@@ -22,6 +22,11 @@
   --danger-color: #CC0000;
   --danger-hover: #990000;
   --header-gradient: linear-gradient(135deg, #3366FF 0%, #0033CC 100%);
+  --warning-bg: #fff3cd;
+  --warning-text: #856404;
+  --warning-border: #ffc107;
+  --info-bg: #d1ecf1;
+  --info-text: #0c5460;
 }
 
 /* Вариант 2: Мягкий современный */
@@ -46,6 +51,11 @@
   --danger-color: #FF0033;
   --danger-hover: #CC0033;
   --header-gradient: linear-gradient(135deg, #0099FF 0%, #0066CC 100%);
+  --warning-bg: #fff3cd;
+  --warning-text: #856404;
+  --warning-border: #ffc107;
+  --info-bg: #d1ecf1;
+  --info-text: #0c5460;
 }
 
 /* Вариант 4: Теплый уютный */
@@ -70,6 +80,11 @@
   --danger-color: #FF3300;
   --danger-hover: #CC3300;
   --header-gradient: linear-gradient(135deg, #FF9999 0%, #FF6666 100%);
+  --warning-bg: #fff3cd;
+  --warning-text: #856404;
+  --warning-border: #ffc107;
+  --info-bg: #d1ecf1;
+  --info-text: #0c5460;
 }
 
 /* Вариант 5: Минималистичный светлый */
@@ -94,6 +109,11 @@
   --danger-color: #FF6666;
   --danger-hover: #FF3333;
   --header-gradient: linear-gradient(135deg, #6699FF 0%, #3366FF 100%);
+  --warning-bg: #fff3cd;
+  --warning-text: #856404;
+  --warning-border: #ffc107;
+  --info-bg: #d1ecf1;
+  --info-text: #0c5460;
 }
 
 /* Темная тема */
@@ -118,6 +138,11 @@
   --danger-color: #e74c3c;
   --danger-hover: #c0392b;
   --header-gradient: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+  --warning-bg: #3d3520;
+  --warning-text: #ffd700;
+  --warning-border: #5d4e2f;
+  --info-bg: #1e3a4a;
+  --info-text: #87ceeb;
 }
 
 /* Значения по умолчанию (если тема не установлена) */
@@ -142,6 +167,11 @@
   --danger-color: #CC0000;
   --danger-hover: #990000;
   --header-gradient: linear-gradient(135deg, #3366FF 0%, #0033CC 100%);
+  --warning-bg: #fff3cd;
+  --warning-text: #856404;
+  --warning-border: #ffc107;
+  --info-bg: #d1ecf1;
+  --info-text: #0c5460;
 }
 
 /* Стиль 1С Предприятие 8.5 - Светлая тема */
@@ -550,6 +580,67 @@ textarea {
   resize: vertical;
   min-height: 80px;
   font-family: inherit;
+}
+
+/* Стили для полосы прокрутки */
+/* Для Chrome, Safari, Edge */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-color) var(--bg-primary);
+}
+
+*::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+*::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+  border-radius: 6px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 6px;
+  border: 2px solid var(--bg-primary);
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--border-color-strong);
+}
+
+*::-webkit-scrollbar-button {
+  display: none;
+}
+
+*::-webkit-scrollbar-corner {
+  background: var(--bg-primary);
+}
+
+/* Для темной темы */
+[data-theme="dark"] * {
+  scrollbar-color: #404040 var(--bg-primary);
+}
+
+[data-theme="dark"] *::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+
+[data-theme="dark"] *::-webkit-scrollbar-thumb {
+  background: #404040;
+  border: 2px solid var(--bg-primary);
+}
+
+[data-theme="dark"] *::-webkit-scrollbar-thumb:hover {
+  background: #505050;
+}
+
+[data-theme="dark"] *::-webkit-scrollbar-button {
+  display: none;
+}
+
+[data-theme="dark"] *::-webkit-scrollbar-corner {
+  background: var(--bg-primary);
 }
 
 /* Адаптивность */

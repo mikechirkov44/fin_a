@@ -188,7 +188,12 @@ const Dashboard = () => {
                 style={{
                   padding: '12px',
                   marginBottom: '8px',
-                  backgroundColor: rec.priority === 'high' ? '#fff3cd' : '#d1ecf1',
+                  backgroundColor: rec.priority === 'high' 
+                    ? 'var(--warning-bg, #fff3cd)' 
+                    : 'var(--info-bg, #d1ecf1)',
+                  color: rec.priority === 'high' 
+                    ? 'var(--warning-text, var(--text-primary))' 
+                    : 'var(--info-text, var(--text-primary))',
                   borderLeft: `4px solid ${rec.priority === 'high' ? '#ffc107' : '#17a2b8'}`,
                   borderRadius: '4px',
                 }}

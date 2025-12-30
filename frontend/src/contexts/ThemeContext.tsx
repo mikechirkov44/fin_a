@@ -27,11 +27,18 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   const [theme, setThemeState] = useState<ColorScheme>(() => {
     const savedTheme = localStorage.getItem('theme')
     const validThemes: ColorScheme[] = ['light-1', 'light-2', 'light-4', 'light-5', 'dark']
-    return validThemes.includes(savedTheme as ColorScheme) ? (savedTheme as ColorScheme) : 'light-1'
+    const initialTheme = validThemes.includes(savedTheme as ColorScheme) ? (savedTheme as ColorScheme) : 'light-1'
+    
+    // Применяем тему сразу при инициализации, до первого рендера
+    if (typeof document !== 'undefined') {
+      document.body.setAttribute('data-theme', initialTheme)
+    }
+    
+    return initialTheme
   })
 
   useEffect(() => {
-    // Применяем тему к body
+    // Применяем тему к body при изменении
     document.body.setAttribute('data-theme', theme)
     localStorage.setItem('theme', theme)
   }, [theme])

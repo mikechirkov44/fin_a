@@ -202,7 +202,12 @@ const Inventory = () => {
 
   if (!selectedCompanyId) {
     return (
-      <div className="card" style={{ padding: '20px', backgroundColor: '#fff3cd' }}>
+      <div className="card" style={{ 
+        padding: '20px', 
+        backgroundColor: 'var(--warning-bg, #fff3cd)',
+        color: 'var(--warning-text, var(--text-primary))',
+        border: '1px solid var(--warning-border, var(--border-color))'
+      }}>
         Выберите организацию для просмотра остатков
       </div>
     )
