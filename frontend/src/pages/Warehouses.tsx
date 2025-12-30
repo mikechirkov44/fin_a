@@ -10,6 +10,7 @@ import LoadingSpinner from '../components/LoadingSpinner'
 import EmptyState from '../components/EmptyState'
 import { useFormValidation } from '../hooks/useFormValidation'
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
+import { HiOutlinePencil, HiOutlineXMark } from 'react-icons/hi2'
 
 const Warehouses = () => {
   const { selectedCompanyId, canWrite } = useAuth()
@@ -286,18 +287,24 @@ const Warehouses = () => {
                     </td>
                     <td>
                       {canEdit(warehouse) && (
-                        <>
+                        <div className="action-buttons-group">
                           <Tooltip content="Редактировать склад">
-                            <button onClick={() => handleEdit(warehouse)} style={{ marginRight: '5px' }}>
-                              Редактировать
+                            <button 
+                              onClick={() => handleEdit(warehouse)} 
+                              className="action-button action-button-compact action-button-edit"
+                            >
+                              <HiOutlinePencil />
                             </button>
                           </Tooltip>
                           <Tooltip content="Удалить склад">
-                            <button onClick={() => handleDelete(warehouse.id)} className="danger">
-                              Удалить
+                            <button 
+                              onClick={() => handleDelete(warehouse.id)} 
+                              className="action-button action-button-compact action-button-delete"
+                            >
+                              <HiOutlineXMark />
                             </button>
                           </Tooltip>
-                        </>
+                        </div>
                       )}
                     </td>
                   </tr>

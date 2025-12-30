@@ -13,6 +13,7 @@ import EmptyState from '../components/EmptyState'
 import { useFormValidation } from '../hooks/useFormValidation'
 import { useDebounce } from '../hooks/useDebounce'
 import { useTableData, TableColumn } from '../hooks/useTableData'
+import { HiOutlineXMark } from 'react-icons/hi2'
 import { useDraftSave } from '../hooks/useDraftSave'
 import { format } from 'date-fns'
 
@@ -517,10 +518,10 @@ const Realization = () => {
                           <button
                             type="button"
                             onClick={() => removeItem(index)}
-                            style={{ padding: '4px 8px', fontSize: '16px', lineHeight: '1' }}
-                            className="danger"
+                            className="action-button action-button-compact action-button-delete"
+                            title="Удалить"
                           >
-                            ✕
+                            <HiOutlineXMark />
                           </button>
                         </td>
                       </tr>
@@ -705,10 +706,11 @@ const Realization = () => {
                     <td onClick={(e) => e.stopPropagation()}>
                       <button
                         onClick={() => handleDelete(realization.id)}
-                        className="danger"
+                        className="action-button action-button-compact action-button-delete"
                         title="Удалить"
-                        style={{ padding: '4px 6px', fontSize: '16px', lineHeight: '1', minWidth: 'auto' }}
-                      >✕</button>
+                      >
+                        Удалить
+                      </button>
                     </td>
                   </tr>
                 ))

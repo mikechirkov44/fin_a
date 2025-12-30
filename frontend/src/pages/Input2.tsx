@@ -13,6 +13,7 @@ import EmptyState from '../components/EmptyState'
 import { useFormValidation } from '../hooks/useFormValidation'
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
 import { format } from 'date-fns'
+import { HiOutlineXMark } from 'react-icons/hi2'
 
 const Input2 = () => {
   const { selectedCompanyId, companies } = useAuth()
@@ -603,9 +604,10 @@ const Input2 = () => {
                       <Tooltip content="Удалить запись">
                         <button 
                           onClick={() => handleDelete(item.id)} 
-                          className="danger" 
-                          style={{ padding: '4px 6px', fontSize: '16px', lineHeight: '1', minWidth: 'auto' }}
-                        >✕</button>
+                          className="action-button action-button-compact action-button-delete"
+                        >
+                          <HiOutlineXMark />
+                        </button>
                       </Tooltip>
                     </td>
                   </tr>

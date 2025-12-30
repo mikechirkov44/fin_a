@@ -13,6 +13,7 @@ import LoadingSpinner from '../components/LoadingSpinner'
 import EmptyState from '../components/EmptyState'
 import { useFormValidation } from '../hooks/useFormValidation'
 import { useDebounce } from '../hooks/useDebounce'
+import { HiOutlineXMark } from 'react-icons/hi2'
 import { useTableData, TableColumn } from '../hooks/useTableData'
 import { useDraftSave } from '../hooks/useDraftSave'
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
@@ -638,9 +639,10 @@ const Shipment = () => {
                         <Tooltip content="Удалить отгрузку">
                           <button
                             onClick={() => handleDelete(shipment.id)}
-                            className="danger"
-                            style={{ padding: '4px 6px', fontSize: '16px', lineHeight: '1', minWidth: 'auto' }}
-                          >✕</button>
+                            className="action-button action-button-compact action-button-delete"
+                          >
+                            <HiOutlineXMark />
+                          </button>
                         </Tooltip>
                       </td>
                     </tr>

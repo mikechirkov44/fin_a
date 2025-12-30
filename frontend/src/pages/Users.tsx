@@ -10,6 +10,7 @@ import LoadingSpinner from '../components/LoadingSpinner'
 import EmptyState from '../components/EmptyState'
 import { useFormValidation } from '../hooks/useFormValidation'
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
+import { HiOutlinePencil, HiOutlineXMark } from 'react-icons/hi2'
 
 const Users = () => {
   const { isAdmin } = useAuth()
@@ -282,25 +283,33 @@ const Users = () => {
                     </td>
                     <td>{user.is_active ? 'Да' : 'Нет'}</td>
                     <td>
-                      <Tooltip content="Редактировать пользователя">
-                        <button onClick={() => handleEdit(user)} style={{ marginRight: '5px' }}>
-                          Редактировать
-                        </button>
-                      </Tooltip>
-                      {user.companies && user.companies.length > 0 && (
-                        <Tooltip content={`Организации: ${user.companies.map((uc: any) => uc.company_id).join(', ')}`}>
-                          <button>
-                            Организации
+                      <div className="action-buttons-group">
+                        <Tooltip content="Редактировать пользователя">
+                          <button 
+                            onClick={() => handleEdit(user)} 
+                            className="action-button action-button-compact action-button-edit"
+                          >
+                            <HiOutlinePencil />
                           </button>
                         </Tooltip>
-                      )}
-                      {user.is_active && (
-                        <Tooltip content="Деактивировать пользователя">
-                          <button onClick={() => handleDelete(user.id)} className="danger" style={{ marginLeft: '5px' }}>
-                            Деактивировать
-                          </button>
-                        </Tooltip>
-                      )}
+                        {user.companies && user.companies.length > 0 && (
+                          <Tooltip content={`Организации: ${user.companies.map((uc: any) => uc.company_id).join(', ')}`}>
+                            <button className="action-button action-button-compact action-button-view">
+                              🏢
+                            </button>
+                          </Tooltip>
+                        )}
+                        {user.is_active && (
+                          <Tooltip content="Деактивировать пользователя">
+                            <button 
+                              onClick={() => handleDelete(user.id)} 
+                              className="action-button action-button-compact action-button-delete"
+                            >
+                              <HiOutlineXMark />
+                            </button>
+                          </Tooltip>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))

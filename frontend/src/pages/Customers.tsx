@@ -9,6 +9,7 @@ import FormField from '../components/FormField'
 import Modal from '../components/Modal'
 import Pagination from '../components/Pagination'
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
+import { HiOutlinePencil, HiOutlineXMark } from 'react-icons/hi2'
 import '../components/CompactForm.css'
 
 const Customers = () => {
@@ -329,48 +330,27 @@ const Customers = () => {
                     <td>{customer.average_check ? `${parseFloat(customer.average_check).toLocaleString('ru-RU')} ₽` : '-'}</td>
                     <td>{customer.ltv ? `${parseFloat(customer.ltv).toLocaleString('ru-RU')} ₽` : '-'}</td>
                     <td>
-                      <div style={{ display: 'flex', gap: '8px' }}>
+                      <div className="action-buttons-group">
                         <button
                           onClick={() => handleEdit(customer)}
-                          style={{
-                            padding: '4px 8px',
-                            backgroundColor: 'var(--primary-color)',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '4px',
-                            cursor: 'pointer',
-                            fontSize: '12px'
-                          }}
+                          className="action-button action-button-compact action-button-edit"
+                          title="Редактировать"
                         >
-                          Редактировать
+                          <HiOutlinePencil />
                         </button>
                         <button
                           onClick={() => handleUpdateMetrics(customer.id)}
-                          style={{
-                            padding: '4px 8px',
-                            backgroundColor: 'var(--info-color, #17a2b8)',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '4px',
-                            cursor: 'pointer',
-                            fontSize: '12px'
-                          }}
+                          className="action-button action-button-compact action-button-update"
+                          title="Обновить метрики"
                         >
-                          Обновить метрики
+                          ↻
                         </button>
                         <button
                           onClick={() => handleDelete(customer.id)}
-                          style={{
-                            padding: '4px 8px',
-                            backgroundColor: 'var(--danger-color, #dc3545)',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '4px',
-                            cursor: 'pointer',
-                            fontSize: '12px'
-                          }}
+                          className="action-button action-button-compact action-button-delete"
+                          title="Удалить"
                         >
-                          Удалить
+                          <HiOutlineXMark />
                         </button>
                       </div>
                     </td>

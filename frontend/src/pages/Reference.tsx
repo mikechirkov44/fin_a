@@ -4,6 +4,7 @@ import { useToast } from '../contexts/ToastContext'
 import { useConfirm } from '../contexts/ConfirmContext'
 import { useAuth } from '../contexts/AuthContext'
 import Modal from '../components/Modal'
+import { HiOutlinePencil, HiOutlineXMark } from 'react-icons/hi2'
 
 type TabType = 'income' | 'expense' | 'payment' | 'company' | 'incomeGroup' | 'expenseGroup' | 'expenseCategory' | 'salesChannel' | 'product' | 'customerSegment'
 
@@ -728,13 +729,22 @@ const Reference = () => {
                     )}
                     <td>{item.description || '-'}</td>
                     <td>
-                      <button onClick={() => handleEdit(item)} style={{ marginRight: '4px' }}>Изменить</button>
-                      <button 
-                        onClick={() => handleDelete(item.id)} 
-                        className="danger" 
-                        title="Удалить"
-                        style={{ padding: '4px 6px', fontSize: '16px', lineHeight: '1', minWidth: 'auto' }}
-                      >✕</button>
+                      <div className="action-buttons-group">
+                        <button 
+                          onClick={() => handleEdit(item)} 
+                          className="action-button action-button-compact action-button-edit"
+                          title="Изменить"
+                        >
+                          <HiOutlinePencil />
+                        </button>
+                        <button 
+                          onClick={() => handleDelete(item.id)} 
+                          className="action-button action-button-compact action-button-delete"
+                          title="Удалить"
+                        >
+                          <HiOutlineXMark />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 )

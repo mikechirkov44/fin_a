@@ -1,0 +1,89 @@
+/* Единые стили для кнопок действий */
+.action-button {
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  font-size: 16px;
+}
+
+.action-button svg {
+  width: 16px;
+  height: 16px;
+}
+
+.action-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+.action-button:active {
+  transform: translateY(0);
+}
+
+/* Кнопка редактирования/изменения */
+.action-button-edit {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.action-button-edit:hover {
+  background-color: var(--primary-hover);
+  opacity: 0.9;
+}
+
+/* Кнопка удаления */
+.action-button-delete {
+  background-color: var(--danger-color);
+  color: white;
+}
+
+.action-button-delete:hover {
+  background-color: var(--danger-hover);
+  opacity: 0.9;
+}
+
+/* Кнопка обновления/обновить метрики */
+.action-button-update {
+  background-color: var(--info-color);
+  color: white;
+}
+
+.action-button-update:hover {
+  background-color: var(--info-hover);
+  opacity: 0.9;
+}
+
+/* Кнопка просмотра/детали */
+.action-button-view {
+  background-color: var(--text-secondary);
+  color: white;
+}
+
+.action-button-view:hover {
+  background-color: var(--text-primary);
+  opacity: 0.9;
+}
+
+/* Группа кнопок действий */
+.action-buttons-group {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* Компактная версия для таблиц */
+.action-button-compact {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  font-size: 16px;
+}
+

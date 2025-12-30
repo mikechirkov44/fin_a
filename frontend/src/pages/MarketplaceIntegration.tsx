@@ -5,6 +5,7 @@ import { useToast } from '../contexts/ToastContext'
 import { useConfirm } from '../contexts/ConfirmContext'
 import Modal from '../components/Modal'
 import { format, subDays } from 'date-fns'
+import { HiOutlinePencil, HiOutlineXMark } from 'react-icons/hi2'
 
 const MarketplaceIntegration = () => {
   const { selectedCompanyId, companies } = useAuth()
@@ -453,26 +454,17 @@ const MarketplaceIntegration = () => {
                       </button>
                       <button 
                         onClick={() => handleEdit(integration)}
-                        style={{ 
-                          padding: '4px 8px', 
-                          fontSize: '12px',
-                          whiteSpace: 'nowrap'
-                        }}
+                        className="action-button action-button-compact action-button-edit"
                         title="Редактировать настройки интеграции"
                       >
-                        ✏️ Изменить
+                        <HiOutlinePencil />
                       </button>
                       <button 
                         onClick={() => handleDelete(integration.id)}
-                        className="danger"
-                        style={{ 
-                          padding: '4px 8px', 
-                          fontSize: '12px',
-                          whiteSpace: 'nowrap'
-                        }}
+                        className="action-button action-button-compact action-button-delete"
                         title="Удалить интеграцию"
                       >
-                        🗑️ Удалить
+                        <HiOutlineXMark />
                       </button>
                     </div>
                   </td>

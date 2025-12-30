@@ -13,6 +13,7 @@ import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
 import { format } from 'date-fns'
 import { ru } from 'date-fns/locale'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, Cell } from 'recharts'
+import { HiOutlinePencil, HiOutlineXMark } from 'react-icons/hi2'
 
 const Budget = () => {
   const { selectedCompanyId, companies } = useAuth()
@@ -552,12 +553,24 @@ const Budget = () => {
                       <td className="text-right">{budget.planned_amount.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽</td>
                       <td>{budget.company_name || '-'}</td>
                       <td>
-                        <Tooltip content="Редактировать бюджет">
-                          <button onClick={() => handleEdit(budget)} style={{ marginRight: '8px' }}>✏️ Изменить</button>
-                        </Tooltip>
-                        <Tooltip content="Удалить бюджет">
-                          <button onClick={() => handleDelete(budget.id)} className="danger">🗑️ Удалить</button>
-                        </Tooltip>
+                        <div className="action-buttons-group">
+                          <Tooltip content="Редактировать бюджет">
+                            <button 
+                              onClick={() => handleEdit(budget)} 
+                              className="action-button action-button-compact action-button-edit"
+                            >
+                              <HiOutlinePencil />
+                            </button>
+                          </Tooltip>
+                          <Tooltip content="Удалить бюджет">
+                            <button 
+                              onClick={() => handleDelete(budget.id)} 
+                              className="action-button action-button-compact action-button-delete"
+                            >
+                              <HiOutlineXMark />
+                            </button>
+                          </Tooltip>
+                        </div>
                       </td>
                     </tr>
                   ))

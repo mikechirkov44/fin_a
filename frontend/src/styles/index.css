@@ -27,6 +27,8 @@
   --warning-border: #ffc107;
   --info-bg: #d1ecf1;
   --info-text: #0c5460;
+  --info-color: #17a2b8;
+  --info-hover: #138496;
 }
 
 /* Вариант 2: Мягкий современный */
@@ -56,6 +58,8 @@
   --warning-border: #ffc107;
   --info-bg: #d1ecf1;
   --info-text: #0c5460;
+  --info-color: #17a2b8;
+  --info-hover: #138496;
 }
 
 /* Вариант 4: Теплый уютный */
@@ -85,6 +89,8 @@
   --warning-border: #ffc107;
   --info-bg: #d1ecf1;
   --info-text: #0c5460;
+  --info-color: #17a2b8;
+  --info-hover: #138496;
 }
 
 /* Вариант 5: Минималистичный светлый */
@@ -114,6 +120,8 @@
   --warning-border: #ffc107;
   --info-bg: #d1ecf1;
   --info-text: #0c5460;
+  --info-color: #17a2b8;
+  --info-hover: #138496;
 }
 
 /* Темная тема */
@@ -143,6 +151,8 @@
   --warning-border: #5d4e2f;
   --info-bg: #1e3a4a;
   --info-text: #87ceeb;
+  --info-color: #4fc3f7;
+  --info-hover: #2a5a6e;
 }
 
 /* Значения по умолчанию (если тема не установлена) */
@@ -172,6 +182,8 @@
   --warning-border: #ffc107;
   --info-bg: #d1ecf1;
   --info-text: #0c5460;
+  --info-color: #17a2b8;
+  --info-hover: #138496;
 }
 
 /* Стиль 1С Предприятие 8.5 - Светлая тема */
