@@ -5,8 +5,8 @@
 .compact-form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-bottom: 16px;
+  gap: 8px;
+  margin-bottom: 12px;
 }
 
 .compact-form-grid.full-width {
@@ -14,8 +14,8 @@
 }
 
 .compact-form-section {
-  margin-bottom: 20px;
-  padding-bottom: 16px;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
   border-bottom: 1px solid var(--input-border);
 }
 
@@ -25,11 +25,11 @@
 }
 
 .compact-form-section-title {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text-primary);
-  margin-bottom: 12px;
-  padding-bottom: 6px;
+  margin-bottom: 8px;
+  padding-bottom: 4px;
   border-bottom: 1px solid var(--input-border);
 }
 
@@ -38,35 +38,61 @@
 }
 
 .compact-form .form-field label {
-  font-size: 12px;
-  margin-bottom: 4px;
+  font-size: 11px;
+  margin-bottom: 3px;
 }
 
 .compact-form .form-field input,
 .compact-form .form-field select,
 .compact-form .form-field textarea {
-  padding: 6px 10px;
-  font-size: 13px;
+  padding: 5px 8px;
+  font-size: 12px;
 }
 
 .compact-form .form-field textarea {
   resize: vertical;
-  min-height: 60px;
+  min-height: 50px;
 }
 
 .compact-form-actions {
   display: flex;
   gap: 8px;
   justify-content: flex-end;
-  margin-top: 16px;
-  padding-top: 16px;
+  margin-top: 12px;
+  padding-top: 12px;
   border-top: 1px solid var(--input-border);
 }
 
 .compact-form-actions button {
-  padding: 8px 16px;
-  font-size: 13px;
-  min-width: 100px;
+  padding: 6px 12px;
+  font-size: 12px;
+  min-width: 80px;
+  border-radius: 4px;
+  cursor: pointer;
+  border: none;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.compact-form-button-cancel {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--input-border) !important;
+}
+
+.compact-form-button-cancel:hover {
+  background-color: var(--hover-bg);
+}
+
+.compact-form-button-submit {
+  background-color: var(--primary-color);
+  color: white;
+  font-weight: 600;
+}
+
+.compact-form-button-submit:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
 }
 
 @media (max-width: 768px) {

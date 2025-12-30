@@ -1,17 +1,37 @@
 import { Outlet, Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useTheme } from '../contexts/ThemeContext'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Notifications from './Notifications'
 import CompanySelector from './CompanySelector'
 import Breadcrumbs from './Breadcrumbs'
 import { referenceService } from '../services/api'
 import './Layout.css'
+import { 
+  HiOutlineHome, 
+  HiOutlineTag, 
+  HiOutlineShoppingCart,
+  HiOutlineChartBar,
+  HiOutlineBuildingOffice2,
+  HiOutlineUsers,
+  HiOutlineCurrencyDollar,
+  HiOutlineBuildingOffice,
+  HiOutlineDocumentText,
+  HiOutlineCog6Tooth,
+  HiOutlineQuestionMarkCircle,
+  HiOutlineUserGroup,
+  HiOutlineMoon,
+  HiOutlineSun
+} from 'react-icons/hi2'
+import { 
+  HiOutlineLightningBolt,
+  HiOutlineTrendingUp
+} from 'react-icons/hi'
 
 interface MenuItem {
   path: string
   label: string
-  icon: string
+  icon: React.ReactNode
   children?: { path: string; label: string }[]
 }
 
@@ -35,6 +55,7 @@ const Layout = () => {
   }
   
   const [expandedItems, setExpandedItems] = useState<string[]>(getInitialExpanded())
+  const manuallyCollapsedRef = useRef<Set<string>>(new Set())
   
   // Загружаем организации
   useEffect(() => {
@@ -58,27 +79,32 @@ const Layout = () => {
     }
   }
   
-  // Обновляем раскрытые разделы при изменении пути
+  // Обновляем раскрытые разделы при изменении пути (только если они не были свернуты вручную)
   useEffect(() => {
     const financePaths = ['/cash-flow', '/profit-loss', '/balance', '/cash-flow-analysis', '/profit-loss-analysis']
     const customersPaths = ['/customers', '/suppliers']
-    if (financePaths.includes(location.pathname) && !expandedItems.includes('/cash-flow')) {
-      setExpandedItems(['/cash-flow'])
+    
+    if (financePaths.includes(location.pathname) && 
+        !expandedItems.includes('/cash-flow') && 
+        !manuallyCollapsedRef.current.has('/cash-flow')) {
+      setExpandedItems(prev => [...prev, '/cash-flow'])
     }
-    if (customersPaths.includes(location.pathname) && !expandedItems.includes('/customers')) {
-      setExpandedItems(['/customers'])
+    if (customersPaths.includes(location.pathname) && 
+        !expandedItems.includes('/customers') && 
+        !manuallyCollapsedRef.current.has('/customers')) {
+      setExpandedItems(prev => [...prev, '/customers'])
     }
-  }, [location.pathname, expandedItems])
+  }, [location.pathname])
 
   const menuItems: MenuItem[] = [
-    { path: '/dashboard', label: 'Главное', icon: '🏠' },
-    { path: '/realization', label: 'Продажи', icon: '🏷️' },
-    { path: '/input1', label: 'Закупки', icon: '💰' },
-    { path: '/input2', label: 'Активы/Пассивы', icon: '📊' },
+    { path: '/dashboard', label: 'Главное', icon: <HiOutlineHome /> },
+    { path: '/realization', label: 'Продажи', icon: <HiOutlineTag /> },
+    { path: '/input1', label: 'Закупки', icon: <HiOutlineShoppingCart /> },
+    { path: '/input2', label: 'Активы/Пассивы', icon: <HiOutlineChartBar /> },
     { 
       path: '/warehouses', 
       label: 'Склады и остатки', 
-      icon: '🏭',
+      icon: <HiOutlineBuildingOffice2 />,
       children: [
         { path: '/warehouses', label: 'Склады' },
         { path: '/inventory', label: 'Остатки' },
@@ -87,7 +113,7 @@ const Layout = () => {
     { 
       path: '/customers', 
       label: 'Клиенты и поставщики', 
-      icon: '👥',
+      icon: <HiOutlineUsers />,
       children: [
         { path: '/customers', label: 'Клиенты' },
         { path: '/suppliers', label: 'Поставщики' },
@@ -96,7 +122,7 @@ const Layout = () => {
     { 
       path: '/cash-flow', 
       label: 'Финансы', 
-      icon: '💰',
+      icon: <HiOutlineCurrencyDollar />,
       children: [
         { path: '/cash-flow', label: 'ОДДС' },
         { path: '/cash-flow-analysis', label: 'Анализ ДДС' },
@@ -105,21 +131,28 @@ const Layout = () => {
         { path: '/balance', label: 'БАЛАНС' },
       ]
     },
-    { path: '/reference', label: 'Предприятие', icon: '🏢' },
-    { path: '/marketplace-integration', label: 'Интеграции', icon: '🔌' },
-    { path: '/budget', label: 'Бюджетирование', icon: '📈' },
-    { path: '/audit-log', label: 'История изменений', icon: '📋' },
-    { path: '/settings', label: 'Настройки', icon: '⚙️' },
-    { path: '/help', label: 'Справка', icon: '❓' },
-    ...(isAdmin ? [{ path: '/users', label: 'Пользователи', icon: '👥' }] : []),
+    { path: '/reference', label: 'Предприятие', icon: <HiOutlineBuildingOffice /> },
+    { path: '/marketplace-integration', label: 'Интеграции', icon: <HiOutlineLightningBolt /> },
+    { path: '/budget', label: 'Бюджетирование', icon: <HiOutlineTrendingUp /> },
+    { path: '/audit-log', label: 'История изменений', icon: <HiOutlineDocumentText /> },
+    { path: '/settings', label: 'Настройки', icon: <HiOutlineCog6Tooth /> },
+    { path: '/help', label: 'Справка', icon: <HiOutlineQuestionMarkCircle /> },
+    ...(isAdmin ? [{ path: '/users', label: 'Пользователи', icon: <HiOutlineUserGroup /> }] : []),
   ]
 
   const toggleExpanded = (path: string) => {
-    setExpandedItems(prev => 
-      prev.includes(path) 
-        ? prev.filter(p => p !== path)
-        : [...prev, path]
-    )
+    setExpandedItems(prev => {
+      const isCurrentlyExpanded = prev.includes(path)
+      if (isCurrentlyExpanded) {
+        // Пользователь сворачивает меню вручную
+        manuallyCollapsedRef.current.add(path)
+        return prev.filter(p => p !== path)
+      } else {
+        // Пользователь разворачивает меню вручную
+        manuallyCollapsedRef.current.delete(path)
+        return [...prev, path]
+      }
+    })
   }
 
   const isItemActive = (item: MenuItem) => {
@@ -171,7 +204,7 @@ const Layout = () => {
             onClick={toggleTheme}
             title={isDark ? 'Переключить на светлую тему' : 'Переключить на темную тему'}
           >
-            {isDark ? '☀️' : '🌙'}
+            {isDark ? <HiOutlineSun /> : <HiOutlineMoon />}
           </button>
           {user && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginLeft: 'auto' }}>

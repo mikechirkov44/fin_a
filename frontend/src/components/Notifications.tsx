@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { notificationService } from '../services/api'
 import { format } from 'date-fns'
+import { HiOutlineBell } from 'react-icons/hi2'
 
 const Notifications = () => {
   const [notifications, setNotifications] = useState<any[]>([])
@@ -103,10 +104,14 @@ const Notifications = () => {
           background: 'transparent',
           cursor: 'pointer',
           fontSize: '20px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: 'var(--text-primary)',
         }}
         title="Уведомления"
       >
-        🔔
+        <HiOutlineBell style={{ width: '20px', height: '20px' }} />
         {unreadCount > 0 && (
           <span
             style={{

@@ -161,16 +161,30 @@
 }
 
 .sidebar-icon {
-  font-size: 18px;
+  font-size: 20px;
   width: 24px;
-  text-align: center;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   margin-right: 12px;
-  filter: grayscale(100%) opacity(0.6);
-  transition: filter 0.2s ease;
+  color: var(--text-secondary);
+  transition: color 0.2s ease, transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.sidebar-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.sidebar-item:hover .sidebar-icon:not(.active) {
+  color: var(--text-primary);
+  transform: scale(1.1);
 }
 
 .sidebar-icon.active {
-  filter: grayscale(0%) opacity(1);
+  color: var(--primary-color);
 }
 
 .sidebar-label {
@@ -381,9 +395,19 @@
   box-shadow: none;
 }
 
+.theme-toggle svg {
+  width: 20px;
+  height: 20px;
+  transition: transform 0.2s ease;
+}
+
 .theme-toggle:hover {
   background-color: var(--hover-bg);
   transform: none;
+}
+
+.theme-toggle:hover svg {
+  transform: scale(1.1);
 }
 
 /* Адаптивность */

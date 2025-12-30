@@ -397,7 +397,7 @@ const Suppliers = () => {
           setShowForm(false)
           setEditingItem(null)
         }}
-        maxWidth="700px"
+        maxWidth="550px"
       >
           <form onSubmit={handleSubmit} className="compact-form">
             <div className="compact-form-section">
@@ -555,28 +555,13 @@ const Suppliers = () => {
                   setShowForm(false)
                   setEditingItem(null)
                 }}
-                style={{
-                  padding: '8px 16px',
-                  border: '1px solid var(--input-border)',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  backgroundColor: 'var(--bg-secondary)',
-                  color: 'var(--text-primary)'
-                }}
+                className="compact-form-button-cancel"
               >
                 Отмена
               </button>
               <button
                 type="submit"
-                style={{
-                  padding: '8px 16px',
-                  backgroundColor: 'var(--primary-color)',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  fontWeight: 'bold'
-                }}
+                className="compact-form-button-submit"
               >
                 Сохранить
               </button>
