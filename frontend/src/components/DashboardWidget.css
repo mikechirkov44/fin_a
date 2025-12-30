@@ -1,0 +1,122 @@
+.dashboard-widget {
+  background-color: var(--bg-primary);
+  border: 1px solid var(--input-border);
+  border-radius: 4px;
+  padding: 16px;
+  margin-bottom: 16px;
+  transition: all 0.2s ease;
+}
+
+.dashboard-widget:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.dashboard-widget.dragging {
+  opacity: 0.5;
+  cursor: move;
+}
+
+.widget-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--input-border);
+}
+
+.widget-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.widget-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.widget-action-btn {
+  padding: 4px 8px;
+  border: 1px solid var(--input-border);
+  background-color: var(--bg-secondary);
+  color: var(--text-secondary);
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.2s ease;
+}
+
+.widget-action-btn:hover {
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.widget-action-delete:hover {
+  background-color: var(--danger-color, #dc3545);
+  color: white;
+  border-color: var(--danger-color, #dc3545);
+}
+
+.widget-content {
+  min-height: 100px;
+}
+
+.widget-metric {
+  text-align: center;
+  padding: 20px;
+}
+
+.widget-metric-value {
+  font-size: 32px;
+  font-weight: bold;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.widget-metric-change {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.widget-metric-change.positive {
+  color: var(--success-color, #27ae60);
+}
+
+.widget-metric-change.negative {
+  color: var(--danger-color, #e74c3c);
+}
+
+.widget-chart {
+  width: 100%;
+}
+
+.widget-table {
+  overflow-x: auto;
+}
+
+.widget-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.widget-table th,
+.widget-table td {
+  padding: 8px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--input-border);
+}
+
+.widget-table th {
+  background-color: var(--bg-secondary);
+  font-weight: 600;
+}
+
+.widget-empty {
+  text-align: center;
+  padding: 40px;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+

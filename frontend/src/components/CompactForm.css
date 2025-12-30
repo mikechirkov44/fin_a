@@ -1,0 +1,77 @@
+.compact-form {
+  padding: 0;
+}
+
+.compact-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.compact-form-grid.full-width {
+  grid-template-columns: 1fr;
+}
+
+.compact-form-section {
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--input-border);
+}
+
+.compact-form-section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.compact-form-section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--input-border);
+}
+
+.compact-form .form-field {
+  margin-bottom: 0;
+}
+
+.compact-form .form-field label {
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.compact-form .form-field input,
+.compact-form .form-field select,
+.compact-form .form-field textarea {
+  padding: 6px 10px;
+  font-size: 13px;
+}
+
+.compact-form .form-field textarea {
+  resize: vertical;
+  min-height: 60px;
+}
+
+.compact-form-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--input-border);
+}
+
+.compact-form-actions button {
+  padding: 8px 16px;
+  font-size: 13px;
+  min-width: 100px;
+}
+
+@media (max-width: 768px) {
+  .compact-form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+

@@ -78,6 +78,9 @@ class Company(Base):
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    
+    # Связи
+    # suppliers, customers и customer_segments создаются автоматически через backref в моделях Supplier, Customer и CustomerSegment
 
 class ExpenseCategory(Base):
     __tablename__ = "expense_categories"

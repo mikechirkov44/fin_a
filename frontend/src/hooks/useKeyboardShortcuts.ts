@@ -13,7 +13,9 @@ export const useKeyboardShortcuts = (shortcuts: Shortcut[]) => {
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       shortcuts.forEach((shortcut) => {
-        const keyMatch = event.key.toLowerCase() === shortcut.key.toLowerCase()
+        if (!shortcut || !shortcut.key) return
+        
+        const keyMatch = event.key?.toLowerCase() === shortcut.key.toLowerCase()
         const ctrlMatch = shortcut.ctrl ? event.ctrlKey : !event.ctrlKey
         const shiftMatch = shortcut.shift ? event.shiftKey : !event.shiftKey
         const altMatch = shortcut.alt ? event.altKey : !event.altKey

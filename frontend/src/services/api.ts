@@ -59,11 +59,11 @@ const apiService = new ApiService()
 
 export const authService = {
   login: (username: string, password: string) => {
-    const formData = new FormData()
+    const formData = new URLSearchParams()
     formData.append('username', username)
     formData.append('password', password)
-    return apiService.post('/api/auth/login', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
+    return apiService.post('/api/auth/login', formData.toString(), {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     })
   },
   register: (email: string, username: string, password: string) => {
@@ -244,6 +244,51 @@ export const inventoryService = {
   createTransaction: (data: any) => apiService.post('/api/inventory/transactions', data),
   getTurnover: (params?: any) => apiService.get('/api/inventory/turnover', { params }),
   getAlerts: (params?: any) => apiService.get('/api/inventory/alerts', { params }),
+}
+
+export const customersService = {
+  // Customers CRUD
+  getCustomers: (params?: any) => apiService.get('/api/customers/', { params }),
+  getCustomer: (id: number) => apiService.get(`/api/customers/${id}`),
+  createCustomer: (data: any) => apiService.post('/api/customers/', data),
+  updateCustomer: (id: number, data: any) => apiService.put(`/api/customers/${id}`, data),
+  deleteCustomer: (id: number) => apiService.delete(`/api/customers/${id}`),
+  updateCustomerMetrics: (id: number) => apiService.post(`/api/customers/${id}/update-metrics`),
+  // Customer Segments
+  getSegments: (params?: any) => apiService.get('/api/customers/segments/', { params }),
+  createSegment: (data: any) => apiService.post('/api/customers/segments/', data),
+  updateSegment: (id: number, data: any) => apiService.put(`/api/customers/segments/${id}`, data),
+  deleteSegment: (id: number) => apiService.delete(`/api/customers/segments/${id}`),
+  // Customer Purchases
+  getCustomerPurchases: (customerId: number, params?: any) => 
+    apiService.get(`/api/customers/${customerId}/purchases/`, { params }),
+  createCustomerPurchase: (customerId: number, data: any) => 
+    apiService.post(`/api/customers/${customerId}/purchases/`, data),
+  // Customer Interactions
+  getCustomerInteractions: (customerId: number, params?: any) => 
+    apiService.get(`/api/customers/${customerId}/interactions/`, { params }),
+  createCustomerInteraction: (customerId: number, data: any) => 
+    apiService.post(`/api/customers/${customerId}/interactions/`, data),
+}
+
+export const suppliersService = {
+  // Suppliers CRUD
+  getSuppliers: (params?: any) => apiService.get('/api/suppliers/', { params }),
+  getSupplier: (id: number) => apiService.get(`/api/suppliers/${id}`),
+  createSupplier: (data: any) => apiService.post('/api/suppliers/', data),
+  updateSupplier: (id: number, data: any) => apiService.put(`/api/suppliers/${id}`, data),
+  deleteSupplier: (id: number) => apiService.delete(`/api/suppliers/${id}`),
+  // Supplier Orders
+  getSupplierOrders: (params?: any) => apiService.get('/api/suppliers/orders/', { params }),
+  getSupplierOrder: (id: number) => apiService.get(`/api/suppliers/orders/${id}`),
+  createSupplierOrder: (data: any) => apiService.post('/api/suppliers/orders/', data),
+  updateSupplierOrder: (id: number, data: any) => apiService.put(`/api/suppliers/orders/${id}`, data),
+  deleteSupplierOrder: (id: number) => apiService.delete(`/api/suppliers/orders/${id}`),
+  // Supplier Contracts
+  getSupplierContracts: (params?: any) => apiService.get('/api/suppliers/contracts/', { params }),
+  createSupplierContract: (data: any) => apiService.post('/api/suppliers/contracts/', data),
+  updateSupplierContract: (id: number, data: any) => apiService.put(`/api/suppliers/contracts/${id}`, data),
+  deleteSupplierContract: (id: number) => apiService.delete(`/api/suppliers/contracts/${id}`),
 }
 
 export default apiService

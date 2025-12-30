@@ -1,14 +1,16 @@
 import { useState, useEffect } from 'react'
-import { referenceService, productsService } from '../services/api'
+import { referenceService, productsService, customersService } from '../services/api'
 import { useToast } from '../contexts/ToastContext'
 import { useConfirm } from '../contexts/ConfirmContext'
+import { useAuth } from '../contexts/AuthContext'
 import Modal from '../components/Modal'
 
-type TabType = 'income' | 'expense' | 'payment' | 'company' | 'incomeGroup' | 'expenseGroup' | 'expenseCategory' | 'salesChannel' | 'product'
+type TabType = 'income' | 'expense' | 'payment' | 'company' | 'incomeGroup' | 'expenseGroup' | 'expenseCategory' | 'salesChannel' | 'product' | 'customerSegment'
 
 const Reference = () => {
   const { showSuccess, showError } = useToast()
   const { confirm } = useConfirm()
+  const { selectedCompanyId } = useAuth()
   const [activeTab, setActiveTab] = useState<TabType>('income')
   const [incomeItems, setIncomeItems] = useState<any[]>([])
   const [expenseItems, setExpenseItems] = useState<any[]>([])
@@ -28,6 +30,8 @@ const Reference = () => {
   const [allExpenseCategories, setAllExpenseCategories] = useState<any[]>([])
   const [allSalesChannels, setAllSalesChannels] = useState<any[]>([])
   const [allProducts, setAllProducts] = useState<any[]>([])
+  const [customerSegments, setCustomerSegments] = useState<any[]>([])
+  const [allCustomerSegments, setAllCustomerSegments] = useState<any[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [sortColumn, setSortColumn] = useState<string | null>(null)
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
@@ -49,7 +53,7 @@ const Reference = () => {
     if (activeTab === 'income' || activeTab === 'expense') {
       loadGroups()
     }
-  }, [activeTab])
+  }, [activeTab, selectedCompanyId])
 
   const loadGroups = async () => {
     try {
@@ -103,6 +107,14 @@ const Reference = () => {
         const data = await productsService.getProducts()
         setAllProducts(data)
         setProducts(data)
+      } else if (activeTab === 'customerSegment') {
+        const params: any = {}
+        if (selectedCompanyId) {
+          params.company_id = selectedCompanyId
+        }
+        const data = await customersService.getSegments(params)
+        setAllCustomerSegments(data)
+        setCustomerSegments(data)
       }
     } catch (error) {
       console.error('Error loading data:', error)
@@ -124,6 +136,7 @@ const Reference = () => {
     else if (activeTab === 'expenseCategory') filtered = [...allExpenseCategories]
     else if (activeTab === 'salesChannel') filtered = [...allSalesChannels]
     else if (activeTab === 'product') filtered = [...allProducts]
+    else if (activeTab === 'customerSegment') filtered = [...allCustomerSegments]
 
     // Фильтрация
     if (query) {
@@ -213,7 +226,8 @@ const Reference = () => {
     else if (activeTab === 'expenseCategory') setExpenseCategories(filtered)
     else if (activeTab === 'salesChannel') setSalesChannels(filtered)
     else if (activeTab === 'product') setProducts(filtered)
-  }, [searchQuery, activeTab, allIncomeItems, allExpenseItems, allPaymentPlaces, allCompanies, allIncomeGroups, allExpenseGroups, allExpenseCategories, allSalesChannels, allProducts, sortColumn, sortDirection, allIncomeGroups, allExpenseGroups])
+    else if (activeTab === 'customerSegment') setCustomerSegments(filtered)
+  }, [searchQuery, activeTab, allIncomeItems, allExpenseItems, allPaymentPlaces, allCompanies, allIncomeGroups, allExpenseGroups, allExpenseCategories, allSalesChannels, allProducts, allCustomerSegments, sortColumn, sortDirection, allIncomeGroups, allExpenseGroups])
 
   const handleSort = (column: string) => {
     if (sortColumn === column) {
@@ -304,6 +318,16 @@ const Reference = () => {
         } else {
           await productsService.createProduct(submitData)
         }
+      } else if (activeTab === 'customerSegment') {
+        const segmentData: any = { ...submitData }
+        if (selectedCompanyId) {
+          segmentData.company_id = selectedCompanyId
+        }
+        if (editingItem) {
+          await customersService.updateSegment(editingItem.id, segmentData)
+        } else {
+          await customersService.createSegment(segmentData)
+        }
       }
       handleClose()
       loadData()
@@ -352,6 +376,7 @@ const Reference = () => {
       else if (activeTab === 'expenseCategory') await referenceService.deleteExpenseCategory(id)
       else if (activeTab === 'salesChannel') await referenceService.deleteSalesChannel(id)
       else if (activeTab === 'product') await productsService.deleteProduct(id)
+      else if (activeTab === 'customerSegment') await customersService.deleteSegment(id)
       showSuccess('Запись успешно удалена')
       loadData()
     } catch (error: any) {
@@ -369,6 +394,7 @@ const Reference = () => {
     if (activeTab === 'expenseCategory') return expenseCategories
     if (activeTab === 'salesChannel') return salesChannels
     if (activeTab === 'product') return products
+    if (activeTab === 'customerSegment') return customerSegments
     return []
   }
 
@@ -382,6 +408,7 @@ const Reference = () => {
     if (activeTab === 'expenseCategory') return 'Категории расходов'
     if (activeTab === 'salesChannel') return 'Каналы продаж'
     if (activeTab === 'product') return 'Номенклатура'
+    if (activeTab === 'customerSegment') return 'Сегменты клиентов'
     return ''
   }
 
@@ -438,6 +465,12 @@ const Reference = () => {
           className={activeTab === 'salesChannel' ? 'primary' : ''}
         >
           Каналы продаж
+        </button>
+        <button
+          onClick={() => { setActiveTab('customerSegment'); setShowForm(false); setEditingItem(null) }}
+          className={activeTab === 'customerSegment' ? 'primary' : ''}
+        >
+          Сегменты клиентов
         </button>
         <button
           onClick={() => { setActiveTab('product'); setShowForm(false); setEditingItem(null) }}
@@ -663,7 +696,8 @@ const Reference = () => {
                 <td colSpan={
                   activeTab === 'product' ? 6 :
                   (activeTab === 'income' || activeTab === 'expense') ? 4 :
-                  (activeTab === 'incomeGroup' || activeTab === 'expenseGroup') ? 5 : 3
+                  (activeTab === 'incomeGroup' || activeTab === 'expenseGroup') ? 5 :
+                  activeTab === 'customerSegment' ? 3 : 3
                 } className="text-center">Нет данных</td>
               </tr>
             ) : (

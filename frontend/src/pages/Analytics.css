@@ -1,0 +1,100 @@
+.analytics-page {
+  padding: 0;
+}
+
+.analytics-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  border-bottom: 2px solid var(--input-border);
+}
+
+.analytics-tabs button {
+  padding: 12px 24px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: all 0.2s ease;
+}
+
+.analytics-tabs button:hover {
+  color: var(--text-primary);
+  background-color: var(--bg-secondary);
+}
+
+.analytics-tabs button.active {
+  color: var(--primary-color);
+  border-bottom-color: var(--primary-color);
+}
+
+.analytics-content {
+  margin-top: 20px;
+}
+
+.positive {
+  color: var(--success-color, #27ae60);
+  font-weight: 600;
+}
+
+.negative {
+  color: var(--danger-color, #e74c3c);
+  font-weight: 600;
+}
+
+.abc-class {
+  font-weight: bold;
+  padding: 4px 8px;
+  border-radius: 3px;
+  text-align: center;
+}
+
+.abc-a {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.abc-b {
+  background-color: #fff3cd;
+  color: #856404;
+}
+
+.abc-c {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+.xyz-class {
+  font-weight: bold;
+  padding: 4px 8px;
+  border-radius: 3px;
+  text-align: center;
+}
+
+.xyz-x {
+  background-color: #d1ecf1;
+  color: #0c5460;
+}
+
+.xyz-y {
+  background-color: #ffeaa7;
+  color: #856404;
+}
+
+.xyz-z {
+  background-color: #fadbd8;
+  color: #721c24;
+}
+
+.abcxyz-class {
+  font-weight: bold;
+  padding: 4px 8px;
+  border-radius: 3px;
+  text-align: center;
+  background-color: var(--bg-secondary);
+}
+

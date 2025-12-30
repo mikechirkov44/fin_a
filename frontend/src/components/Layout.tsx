@@ -24,8 +24,12 @@ const Layout = () => {
   // Автоматически раскрываем раздел, если открыта его страница
   const getInitialExpanded = () => {
     const financePaths = ['/cash-flow', '/profit-loss', '/balance', '/cash-flow-analysis', '/profit-loss-analysis']
+    const customersPaths = ['/customers', '/suppliers']
     if (financePaths.includes(location.pathname)) {
       return ['/cash-flow']
+    }
+    if (customersPaths.includes(location.pathname)) {
+      return ['/customers']
     }
     return []
   }
@@ -57,8 +61,12 @@ const Layout = () => {
   // Обновляем раскрытые разделы при изменении пути
   useEffect(() => {
     const financePaths = ['/cash-flow', '/profit-loss', '/balance', '/cash-flow-analysis', '/profit-loss-analysis']
+    const customersPaths = ['/customers', '/suppliers']
     if (financePaths.includes(location.pathname) && !expandedItems.includes('/cash-flow')) {
       setExpandedItems(['/cash-flow'])
+    }
+    if (customersPaths.includes(location.pathname) && !expandedItems.includes('/customers')) {
+      setExpandedItems(['/customers'])
     }
   }, [location.pathname, expandedItems])
 
@@ -74,6 +82,15 @@ const Layout = () => {
       children: [
         { path: '/warehouses', label: 'Склады' },
         { path: '/inventory', label: 'Остатки' },
+      ]
+    },
+    { 
+      path: '/customers', 
+      label: 'Клиенты и поставщики', 
+      icon: '👥',
+      children: [
+        { path: '/customers', label: 'Клиенты' },
+        { path: '/suppliers', label: 'Поставщики' },
       ]
     },
     { 
@@ -125,6 +142,8 @@ const Layout = () => {
     '/shipment': 'ОТГРУЗКА',
     '/warehouses': 'Управление складами',
     '/inventory': 'Управление остатками',
+    '/customers': 'Клиенты',
+    '/suppliers': 'Поставщики',
     '/reference': 'Предприятие',
     '/marketplace-integration': 'Интеграции с маркетплейсами',
     '/budget': 'Бюджетирование',

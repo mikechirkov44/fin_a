@@ -3,10 +3,56 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from app.database import engine, Base
-from app.api import auth, users, reference, input1, input2, balance, cash_flow, profit_loss, cash_flow_analysis, profit_loss_analysis, realization, shipment, products, dashboard, export, import_api, marketplace_integration, audit, budget, notification, warehouses, inventory
 import traceback
 
-# Создаем таблицы
+# Импортируем все модули моделей ПЕРЕД созданием таблиц, чтобы SQLAlchemy мог правильно настроить отношения
+# Это гарантирует, что все модели загружены и отношения настроены до создания таблиц
+import app.models.user
+import app.models.user_company
+import app.models.reference
+import app.models.input1
+import app.models.input2
+import app.models.realization
+import app.models.shipment
+import app.models.product
+import app.models.marketplace_integration
+import app.models.audit
+import app.models.budget
+import app.models.notification
+import app.models.warehouse
+import app.models.inventory
+import app.models.inventory_transaction
+import app.models.product_cost
+import app.models.customer
+import app.models.supplier
+
+# Теперь импортируем конкретные классы для использования в коде
+from app.models import (
+    User, UserRole, UserCompany,
+    IncomeGroup, IncomeItem, ExpenseGroup, ExpenseItem,
+    PaymentPlace, Company, ExpenseCategory, SalesChannel,
+    MoneyMovement, Asset, Liability,
+    Realization, RealizationItem, Shipment, Product,
+    MarketplaceIntegration, AuditLog, Budget, Notification,
+    Warehouse, Inventory, InventoryTransaction, ProductCost,
+    Customer, CustomerSegment, CustomerPurchase, CustomerInteraction,
+    Supplier, SupplierOrder, SupplierOrderItem, SupplierContract
+)
+
+from app.api import auth, users, reference, input1, input2, balance, cash_flow, profit_loss, cash_flow_analysis, profit_loss_analysis, realization, shipment, products, dashboard, export, import_api, marketplace_integration, audit, budget, notification, warehouses, inventory, customers, suppliers
+
+# Явно настраиваем мапперы после импорта всех моделей
+# Это гарантирует, что все отношения (back_populates) настроены правильно
+from sqlalchemy.orm import configure_mappers
+try:
+    configure_mappers()
+except Exception as e:
+    # Если есть ошибки конфигурации, выводим их для отладки
+    import traceback
+    traceback.print_exc()
+    raise
+
+# Создаем таблицы (после импорта всех моделей и настройки мапперов)
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Financial Reporting System", version="1.0.0")
@@ -60,6 +106,8 @@ app.include_router(profit_loss_analysis.router, prefix="/api/profit-loss-analysi
 app.include_router(realization.router, prefix="/api/realization", tags=["realization"])
 app.include_router(shipment.router, prefix="/api/shipment", tags=["shipment"])
 app.include_router(products.router, prefix="/api/products", tags=["products"])
+app.include_router(customers.router, prefix="/api/customers", tags=["customers"])
+app.include_router(suppliers.router, prefix="/api/suppliers", tags=["suppliers"])
 app.include_router(warehouses.router, prefix="/api/warehouses", tags=["warehouses"])
 app.include_router(inventory.router, prefix="/api/inventory", tags=["inventory"])
 app.include_router(dashboard.router, prefix="/api/dashboard", tags=["dashboard"])

@@ -19,6 +19,8 @@ from .warehouse import Warehouse
 from .inventory import Inventory
 from .inventory_transaction import InventoryTransaction
 from .product_cost import ProductCost
+from .customer import Customer, CustomerSegment, CustomerPurchase, CustomerInteraction
+from .supplier import Supplier, SupplierOrder, SupplierOrderItem, SupplierContract
 
 __all__ = [
     "User",
@@ -47,5 +49,13 @@ __all__ = [
     "Inventory",
     "InventoryTransaction",
     "ProductCost",
+    "Customer",
+    "CustomerSegment",
+    "CustomerPurchase",
+    "CustomerInteraction",
+    "Supplier",
+    "SupplierOrder",
+    "SupplierOrderItem",
+    "SupplierContract",
 ]
 
