@@ -1,0 +1,259 @@
+.recommendations-page {
+  padding: 24px;
+}
+
+.recommendations-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.recommendations-header h1 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+  color: #333;
+}
+
+.recommendations-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.stat-card {
+  background: white;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  padding: 16px;
+  text-align: center;
+}
+
+.stat-card.critical {
+  border-left: 4px solid #dc3545;
+}
+
+.stat-card.important {
+  border-left: 4px solid #ffc107;
+}
+
+.stat-card.info {
+  border-left: 4px solid #007bff;
+}
+
+.stat-label {
+  font-size: 13px;
+  color: #6c757d;
+  margin-bottom: 8px;
+}
+
+.stat-value {
+  font-size: 24px;
+  font-weight: 600;
+  color: #333;
+}
+
+.recommendations-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+  padding: 16px;
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #333;
+  cursor: pointer;
+  padding: 8px 0;
+}
+
+.checkbox-label input[type="checkbox"] {
+  cursor: pointer;
+}
+
+.recommendations-loading {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.recommendations-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.recommendation-card {
+  background: white;
+  border: 1px solid #dee2e6;
+  border-left: 4px solid #6c757d;
+  border-radius: 4px;
+  padding: 20px;
+  transition: all 0.2s;
+}
+
+.recommendation-card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.recommendation-card.critical {
+  border-left-color: #dc3545;
+}
+
+.recommendation-card.important {
+  border-left-color: #ffc107;
+}
+
+.recommendation-card.info {
+  border-left-color: #007bff;
+}
+
+.recommendation-card.unread {
+  background: #f8f9ff;
+}
+
+.recommendation-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.recommendation-card-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.recommendation-priority-icon {
+  font-size: 20px;
+}
+
+.recommendation-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  flex: 1;
+}
+
+.recommendation-badges {
+  display: flex;
+  gap: 8px;
+}
+
+.recommendation-badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  background: #e9ecef;
+  color: #495057;
+}
+
+.recommendation-badge.type {
+  background: #cfe2ff;
+  color: #084298;
+}
+
+.recommendation-badge.category {
+  background: #d1e7dd;
+  color: #0f5132;
+}
+
+.recommendation-card-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.btn-icon {
+  background: none;
+  border: 1px solid #dee2e6;
+  cursor: pointer;
+  color: #6c757d;
+  font-size: 18px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.btn-icon:hover {
+  background: #e9ecef;
+  color: #333;
+  border-color: #adb5bd;
+}
+
+.recommendation-description {
+  font-size: 14px;
+  color: #495057;
+  margin-bottom: 12px;
+  line-height: 1.6;
+}
+
+.recommendation-action {
+  font-size: 14px;
+  color: #007bff;
+  font-weight: 500;
+  padding: 12px;
+  background: #e7f1ff;
+  border-left: 3px solid #007bff;
+  border-radius: 4px;
+  margin-bottom: 12px;
+}
+
+.recommendation-action strong {
+  color: #0056b3;
+}
+
+.recommendation-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 12px;
+  border-top: 1px solid #e9ecef;
+}
+
+.recommendation-date {
+  font-size: 12px;
+  color: #6c757d;
+}
+
+.btn {
+  padding: 8px 16px;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.btn-primary {
+  background: #007bff;
+  color: white;
+  border-color: #007bff;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #0056b3;
+  border-color: #0056b3;
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

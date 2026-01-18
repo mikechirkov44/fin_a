@@ -21,6 +21,7 @@ from .inventory_transaction import InventoryTransaction
 from .product_cost import ProductCost
 from .customer import Customer, CustomerSegment, CustomerPurchase, CustomerInteraction
 from .supplier import Supplier, SupplierOrder, SupplierOrderItem, SupplierContract
+from .recommendation import Recommendation, RecommendationType, RecommendationPriority, RecommendationCategory
 
 __all__ = [
     "User",
@@ -57,5 +58,9 @@ __all__ = [
     "SupplierOrder",
     "SupplierOrderItem",
     "SupplierContract",
+    "Recommendation",
+    "RecommendationType",
+    "RecommendationPriority",
+    "RecommendationCategory",
 ]
 

@@ -25,6 +25,7 @@ import app.models.inventory_transaction
 import app.models.product_cost
 import app.models.customer
 import app.models.supplier
+import app.models.recommendation
 
 # Теперь импортируем конкретные классы для использования в коде
 from app.models import (
@@ -39,7 +40,7 @@ from app.models import (
     Supplier, SupplierOrder, SupplierOrderItem, SupplierContract
 )
 
-from app.api import auth, users, reference, input1, input2, balance, cash_flow, profit_loss, cash_flow_analysis, profit_loss_analysis, realization, shipment, products, dashboard, export, import_api, marketplace_integration, audit, budget, notification, warehouses, inventory, customers, suppliers
+from app.api import auth, users, reference, input1, input2, balance, cash_flow, profit_loss, cash_flow_analysis, profit_loss_analysis, realization, shipment, products, dashboard, export, import_api, marketplace_integration, audit, budget, notification, warehouses, inventory, customers, suppliers, recommendations
 
 # Явно настраиваем мапперы после импорта всех моделей
 # Это гарантирует, что все отношения (back_populates) настроены правильно
@@ -117,6 +118,7 @@ app.include_router(marketplace_integration.router, prefix="/api/marketplace-inte
 app.include_router(budget.router, prefix="/api/budget", tags=["budget"])
 app.include_router(audit.router, prefix="/api", tags=["audit"])
 app.include_router(notification.router, prefix="/api/notifications", tags=["notifications"])
+app.include_router(recommendations.router, prefix="/api/recommendations", tags=["recommendations"])
 
 @app.get("/")
 async def root():

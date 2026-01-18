@@ -25,7 +25,8 @@ import {
 } from 'react-icons/hi2'
 import { 
   HiOutlineLightningBolt,
-  HiOutlineTrendingUp
+  HiOutlineTrendingUp,
+  HiOutlineLink
 } from 'react-icons/hi'
 
 interface MenuItem {
@@ -132,7 +133,8 @@ const Layout = () => {
       ]
     },
     { path: '/reference', label: 'Предприятие', icon: <HiOutlineBuildingOffice /> },
-    { path: '/marketplace-integration', label: 'Интеграции', icon: <HiOutlineLightningBolt /> },
+    { path: '/recommendations', label: 'Рекомендации', icon: <HiOutlineLightningBolt /> },
+    { path: '/marketplace-integration', label: 'Интеграции', icon: <HiOutlineLink /> },
     { path: '/budget', label: 'Бюджетирование', icon: <HiOutlineTrendingUp /> },
     { path: '/audit-log', label: 'История изменений', icon: <HiOutlineDocumentText /> },
     { path: '/settings', label: 'Настройки', icon: <HiOutlineCog6Tooth /> },

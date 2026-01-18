@@ -146,7 +146,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const userCompany = user.companies?.find(uc => uc.company_id === checkCompanyId)
     if (!userCompany) return false
     
-    return ['ACCOUNTANT', 'MANAGER'].includes(userCompany.role)
+    // ADMIN, ACCOUNTANT и MANAGER имеют права на запись
+    return ['ADMIN', 'ACCOUNTANT', 'MANAGER'].includes(userCompany.role)
   }
 
   return (

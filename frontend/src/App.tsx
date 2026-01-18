@@ -29,6 +29,7 @@ import Customers from './pages/Customers'
 import Suppliers from './pages/Suppliers'
 import Settings from './pages/Settings'
 import Help from './pages/Help'
+import Recommendations from './pages/Recommendations'
 
 function App() {
   return (
@@ -69,6 +70,7 @@ function App() {
                     <Route path="inventory" element={<Inventory />} />
                     <Route path="customers" element={<Customers />} />
                     <Route path="suppliers" element={<Suppliers />} />
+                    <Route path="recommendations" element={<Recommendations />} />
                     <Route path="settings" element={<Settings />} />
                     <Route path="help" element={<Help />} />
                   </Route>

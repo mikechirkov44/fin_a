@@ -271,6 +271,15 @@ export const customersService = {
     apiService.post(`/api/customers/${customerId}/interactions/`, data),
 }
 
+export const recommendationsService = {
+  getRecommendations: (params?: any) => apiService.get('/api/recommendations/', { params }),
+  getStats: (params?: any) => apiService.get('/api/recommendations/stats', { params }),
+  generateRecommendations: (params?: any) => apiService.post('/api/recommendations/generate', {}, { params }),
+  dismissRecommendation: (id: number) => apiService.put(`/api/recommendations/${id}/dismiss`),
+  markAsRead: (id: number) => apiService.put(`/api/recommendations/${id}/read`),
+  updateRecommendation: (id: number, data: any) => apiService.put(`/api/recommendations/${id}`, data),
+}
+
 export const suppliersService = {
   // Suppliers CRUD
   getSuppliers: (params?: any) => apiService.get('/api/suppliers/', { params }),

@@ -148,6 +148,11 @@ const Warehouses = () => {
   ])
 
   const canEdit = (warehouse: any) => {
+    // Если есть selectedCompanyId, проверяем права на эту организацию
+    if (selectedCompanyId) {
+      return canWrite(selectedCompanyId)
+    }
+    // Иначе проверяем права на организацию склада
     return canWrite(warehouse.company_id)
   }
 

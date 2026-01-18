@@ -27,6 +27,7 @@ const Breadcrumbs = () => {
       'marketplace-integration': 'Интеграции',
       budget: 'Бюджетирование',
       'audit-log': 'История изменений',
+      recommendations: 'Рекомендации',
       users: 'Пользователи',
       shipment: 'Отгрузка',
       settings: 'Настройки',

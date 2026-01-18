@@ -2,20 +2,24 @@
 Скрипт для заполнения системы тестовыми данными для пользователя testlogin
 """
 import sys
+import random
 from datetime import date, timedelta
 from decimal import Decimal
 from sqlalchemy.orm import Session
 
 from app.database import SessionLocal, engine
 from app.models import (
-    User, 
+    User, UserCompany, UserRole,
     IncomeGroup, IncomeItem, 
     ExpenseGroup, ExpenseItem, 
-    PaymentPlace, Company, Marketplace,
+    PaymentPlace, Company,
     ExpenseCategory, SalesChannel,
     MoneyMovement, Asset, Liability, Product,
-    Realization, Shipment
+    Realization, RealizationItem, Shipment,
+    Warehouse, Customer, CustomerSegment,
+    Supplier, Inventory, Budget, MarketplaceIntegration
 )
+from app.models.budget import BudgetType, BudgetPeriod
 from app.auth.security import get_password_hash
 
 def get_or_create_user(db: Session):
@@ -60,7 +64,7 @@ def seed_reference_data(db: Session):
         income_group_map[group_data["name"]] = group
     
     # Создаем подгруппы "Поступления" для родительских групп
-    for parent_name, parent_group in income_group_map.items():
+    for parent_name, parent_group in list(income_group_map.items()):
         subgroup_name = "Поступления"
         subgroup = db.query(IncomeGroup).filter(
             IncomeGroup.name == subgroup_name,
@@ -101,7 +105,7 @@ def seed_reference_data(db: Session):
         expense_group_map[group_data["name"]] = group
     
     # Создаем подгруппы "Выбытия" для родительских групп (кроме тех, где статьи напрямую)
-    for parent_name, parent_group in expense_group_map.items():
+    for parent_name, parent_group in list(expense_group_map.items()):
         if parent_name in ["Кредиты, займы", "Дивиденды"]:
             continue  # Эти группы не имеют подгрупп
         
@@ -233,25 +237,22 @@ def seed_reference_data(db: Session):
     else:
         print(f"  [OK] Компания уже существует: Основная организация")
     
-    # Маркетплейсы
-    marketplace_names = [("Ozon", "ozon"), ("Wildberries", "wildberries"), ("Яндекс.Маркет", "яндекс.маркет")]
+    # Используем существующие каналы продаж для маппинга
     marketplace_map = {}
-    for marketplace_name, marketplace_key in marketplace_names:
-        marketplace = db.query(Marketplace).filter(Marketplace.name == marketplace_name).first()
-        if not marketplace:
-            marketplace = Marketplace(name=marketplace_name, description=f"Маркетплейс {marketplace_name}")
-            db.add(marketplace)
-            print(f"  [OK] Создан маркетплейс: {marketplace_name}")
-        else:
-            print(f"  [OK] Маркетплейс уже существует: {marketplace_name}")
-        db.commit()
-        db.refresh(marketplace)
-        marketplace_map[marketplace_key] = marketplace
+    # Маппинг имен маркетплейсов на каналы продаж
+    marketplace_mapping = {
+        "ozon": "Ozon",
+        "wildberries": "WB", 
+        "яндекс.маркет": "Яндекс"
+    }
+    
+    for marketplace_key, sales_channel_name in marketplace_mapping.items():
+        sales_channel = sales_channel_map.get(sales_channel_name)
+        if sales_channel:
+            marketplace_map[marketplace_key] = sales_channel
     
     db.commit()
     db.refresh(company)
-    for mp in marketplace_map.values():
-        db.refresh(mp)
     print("[OK] Справочники заполнены")
     return company, marketplace_map, sales_channel_map
 
@@ -282,26 +283,29 @@ def seed_money_movements(db: Session, company):
     print("\n[INFO] Заполнение движения денег...")
     
     # Получаем справочники
-    income_item = db.query(IncomeItem).filter(IncomeItem.name == "Продажа товаров").first()
+    # Используем одну из существующих статей доходов (например, "WB")
+    income_items = db.query(IncomeItem).filter(IncomeItem.name.in_(["WB", "Ozon", "Яндекс"])).all()
     expense_item = db.query(ExpenseItem).filter(ExpenseItem.name == "Закупка товаров").first()
     payment_place = db.query(PaymentPlace).filter(PaymentPlace.name == "Расчетный счет").first()
     
-    if not income_item or not expense_item or not payment_place or not company:
+    if not income_items or not expense_item or not payment_place or not company:
         print("  [WARN] Справочники не найдены, пропускаем движение денег")
         return
     
-    # Генерируем данные за последние 4 месяца (около 120 дней)
+    # Генерируем данные за последний год (365 дней)
     today = date.today()
     movements = []
-    days_to_generate = 120
+    days_to_generate = 365
     
-    # Доходы (примерно 3-4 раза в неделю)
+    # Доходы (примерно 3-4 раза в неделю) - используем разные статьи доходов
     for i in range(days_to_generate):
         if i % 2 == 0:  # Каждый второй день
             movement_date = today - timedelta(days=i)
             # Вариация сумм для реалистичности
             base_amount = Decimal("50000.00")
             variation = Decimal(str((i % 7) * 5000))  # Разная сумма в разные дни недели
+            # Используем разные статьи доходов по кругу
+            income_item = income_items[i % len(income_items)]
             movements.append({
                 "date": movement_date,
                 "amount": base_amount + variation,
@@ -309,7 +313,7 @@ def seed_money_movements(db: Session, company):
                 "income_item_id": income_item.id,
                 "payment_place_id": payment_place.id,
                 "company_id": company.id,
-                "description": f"Продажа товаров за {movement_date.strftime('%d.%m.%Y')}",
+                "description": f"{income_item.name} - продажа товаров за {movement_date.strftime('%d.%m.%Y')}",
                 "is_business": True
             })
     
@@ -333,7 +337,7 @@ def seed_money_movements(db: Session, company):
     # Добавляем другие расходы (еженедельно)
     other_expense_items = db.query(ExpenseItem).filter(ExpenseItem.name != "Закупка товаров").all()
     for expense_item_other in other_expense_items[:4]:
-        for week in range(16):  # 16 недель = 4 месяца
+        for week in range(52):  # 52 недели = 1 год
             movement_date = today - timedelta(days=week * 7)
             base_amount = Decimal("5000.00")
             variation = Decimal(str(week * 100))
@@ -372,9 +376,9 @@ def seed_realizations(db: Session, company, marketplace_map):
     today = date.today()
     realizations = []
     
-    # Создаем данные за последние 4 месяца
+    # Создаем данные за последний год
     # Примерно 2-3 реализации в неделю
-    for week in range(16):  # 16 недель = 4 месяца
+    for week in range(52):  # 52 недели = 1 год
         for day_in_week in [0, 3, 6]:  # Понедельник, четверг, воскресенье
             realization_date = today - timedelta(days=week * 7 + day_in_week)
             if realization_date > today:
@@ -392,7 +396,7 @@ def seed_realizations(db: Session, company, marketplace_map):
             
             realizations.append({
                 "date": realization_date,
-                "marketplace_id": marketplace.id,
+                "sales_channel_id": marketplace.id,
                 "company_id": company.id,
                 "revenue": base_revenue + variation,
                 "quantity": base_quantity + quantity_variation,
@@ -403,7 +407,7 @@ def seed_realizations(db: Session, company, marketplace_map):
     for realization_data in realizations:
         existing = db.query(Realization).filter(
             Realization.date == realization_data["date"],
-            Realization.marketplace_id == realization_data["marketplace_id"]
+            Realization.sales_channel_id == realization_data["sales_channel_id"]
         ).first()
         if not existing:
             realization = Realization(**realization_data)
@@ -470,9 +474,9 @@ def seed_shipments(db: Session, company, marketplace_map):
     today = date.today()
     shipments = []
     
-    # Создаем данные за последние 4 месяца
+    # Создаем данные за последний год
     # Примерно 1-2 отгрузки в неделю
-    for week in range(16):  # 16 недель = 4 месяца
+    for week in range(52):  # 52 недели = 1 год
         for day_in_week in [1, 5]:  # Вторник, суббота
             shipment_date = today - timedelta(days=week * 7 + day_in_week)
             if shipment_date > today:
@@ -491,7 +495,7 @@ def seed_shipments(db: Session, company, marketplace_map):
             shipments.append({
                 "date": shipment_date,
                 "product_id": product.id,
-                "marketplace_id": marketplace.id,
+                "sales_channel_id": marketplace.id,
                 "company_id": company.id,
                 "quantity": base_quantity + quantity_variation,
                 "cost_price": product.cost_price,
@@ -504,7 +508,7 @@ def seed_shipments(db: Session, company, marketplace_map):
             existing = db.query(Shipment).filter(
                 Shipment.date == shipment_data["date"],
                 Shipment.product_id == shipment_data["product_id"],
-                Shipment.marketplace_id == shipment_data["marketplace_id"]
+                Shipment.sales_channel_id == shipment_data["sales_channel_id"]
             ).first()
             if not existing:
                 shipment = Shipment(**shipment_data)
@@ -515,6 +519,369 @@ def seed_shipments(db: Session, company, marketplace_map):
         print(f"[OK] Создано {count} записей отгрузок")
     except Exception as e:
         print(f"  [WARN] Ошибка при создании отгрузок: {e}")
+
+def seed_user_company(db: Session, user, company):
+    """Создать связь пользователя с организацией"""
+    print("\n[INFO] Создание связи пользователя с организацией...")
+    
+    user_company = db.query(UserCompany).filter(
+        UserCompany.user_id == user.id,
+        UserCompany.company_id == company.id
+    ).first()
+    
+    if not user_company:
+        user_company = UserCompany(
+            user_id=user.id,
+            company_id=company.id,
+            role=UserRole.ADMIN.value  # Администратор организации
+        )
+        db.add(user_company)
+        db.commit()
+        print(f"  [OK] Создана связь пользователя '{user.username}' с организацией '{company.name}' (роль: {UserRole.ADMIN.value})")
+    else:
+        print(f"  [OK] Связь пользователя с организацией уже существует")
+    
+    return user_company
+
+def seed_warehouses(db: Session, company):
+    """Заполнить склады"""
+    print("\n[INFO] Заполнение складов...")
+    
+    warehouses = [
+        {"name": "Основной склад", "address": "г. Москва, ул. Складская, д. 1", "description": "Основной склад компании", "company_id": company.id},
+        {"name": "Склад №2", "address": "г. Москва, ул. Товарная, д. 5", "description": "Дополнительный склад", "company_id": company.id},
+    ]
+    
+    count = 0
+    for warehouse_data in warehouses:
+        warehouse = db.query(Warehouse).filter(
+            Warehouse.name == warehouse_data["name"],
+            Warehouse.company_id == company.id
+        ).first()
+        if not warehouse:
+            warehouse = Warehouse(**warehouse_data)
+            db.add(warehouse)
+            count += 1
+            print(f"  [OK] Создан склад: {warehouse_data['name']}")
+        else:
+            print(f"  [OK] Склад уже существует: {warehouse_data['name']}")
+    
+    db.commit()
+    print(f"[OK] Создано {count} новых складов")
+
+def seed_customers(db: Session, company):
+    """Заполнить клиентов"""
+    print("\n[INFO] Заполнение клиентов...")
+    
+    # Создаем сегменты клиентов
+    segments = [
+        {"name": "VIP", "description": "VIP клиенты", "company_id": company.id, "color": "#FFD700"},
+        {"name": "Постоянные", "description": "Постоянные клиенты", "company_id": company.id, "color": "#4a90e2"},
+        {"name": "Новые", "description": "Новые клиенты", "company_id": company.id, "color": "#50C878"},
+    ]
+    
+    segment_map = {}
+    for segment_data in segments:
+        segment = db.query(CustomerSegment).filter(
+            CustomerSegment.name == segment_data["name"],
+            CustomerSegment.company_id == company.id
+        ).first()
+        if not segment:
+            segment = CustomerSegment(**segment_data)
+            db.add(segment)
+            print(f"  [OK] Создан сегмент клиентов: {segment_data['name']}")
+        else:
+            print(f"  [OK] Сегмент клиентов уже существует: {segment_data['name']}")
+        db.commit()
+        db.refresh(segment)
+        segment_map[segment_data["name"]] = segment
+    
+    # Создаем клиентов
+    customers = [
+        {"name": "Иван Иванов", "type": "individual", "phone": "+7 (999) 123-45-67", "email": "ivan@example.com", "company_id": company.id, "segment": "VIP"},
+        {"name": "ООО 'Покупатель'", "type": "company", "phone": "+7 (999) 234-56-78", "email": "buyer@example.com", "inn": "1234567890", "kpp": "123456789", "legal_name": "ООО 'Покупатель'", "company_id": company.id, "segment": "Постоянные"},
+        {"name": "Петр Петров", "type": "individual", "phone": "+7 (999) 345-67-89", "email": "petr@example.com", "company_id": company.id, "segment": "Новые"},
+        {"name": "Мария Сидорова", "type": "individual", "phone": "+7 (999) 456-78-90", "email": "maria@example.com", "company_id": company.id, "segment": "Постоянные"},
+    ]
+    
+    count = 0
+    for customer_data in customers:
+        segment_name = customer_data.pop("segment", None)
+        segment_id = segment_map.get(segment_name).id if segment_name and segment_name in segment_map else None
+        
+        customer = db.query(Customer).filter(
+            Customer.name == customer_data["name"],
+            Customer.company_id == company.id
+        ).first()
+        if not customer:
+            customer = Customer(**customer_data, segment_id=segment_id)
+            db.add(customer)
+            count += 1
+            print(f"  [OK] Создан клиент: {customer_data['name']}")
+        else:
+            print(f"  [OK] Клиент уже существует: {customer_data['name']}")
+    
+    db.commit()
+    print(f"[OK] Создано {count} новых клиентов")
+
+def seed_suppliers(db: Session, company):
+    """Заполнить поставщиков"""
+    print("\n[INFO] Заполнение поставщиков...")
+    
+    suppliers = [
+        {"name": "ООО 'Поставщик 1'", "contact_person": "Алексей Алексеев", "phone": "+7 (999) 111-22-33", "email": "supplier1@example.com", "inn": "1111111111", "kpp": "111111111", "ogrn": "1111111111111", "legal_address": "г. Москва, ул. Поставщиков, д. 1", "rating": Decimal("4.5"), "company_id": company.id},
+        {"name": "ООО 'Поставщик 2'", "contact_person": "Борис Борисов", "phone": "+7 (999) 222-33-44", "email": "supplier2@example.com", "inn": "2222222222", "kpp": "222222222", "ogrn": "2222222222222", "legal_address": "г. Москва, ул. Товарная, д. 2", "rating": Decimal("4.0"), "company_id": company.id},
+        {"name": "ИП 'Поставщик 3'", "contact_person": "Владимир Владимиров", "phone": "+7 (999) 333-44-55", "email": "supplier3@example.com", "inn": "333333333333", "rating": Decimal("3.5"), "company_id": company.id},
+    ]
+    
+    count = 0
+    for supplier_data in suppliers:
+        supplier = db.query(Supplier).filter(
+            Supplier.name == supplier_data["name"],
+            Supplier.company_id == company.id
+        ).first()
+        if not supplier:
+            supplier = Supplier(**supplier_data)
+            db.add(supplier)
+            count += 1
+            print(f"  [OK] Создан поставщик: {supplier_data['name']}")
+        else:
+            print(f"  [OK] Поставщик уже существует: {supplier_data['name']}")
+    
+    db.commit()
+    print(f"[OK] Создано {count} новых поставщиков")
+
+def seed_inventory(db: Session, company):
+    """Заполнить остатки на складах"""
+    print("\n[INFO] Заполнение остатков на складах...")
+    
+    warehouses = db.query(Warehouse).filter(Warehouse.company_id == company.id).all()
+    products = db.query(Product).filter(Product.is_active == True).all()
+    
+    if not warehouses or not products:
+        print("  [WARN] Склады или товары не найдены, пропускаем остатки")
+        return
+    
+    count = 0
+    for product in products:
+        for warehouse in warehouses:
+            existing = db.query(Inventory).filter(
+                Inventory.product_id == product.id,
+                Inventory.warehouse_id == warehouse.id
+            ).first()
+            
+            if not existing:
+                # Случайный остаток от 10 до 100 единиц
+                quantity = Decimal(str(random.randint(10, 100)))
+                min_stock = Decimal(str(random.randint(5, 20)))
+                
+                inventory = Inventory(
+                    product_id=product.id,
+                    warehouse_id=warehouse.id,
+                    quantity=quantity,
+                    min_stock_level=min_stock
+                )
+                db.add(inventory)
+                count += 1
+    
+    db.commit()
+    print(f"[OK] Создано {count} записей остатков на складах")
+
+def seed_realization_items(db: Session, company):
+    """Заполнить товары в реализациях"""
+    print("\n[INFO] Заполнение товаров в реализациях...")
+    
+    realizations = db.query(Realization).filter(Realization.company_id == company.id).all()
+    products = db.query(Product).filter(Product.is_active == True).all()
+    
+    if not realizations or not products:
+        print("  [WARN] Реализации или товары не найдены, пропускаем товары в реализациях")
+        return
+    
+    count = 0
+    for realization in realizations:
+        # Проверяем, есть ли уже товары в этой реализации
+        existing_items = db.query(RealizationItem).filter(
+            RealizationItem.realization_id == realization.id
+        ).first()
+        
+        if not existing_items:
+            # Добавляем 1-3 товара в каждую реализацию
+            num_products = random.randint(1, min(3, len(products)))
+            selected_products = random.sample(products, num_products)
+            
+            total_revenue = Decimal("0")
+            total_quantity = 0
+            
+            for product in selected_products:
+                quantity = random.randint(1, 5)
+                price = product.selling_price or product.cost_price * Decimal("1.5")
+                cost_price = product.cost_price
+                
+                item = RealizationItem(
+                    realization_id=realization.id,
+                    product_id=product.id,
+                    quantity=quantity,
+                    price=price,
+                    cost_price=cost_price
+                )
+                db.add(item)
+                count += 1
+                
+                total_revenue += price * quantity
+                total_quantity += quantity
+            
+            # Обновляем общие суммы в реализации
+            realization.revenue = total_revenue
+            realization.quantity = total_quantity
+    
+    db.commit()
+    print(f"[OK] Создано {count} записей товаров в реализациях")
+
+def seed_budgets(db: Session, company):
+    """Заполнить бюджеты"""
+    print("\n[INFO] Заполнение бюджетов...")
+    
+    income_items = db.query(IncomeItem).limit(3).all()
+    expense_items = db.query(ExpenseItem).limit(5).all()
+    
+    today = date.today()
+    current_month = today.strftime("%Y-%m")
+    current_quarter = f"{today.year}-Q{((today.month - 1) // 3) + 1}"
+    current_year = str(today.year)
+    
+    budgets = []
+    
+    # Бюджеты доходов на текущий месяц
+    for income_item in income_items[:2]:
+        budgets.append({
+            "company_id": company.id,
+            "period_type": BudgetPeriod.MONTH,
+            "period_value": current_month,
+            "budget_type": BudgetType.INCOME,
+            "income_item_id": income_item.id,
+            "planned_amount": Decimal("500000.00"),
+            "description": f"План по доходу '{income_item.name}' на {current_month}"
+        })
+    
+    # Бюджеты расходов на текущий месяц
+    for expense_item in expense_items[:3]:
+        budgets.append({
+            "company_id": company.id,
+            "period_type": BudgetPeriod.MONTH,
+            "period_value": current_month,
+            "budget_type": BudgetType.EXPENSE,
+            "expense_item_id": expense_item.id,
+            "planned_amount": Decimal("200000.00") if expense_item.name == "Закупка товаров" else Decimal("50000.00"),
+            "description": f"План по расходу '{expense_item.name}' на {current_month}"
+        })
+    
+    # Бюджет доходов на квартал
+    if income_items:
+        budgets.append({
+            "company_id": company.id,
+            "period_type": BudgetPeriod.QUARTER,
+            "period_value": current_quarter,
+            "budget_type": BudgetType.INCOME,
+            "income_item_id": None,  # Общий доход
+            "planned_amount": Decimal("4500000.00"),
+            "description": f"Общий план по доходам на {current_quarter}"
+        })
+    
+    # Бюджет расходов на квартал
+    if expense_items:
+        budgets.append({
+            "company_id": company.id,
+            "period_type": BudgetPeriod.QUARTER,
+            "period_value": current_quarter,
+            "budget_type": BudgetType.EXPENSE,
+            "expense_item_id": None,  # Общий расход
+            "planned_amount": Decimal("3000000.00"),
+            "description": f"Общий план по расходам на {current_quarter}"
+        })
+    
+    # Бюджет на год
+    budgets.append({
+        "company_id": company.id,
+        "period_type": BudgetPeriod.YEAR,
+        "period_value": current_year,
+        "budget_type": BudgetType.INCOME,
+        "income_item_id": None,
+        "planned_amount": Decimal("18000000.00"),
+        "description": f"Общий план по доходам на {current_year} год"
+    })
+    
+    budgets.append({
+        "company_id": company.id,
+        "period_type": BudgetPeriod.YEAR,
+        "period_value": current_year,
+        "budget_type": BudgetType.EXPENSE,
+        "expense_item_id": None,
+        "planned_amount": Decimal("12000000.00"),
+        "description": f"Общий план по расходам на {current_year} год"
+    })
+    
+    count = 0
+    for budget_data in budgets:
+        existing = db.query(Budget).filter(
+            Budget.company_id == company.id,
+            Budget.period_type == budget_data["period_type"],
+            Budget.period_value == budget_data["period_value"],
+            Budget.budget_type == budget_data["budget_type"],
+            Budget.income_item_id == budget_data.get("income_item_id"),
+            Budget.expense_item_id == budget_data.get("expense_item_id")
+        ).first()
+        
+        if not existing:
+            budget = Budget(**budget_data)
+            db.add(budget)
+            count += 1
+    
+    db.commit()
+    print(f"[OK] Создано {count} бюджетов")
+
+def seed_marketplace_integrations(db: Session, company):
+    """Заполнить интеграции с маркетплейсами"""
+    print("\n[INFO] Заполнение интеграций с маркетплейсами...")
+    
+    integrations = [
+        {
+            "marketplace_name": "OZON",
+            "company_id": company.id,
+            "ozon_client_id": "123456",
+            "ozon_api_key": "test_ozon_api_key_123456",
+            "is_active": True,
+            "auto_sync": False,
+            "sync_interval_hours": 24
+        },
+        {
+            "marketplace_name": "Wildberries",
+            "company_id": company.id,
+            "wb_api_key": "test_wb_api_key_789012",
+            "wb_stat_api_key": "test_wb_stat_api_key_345678",
+            "is_active": True,
+            "auto_sync": False,
+            "sync_interval_hours": 24
+        },
+    ]
+    
+    count = 0
+    for integration_data in integrations:
+        existing = db.query(MarketplaceIntegration).filter(
+            MarketplaceIntegration.marketplace_name == integration_data["marketplace_name"],
+            MarketplaceIntegration.company_id == company.id
+        ).first()
+        
+        if not existing:
+            integration = MarketplaceIntegration(**integration_data)
+            db.add(integration)
+            count += 1
+            print(f"  [OK] Создана интеграция: {integration_data['marketplace_name']}")
+        else:
+            print(f"  [OK] Интеграция уже существует: {integration_data['marketplace_name']}")
+    
+    db.commit()
+    print(f"[OK] Создано {count} новых интеграций")
 
 def main():
     """Основная функция"""
@@ -528,16 +895,34 @@ def main():
         
         # Заполняем данные
         company, marketplace_map, sales_channel_map = seed_reference_data(db)
+        
+        # Создаем связь пользователя с организацией
+        seed_user_company(db, user, company)
+        
+        # Заполняем дополнительные справочники
+        seed_warehouses(db, company)
+        seed_customers(db, company)
+        seed_suppliers(db, company)
+        
+        # Заполняем основные данные
         seed_products(db)
         seed_money_movements(db, company)
         seed_realizations(db, company, marketplace_map)
+        seed_realization_items(db, company)  # Товары в реализациях
         seed_assets_liabilities(db, company)
         seed_shipments(db, company, marketplace_map)
+        
+        # Заполняем дополнительные данные
+        seed_inventory(db, company)  # Остатки на складах
+        seed_budgets(db, company)  # Бюджеты
+        seed_marketplace_integrations(db, company)  # Интеграции с маркетплейсами
         
         print("\n" + "=" * 50)
         print("[SUCCESS] Заполнение тестовыми данными завершено!")
         print(f"Логин: testlogin")
         print(f"Пароль: testpassword")
+        print(f"Организация: {company.name}")
+        print(f"Роль в организации: {UserRole.ADMIN.value}")
         
     except Exception as e:
         print(f"\n[ERROR] Ошибка: {e}")
