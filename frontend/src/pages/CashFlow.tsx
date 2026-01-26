@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, Fragment } from 'react'
 import { cashFlowService } from '../services/api'
 import { LineChart, PieChart } from '../components/charts'
 import { format, subMonths } from 'date-fns'
@@ -12,15 +12,21 @@ const CashFlow = () => {
   const [endDate, setEndDate] = useState(format(new Date(), 'yyyy-MM-dd'))
   const [groupBy, setGroupBy] = useState('month')
   const [loading, setLoading] = useState(false)
+  const loadingRef = useRef(false)
 
   useEffect(() => {
+    // Защита от дублирующихся запросов (React StrictMode)
+    if (loadingRef.current) return
+    
     loadData()
   }, [startDate, endDate, groupBy])
 
   const loadData = async () => {
+    if (loadingRef.current) return // Предотвращаем параллельные запросы
+    
+    loadingRef.current = true
     setLoading(true)
     try {
-      console.log('Запрос данных ДДС:', { startDate, endDate, groupBy })
       const [reportData, incomeData, expenseData, incomeGroupsData, expenseGroupsData] = await Promise.all([
         cashFlowService.getReport({ start_date: startDate, end_date: endDate, group_by: groupBy }),
         cashFlowService.getByCategory({ start_date: startDate, end_date: endDate, movement_type: 'income' }),
@@ -28,25 +34,17 @@ const CashFlow = () => {
         cashFlowService.getByGroup({ start_date: startDate, end_date: endDate, movement_type: 'income' }),
         cashFlowService.getByGroup({ start_date: startDate, end_date: endDate, movement_type: 'expense' }),
       ])
-      console.log('Получены данные ДДС:', { reportData, incomeData, expenseData, incomeGroupsData, expenseGroupsData })
       setReport(reportData)
       setByCategory({ income: incomeData, expense: expenseData })
       setByGroup({ income: incomeGroupsData, expense: expenseGroupsData })
     } catch (error: any) {
       console.error('Error loading cash flow:', error)
-      console.error('Error details:', error.response?.data, error.response?.status)
       setReport(null)
       setByCategory(null)
-      // Показываем сообщение об ошибке
-      if (error.response) {
-        const errorMsg = error.response.data?.detail || error.message || 'Неизвестная ошибка'
-        console.error('Ошибка API:', errorMsg)
-        // Ошибка загрузки данных обрабатывается в catch блоке
-      } else {
-        console.error('Ошибка сети:', error.message)
-      }
+      setByGroup(null)
     } finally {
       setLoading(false)
+      loadingRef.current = false
     }
   }
 
@@ -178,9 +176,44 @@ const CashFlow = () => {
             lineSmooth: true,
             showPoint: true,
             showArea: false,
+            chartPadding: {
+              left: 150,  // Увеличено для полной видимости значений в рублях
+              right: 40,
+              top: 20,
+              bottom: 50
+            },
             axisY: {
-              labelInterpolationFnc: (value: number) => value.toLocaleString('ru-RU') + ' ₽'
+              labelInterpolationFnc: (value: number) => {
+                if (typeof value !== 'number' || isNaN(value) || !isFinite(value)) {
+                  return '0 ₽'
+                }
+                // Используем более компактное форматирование для больших чисел
+                const absValue = Math.abs(value)
+                if (absValue >= 1000000) {
+                  const millions = value / 1000000
+                  const formatted = Math.abs(millions) < 10 
+                    ? millions.toFixed(1).replace(/\.0$/, '') 
+                    : Math.round(millions).toString()
+                  return formatted + ' млн ₽'
+                } else if (absValue >= 1000) {
+                  const thousands = value / 1000
+                  const formatted = Math.abs(thousands) < 10 
+                    ? thousands.toFixed(1).replace(/\.0$/, '') 
+                    : Math.round(thousands).toString()
+                  return formatted + ' тыс ₽'
+                }
+                return value.toLocaleString('ru-RU', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + ' ₽'
+              }
             }
+          }}
+          showTooltip={true}
+          tooltipFormatter={(value: number, label: string, seriesIndex: number) => {
+            const seriesNames = ['Поступления', 'Выплаты', 'Остаток']
+            const seriesName = seriesNames[seriesIndex] || `Серия ${seriesIndex + 1}`
+            const formattedValue = typeof value === 'number' && !isNaN(value) && isFinite(value)
+              ? value.toLocaleString('ru-RU', { minimumFractionDigits: 2 })
+              : '0.00'
+            return `${seriesName}\n${label}: ${formattedValue} ₽`
           }}
         />
       </div>
@@ -210,19 +243,42 @@ const CashFlow = () => {
               </div>
               <div>
                 <PieChart
-                  data={byCategory.income.categories.map((cat: any) => ({
-                    label: cat.name,
-                    value: cat.amount
-                  }))}
+                  data={byCategory.income.categories
+                    .map((cat: any) => ({
+                      label: cat.name || '',
+                      value: typeof cat.amount === 'number' ? cat.amount : (parseFloat(cat.amount) || 0)
+                    }))
+                    .filter((item: any) => item.value > 0)}
                   height={300}
                   colors={COLORS}
                   options={{
                     showLabel: true,
-                    labelInterpolationFnc: (value: number) => {
-                      const total = byCategory.income.categories.reduce((sum: number, c: any) => sum + (c.amount || 0), 0)
-                      const percentage = total > 0 ? (value / total * 100).toFixed(1) : '0.0'
-                      return `${value.toLocaleString('ru-RU')} (${percentage}%)`
-                    }
+                    labelInterpolationFnc: (() => {
+                      // Вычисляем total один раз при создании функции
+                      const chartData = byCategory.income.categories
+                        .map((cat: any) => ({
+                          label: cat.name || '',
+                          value: typeof cat.amount === 'number' ? cat.amount : (parseFloat(cat.amount) || 0)
+                        }))
+                        .filter((item: any) => item.value > 0)
+                      const total = chartData.reduce((sum: number, item: any) => sum + item.value, 0)
+                      // Сохраняем исходные значения для использования по индексу
+                      const originalValues = chartData.map(item => item.value)
+                      
+                      return (value: number, index?: number) => {
+                        // Используем значение по индексу, если оно доступно
+                        let actualValue = value
+                        if (index !== undefined && index >= 0 && index < originalValues.length) {
+                          actualValue = originalValues[index]
+                        }
+                        
+                        if (typeof actualValue !== 'number' || isNaN(actualValue) || !isFinite(actualValue)) {
+                          return '0%'
+                        }
+                        const percentage = total > 0 ? (actualValue / total * 100).toFixed(1) : '0.0'
+                        return `${percentage}%`
+                      }
+                    })()
                   }}
                 />
               </div>
@@ -252,19 +308,39 @@ const CashFlow = () => {
               </div>
               <div>
                 <PieChart
-                  data={byCategory.expense.categories.map((cat: any) => ({
-                    label: cat.name,
-                    value: cat.amount
-                  }))}
+                  data={byCategory.expense.categories
+                    .map((cat: any) => ({
+                      label: cat.name || '',
+                      value: typeof cat.amount === 'number' ? cat.amount : (parseFloat(cat.amount) || 0)
+                    }))
+                    .filter((item: any) => item.value > 0)}
                   height={300}
                   colors={COLORS}
                   options={{
                     showLabel: true,
-                    labelInterpolationFnc: (value: number) => {
-                      const total = byCategory.expense.categories.reduce((sum: number, c: any) => sum + (c.amount || 0), 0)
-                      const percentage = total > 0 ? (value / total * 100).toFixed(1) : '0.0'
-                      return `${value.toLocaleString('ru-RU')} (${percentage}%)`
-                    }
+                    labelInterpolationFnc: (() => {
+                      const chartData = byCategory.expense.categories
+                        .map((cat: any) => ({
+                          label: cat.name || '',
+                          value: typeof cat.amount === 'number' ? cat.amount : (parseFloat(cat.amount) || 0)
+                        }))
+                        .filter((item: any) => item.value > 0)
+                      const total = chartData.reduce((sum: number, item: any) => sum + item.value, 0)
+                      const originalValues = chartData.map(item => item.value)
+                      
+                      return (value: number, index?: number) => {
+                        let actualValue = value
+                        if (index !== undefined && index >= 0 && index < originalValues.length) {
+                          actualValue = originalValues[index]
+                        }
+                        
+                        if (typeof actualValue !== 'number' || isNaN(actualValue) || !isFinite(actualValue)) {
+                          return '0%'
+                        }
+                        const percentage = total > 0 ? (actualValue / total * 100).toFixed(1) : '0.0'
+                        return `${percentage}%`
+                      }
+                    })()
                   }}
                 />
               </div>
@@ -287,8 +363,8 @@ const CashFlow = () => {
                 </thead>
                 <tbody>
                   {byGroup.income.groups.map((group: any) => (
-                    <>
-                      <tr key={group.id} style={{ backgroundColor: '#f5f5f5' }}>
+                    <Fragment key={group.id}>
+                      <tr style={{ backgroundColor: '#f5f5f5' }}>
                         <td>
                           <strong>{group.name}</strong>
                         </td>
@@ -298,25 +374,23 @@ const CashFlow = () => {
                       </tr>
                       {group.subgroups && group.subgroups.length > 0 ? (
                         group.subgroups.map((subgroup: any) => (
-                          <>
-                            <tr key={subgroup.id} style={{ backgroundColor: '#fafafa' }}>
-                              <td style={{ paddingLeft: '20px' }}>
-                                <strong>{subgroup.name}</strong>
-                                {subgroup.items && subgroup.items.length > 0 && (
-                                  <div style={{ marginTop: '8px', paddingLeft: '16px', fontSize: '12px', color: '#666' }}>
-                                    {subgroup.items.map((item: any) => (
-                                      <div key={item.id} style={{ marginTop: '4px' }}>
-                                        {item.name}: {item.amount.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
-                              </td>
-                              <td className="text-right" style={{ fontWeight: 'bold' }}>
-                                {subgroup.amount.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽
-                              </td>
-                            </tr>
-                          </>
+                          <tr key={subgroup.id} style={{ backgroundColor: '#fafafa' }}>
+                            <td style={{ paddingLeft: '20px' }}>
+                              <strong>{subgroup.name}</strong>
+                              {subgroup.items && subgroup.items.length > 0 && (
+                                <div style={{ marginTop: '8px', paddingLeft: '16px', fontSize: '12px', color: '#666' }}>
+                                  {subgroup.items.map((item: any) => (
+                                    <div key={item.id} style={{ marginTop: '4px' }}>
+                                      {item.name}: {item.amount.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </td>
+                            <td className="text-right" style={{ fontWeight: 'bold' }}>
+                              {subgroup.amount.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽
+                            </td>
+                          </tr>
                         ))
                       ) : (
                         group.items && group.items.length > 0 && (
@@ -331,26 +405,46 @@ const CashFlow = () => {
                           </tr>
                         )
                       )}
-                    </>
+                    </Fragment>
                   ))}
                 </tbody>
               </table>
             </div>
             <div>
               <PieChart
-                data={byGroup.income.groups.map((group: any) => ({
-                  label: group.name,
-                  value: group.amount
-                }))}
+                data={byGroup.income.groups
+                  .map((group: any) => ({
+                    label: group.name || '',
+                    value: typeof group.amount === 'number' ? group.amount : (parseFloat(group.amount) || 0)
+                  }))
+                  .filter((item: any) => item.value > 0)}
                 height={300}
                 colors={COLORS}
                 options={{
                   showLabel: true,
-                  labelInterpolationFnc: (value: number) => {
-                    const total = byGroup.income.groups.reduce((sum: number, g: any) => sum + (g.amount || 0), 0)
-                    const percentage = total > 0 ? (value / total * 100).toFixed(1) : '0.0'
-                    return `${value.toLocaleString('ru-RU')} (${percentage}%)`
-                  }
+                  labelInterpolationFnc: (() => {
+                    const chartData = byGroup.income.groups
+                      .map((group: any) => ({
+                        label: group.name || '',
+                        value: typeof group.amount === 'number' ? group.amount : (parseFloat(group.amount) || 0)
+                      }))
+                      .filter((item: any) => item.value > 0)
+                    const total = chartData.reduce((sum: number, item: any) => sum + item.value, 0)
+                    const originalValues = chartData.map(item => item.value)
+                    
+                    return (value: number, index?: number) => {
+                      let actualValue = value
+                      if (index !== undefined && index >= 0 && index < originalValues.length) {
+                        actualValue = originalValues[index]
+                      }
+                      
+                      if (typeof actualValue !== 'number' || isNaN(actualValue) || !isFinite(actualValue)) {
+                        return '0%'
+                      }
+                      const percentage = total > 0 ? (actualValue / total * 100).toFixed(1) : '0.0'
+                      return `${percentage}%`
+                    }
+                  })()
                 }}
               />
             </div>
@@ -372,8 +466,8 @@ const CashFlow = () => {
                 </thead>
                 <tbody>
                   {byGroup.expense.groups.map((group: any) => (
-                    <>
-                      <tr key={group.id} style={{ backgroundColor: '#f5f5f5' }}>
+                    <Fragment key={group.id}>
+                      <tr style={{ backgroundColor: '#f5f5f5' }}>
                         <td>
                           <strong>{group.name}</strong>
                         </td>
@@ -383,25 +477,23 @@ const CashFlow = () => {
                       </tr>
                       {group.subgroups && group.subgroups.length > 0 ? (
                         group.subgroups.map((subgroup: any) => (
-                          <>
-                            <tr key={subgroup.id} style={{ backgroundColor: '#fafafa' }}>
-                              <td style={{ paddingLeft: '20px' }}>
-                                <strong>{subgroup.name}</strong>
-                                {subgroup.items && subgroup.items.length > 0 && (
-                                  <div style={{ marginTop: '8px', paddingLeft: '16px', fontSize: '12px', color: '#666' }}>
-                                    {subgroup.items.map((item: any) => (
-                                      <div key={item.id} style={{ marginTop: '4px' }}>
-                                        {item.name}: {item.amount.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
-                              </td>
-                              <td className="text-right" style={{ fontWeight: 'bold', color: '#e74c3c' }}>
-                                {subgroup.amount.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽
-                              </td>
-                            </tr>
-                          </>
+                          <tr key={subgroup.id} style={{ backgroundColor: '#fafafa' }}>
+                            <td style={{ paddingLeft: '20px' }}>
+                              <strong>{subgroup.name}</strong>
+                              {subgroup.items && subgroup.items.length > 0 && (
+                                <div style={{ marginTop: '8px', paddingLeft: '16px', fontSize: '12px', color: '#666' }}>
+                                  {subgroup.items.map((item: any) => (
+                                    <div key={item.id} style={{ marginTop: '4px' }}>
+                                      {item.name}: {item.amount.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </td>
+                            <td className="text-right" style={{ fontWeight: 'bold', color: '#e74c3c' }}>
+                              {subgroup.amount.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽
+                            </td>
+                          </tr>
                         ))
                       ) : (
                         group.items && group.items.length > 0 && (
@@ -416,26 +508,46 @@ const CashFlow = () => {
                           </tr>
                         )
                       )}
-                    </>
+                    </Fragment>
                   ))}
                 </tbody>
               </table>
             </div>
             <div>
               <PieChart
-                data={byGroup.expense.groups.map((group: any) => ({
-                  label: group.name,
-                  value: group.amount
-                }))}
+                data={byGroup.expense.groups
+                  .map((group: any) => ({
+                    label: group.name || '',
+                    value: typeof group.amount === 'number' ? group.amount : (parseFloat(group.amount) || 0)
+                  }))
+                  .filter((item: any) => item.value > 0)}
                 height={300}
                 colors={COLORS}
                 options={{
                   showLabel: true,
-                  labelInterpolationFnc: (value: number) => {
-                    const total = byGroup.expense.groups.reduce((sum: number, g: any) => sum + (g.amount || 0), 0)
-                    const percentage = total > 0 ? (value / total * 100).toFixed(1) : '0.0'
-                    return `${value.toLocaleString('ru-RU')} (${percentage}%)`
-                  }
+                  labelInterpolationFnc: (() => {
+                    const chartData = byGroup.expense.groups
+                      .map((group: any) => ({
+                        label: group.name || '',
+                        value: typeof group.amount === 'number' ? group.amount : (parseFloat(group.amount) || 0)
+                      }))
+                      .filter((item: any) => item.value > 0)
+                    const total = chartData.reduce((sum: number, item: any) => sum + item.value, 0)
+                    const originalValues = chartData.map(item => item.value)
+                    
+                    return (value: number, index?: number) => {
+                      let actualValue = value
+                      if (index !== undefined && index >= 0 && index < originalValues.length) {
+                        actualValue = originalValues[index]
+                      }
+                      
+                      if (typeof actualValue !== 'number' || isNaN(actualValue) || !isFinite(actualValue)) {
+                        return '0%'
+                      }
+                      const percentage = total > 0 ? (actualValue / total * 100).toFixed(1) : '0.0'
+                      return `${percentage}%`
+                    }
+                  })()
                 }}
               />
             </div>

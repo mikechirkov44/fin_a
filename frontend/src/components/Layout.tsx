@@ -108,6 +108,11 @@ const Layout = () => {
     }
   }, [location.pathname])
 
+  // Проверяем, является ли пользователь администратором (глобально или в организации)
+  const isGlobalAdmin = user?.role === 'ADMIN'
+  const hasAdminRoleInCompany = user?.companies?.some((uc: any) => uc.role === 'ADMIN') || false
+  const canManageUsers = isGlobalAdmin || hasAdminRoleInCompany
+
   const menuItems: MenuItem[] = [
     { path: '/dashboard', label: 'Главное', icon: <HiOutlineHome /> },
     { path: '/realization', label: 'Продажи', icon: <HiOutlineTag /> },
@@ -158,7 +163,7 @@ const Layout = () => {
     { path: '/audit-log', label: 'История изменений', icon: <HiOutlineDocumentText /> },
     { path: '/settings', label: 'Настройки', icon: <HiOutlineCog6Tooth /> },
     { path: '/help', label: 'Справка', icon: <HiOutlineQuestionMarkCircle /> },
-    ...(isAdmin ? [{ path: '/users', label: 'Пользователи', icon: <HiOutlineUserGroup /> }] : []),
+    ...(canManageUsers ? [{ path: '/users', label: 'Пользователи', icon: <HiOutlineUserGroup /> }] : []),
   ]
 
   const toggleExpanded = (path: string) => {

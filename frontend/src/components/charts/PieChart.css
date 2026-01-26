@@ -1,0 +1,192 @@
+/* Обертка для диаграммы и легенды */
+.pie-chart-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Стили для круговых диаграмм */
+.ct-chart.ct-pie-chart {
+  position: relative;
+}
+
+/* Обрезка длинного текста в легенде */
+.ct-chart .ct-label {
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ct-chart .ct-label:hover {
+  overflow: visible;
+  white-space: normal;
+  z-index: 10;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 4px 8px;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  max-width: 300px;
+}
+
+/* Tooltip для секторов диаграммы */
+.pie-chart-tooltip {
+  position: absolute;
+  background-color: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  white-space: nowrap;
+  z-index: 10000;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  max-width: 300px;
+  word-wrap: break-word;
+  white-space: normal;
+  line-height: 1.4;
+}
+
+.pie-chart-tooltip.visible {
+  opacity: 1;
+}
+
+.pie-chart-tooltip::before {
+  content: '';
+  position: absolute;
+  width: 0;
+  height: 0;
+  border: 6px solid transparent;
+}
+
+.pie-chart-tooltip.top::before {
+  bottom: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-top-color: rgba(0, 0, 0, 0.9);
+}
+
+.pie-chart-tooltip.bottom::before {
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-bottom-color: rgba(0, 0, 0, 0.9);
+}
+
+.pie-chart-tooltip.left::before {
+  right: -12px;
+  top: 50%;
+  transform: translateY(-50%);
+  border-left-color: rgba(0, 0, 0, 0.9);
+}
+
+.pie-chart-tooltip.right::before {
+  left: -12px;
+  top: 50%;
+  transform: translateY(-50%);
+  border-right-color: rgba(0, 0, 0, 0.9);
+}
+
+/* Улучшенная видимость при наведении на сектор */
+.ct-chart .ct-slice-pie,
+.ct-chart .ct-slice-donut {
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.ct-chart .ct-slice-pie:hover,
+.ct-chart .ct-slice-donut:hover {
+  opacity: 0.8;
+}
+
+/* Стили для длинных меток - показываем сокращенную версию */
+.ct-chart .ct-label.ct-label-long {
+  position: relative;
+}
+
+.ct-chart .ct-label.ct-label-long::after {
+  content: '...';
+  position: absolute;
+  right: 0;
+  background: inherit;
+  padding-left: 4px;
+}
+
+/* Стили для внешней легенды */
+.pie-chart-legend {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+  padding: 16px;
+  background: var(--bg-secondary, #f8f9fa);
+  border-radius: 8px;
+  border: 1px solid var(--border-color, #e0e0e0);
+}
+
+.pie-chart-legend-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px;
+  border-radius: 6px;
+  transition: background-color 0.2s ease;
+  cursor: pointer;
+}
+
+.pie-chart-legend-item:hover {
+  background-color: var(--hover-bg, #f0f0f0);
+}
+
+.pie-chart-legend-color {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  margin-top: 2px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.pie-chart-legend-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.pie-chart-legend-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+  word-wrap: break-word;
+  line-height: 1.4;
+}
+
+.pie-chart-legend-value {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.3;
+}
+
+/* Адаптивность для легенды */
+@media (max-width: 768px) {
+  .pie-chart-legend {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 12px;
+  }
+  
+  .pie-chart-legend-item {
+    padding: 6px;
+  }
+  
+  .pie-chart-legend-label {
+    font-size: 13px;
+  }
+  
+  .pie-chart-legend-value {
+    font-size: 12px;
+  }
+}

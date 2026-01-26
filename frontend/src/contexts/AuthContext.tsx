@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import { authService } from '../services/api'
+import { safeSetItem, safeGetItem, safeRemoveItem, checkAndCleanStorage } from '../utils/localStorageHelper'
 
 export interface UserCompany {
   id: number
@@ -41,14 +42,19 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null)
-  const [token, setToken] = useState<string | null>(localStorage.getItem('token'))
+  const [token, setToken] = useState<string | null>(safeGetItem('token'))
   const [selectedCompanyId, setSelectedCompanyId] = useState<number | null>(
     () => {
-      const saved = localStorage.getItem('selectedCompanyId')
+      const saved = safeGetItem('selectedCompanyId')
       return saved ? parseInt(saved, 10) : null
     }
   )
   const [companies, setCompanies] = useState<Company[]>([])
+
+  // Проверяем и очищаем localStorage при монтировании
+  useEffect(() => {
+    checkAndCleanStorage()
+  }, [])
 
   useEffect(() => {
     if (token) {
@@ -63,12 +69,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const allCompanies = await referenceService.getCompanies()
       const activeCompanies = allCompanies.filter((c: any) => c.is_active)
       
-      if (userData.role === 'ADMIN') {
-        // Администратор видит все активные организации
+      // Проверяем глобальную роль ADMIN
+      const isGlobalAdmin = userData.role === 'ADMIN'
+      
+      // Проверяем, есть ли у пользователя роль ADMIN в какой-либо организации
+      const hasAdminRoleInCompany = userData.companies?.some((uc: any) => uc.role === 'ADMIN') || false
+      
+      if (isGlobalAdmin || hasAdminRoleInCompany) {
+        // Администратор (глобальный или в организации) видит все активные организации
         setCompanies(activeCompanies)
       } else if (userData.companies && userData.companies.length > 0) {
         // Обычный пользователь видит только свои организации
-        const userCompanyIds = userData.companies.map(uc => uc.company_id)
+        const userCompanyIds = userData.companies.map((uc: any) => uc.company_id)
         const filteredCompanies = activeCompanies.filter((c: any) => 
           userCompanyIds.includes(c.id)
         )
@@ -96,7 +108,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (userData.companies && userData.companies.length > 0 && !selectedCompanyId) {
         const firstCompanyId = userData.companies[0].company_id
         setSelectedCompanyId(firstCompanyId)
-        localStorage.setItem('selectedCompanyId', firstCompanyId.toString())
+        safeSetItem('selectedCompanyId', firstCompanyId.toString())
       }
     } catch (error) {
       logout()
@@ -107,7 +119,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const response = await authService.login(username, password)
       setToken(response.access_token)
-      localStorage.setItem('token', response.access_token)
+      safeSetItem('token', response.access_token)
       authService.setToken(response.access_token)
       await fetchUser()
     } catch (error) {
@@ -120,17 +132,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setToken(null)
     setUser(null)
     setSelectedCompanyId(null)
-    localStorage.removeItem('token')
-    localStorage.removeItem('selectedCompanyId')
+    safeRemoveItem('token')
+    safeRemoveItem('selectedCompanyId')
     authService.setToken(null)
   }
 
   const setSelectedCompany = (companyId: number | null) => {
     setSelectedCompanyId(companyId)
     if (companyId) {
-      localStorage.setItem('selectedCompanyId', companyId.toString())
+      safeSetItem('selectedCompanyId', companyId.toString())
     } else {
-      localStorage.removeItem('selectedCompanyId')
+      safeRemoveItem('selectedCompanyId')
     }
   }
 

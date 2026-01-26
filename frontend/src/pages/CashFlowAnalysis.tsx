@@ -1,7 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { cashFlowAnalysisService } from '../services/api'
 import { format, subMonths } from 'date-fns'
-import { BarChart, PieChart } from '../components/charts'
 import { useAuth } from '../contexts/AuthContext'
 import './AnalysisInsights.css'
 
@@ -13,12 +12,19 @@ const CashFlowAnalysis = () => {
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const loadingRef = useRef(false)
 
   useEffect(() => {
+    // Защита от дублирующихся запросов (React StrictMode)
+    if (loadingRef.current) return
+    
     loadData()
   }, [startDate, endDate, selectedCompanyId])
 
   const loadData = async () => {
+    if (loadingRef.current) return // Предотвращаем параллельные запросы
+    
+    loadingRef.current = true
     setLoading(true)
     setError(null)
     try {
@@ -26,9 +32,7 @@ const CashFlowAnalysis = () => {
       if (selectedCompanyId) {
         params.company_id = parseInt(selectedCompanyId)
       }
-      console.log('Запрос анализа ДДС:', params)
       const data = await cashFlowAnalysisService.getAnalysis(params)
-      console.log('Получены данные анализа ДДС:', data)
       if (data && data.channels !== undefined) {
         setReport(data)
         // Если нет данных, но структура есть - это нормально, просто покажем пустые таблицы
@@ -46,10 +50,10 @@ const CashFlowAnalysis = () => {
       setError(errorMessage)
     } finally {
       setLoading(false)
+      loadingRef.current = false
     }
   }
 
-  const COLORS = ['#4a90e2', '#27ae60', '#e74c3c', '#f39c12', '#9b59b6', '#1abc9c']
 
   if (loading) {
     return (
@@ -429,46 +433,6 @@ const CashFlowAnalysis = () => {
             </tr>
           </tbody>
         </table>
-      </div>
-
-      {/* Графики */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
-        <div className="card">
-          <div className="card-header">Выручка по каналам</div>
-          <PieChart
-            data={report.channels.filter((c: any) => c.revenue > 0).map((c: any) => ({
-              label: c.channel,
-              value: c.revenue
-            }))}
-            height={300}
-            colors={COLORS}
-            options={{
-              showLabel: true,
-              labelInterpolationFnc: (value: number) => {
-                const total = report.channels.reduce((sum: number, c: any) => sum + (c.revenue || 0), 0)
-                const percentage = total > 0 ? (value / total * 100).toFixed(1) : '0.0'
-                return `${value.toLocaleString('ru-RU')} (${percentage}%)`
-              }
-            }}
-          />
-        </div>
-
-        <div className="card">
-          <div className="card-header">Маржинальный доход по каналам</div>
-          <BarChart
-            data={{
-              labels: report.channels.filter((c: any) => c.revenue > 0).map((c: any) => c.channel),
-              series: [report.channels.filter((c: any) => c.revenue > 0).map((c: any) => c.marginal_income)]
-            }}
-            height={300}
-            colors={['#4a90e2']}
-            options={{
-              axisY: {
-                labelInterpolationFnc: (value: number) => value.toLocaleString('ru-RU') + ' ₽'
-              }
-            }}
-          />
-        </div>
       </div>
 
       {/* Выводы и рекомендации */}

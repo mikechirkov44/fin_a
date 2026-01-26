@@ -175,9 +175,42 @@ const Dashboard = () => {
             lineSmooth: true,
             showPoint: true,
             showArea: false,
+            chartPadding: {
+              left: 150,  // Увеличено для полной видимости значений в рублях
+              right: 40,
+              top: 20,
+              bottom: 50
+            },
             axisY: {
-              labelInterpolationFnc: (value: number) => value.toLocaleString('ru-RU') + ' ₽'
+              labelInterpolationFnc: (value: number) => {
+                if (typeof value !== 'number' || isNaN(value) || !isFinite(value)) {
+                  return '0 ₽'
+                }
+                // Используем более компактное форматирование для больших чисел
+                const absValue = Math.abs(value)
+                if (absValue >= 1000000) {
+                  const millions = value / 1000000
+                  const formatted = Math.abs(millions) < 10 
+                    ? millions.toFixed(1).replace(/\.0$/, '') 
+                    : Math.round(millions).toString()
+                  return formatted + ' млн ₽'
+                } else if (absValue >= 1000) {
+                  const thousands = value / 1000
+                  const formatted = Math.abs(thousands) < 10 
+                    ? thousands.toFixed(1).replace(/\.0$/, '') 
+                    : Math.round(thousands).toString()
+                  return formatted + ' тыс ₽'
+                }
+                return value.toLocaleString('ru-RU', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + ' ₽'
+              }
             }
+          }}
+          showTooltip={true}
+          tooltipFormatter={(value: number, label: string, seriesIndex: number) => {
+            const formattedValue = typeof value === 'number' && !isNaN(value) && isFinite(value)
+              ? value.toLocaleString('ru-RU', { minimumFractionDigits: 2 })
+              : '0.00'
+            return `${label}\nОстаток: ${formattedValue} ₽`
           }}
         />
       </div>
@@ -207,7 +240,12 @@ const Dashboard = () => {
             showPoint: true,
             showArea: false,
             axisY: {
-              labelInterpolationFnc: (value: number) => value + '%'
+              labelInterpolationFnc: (value: number) => {
+                if (typeof value !== 'number' || isNaN(value) || !isFinite(value)) {
+                  return '0%'
+                }
+                return value + '%'
+              }
             }
           }}
         />

@@ -1,0 +1,609 @@
+/* ============================================
+   КНОПКА ВЫБОРА КОМПАНИИ
+   ============================================ */
+.company-selector {
+  margin-right: 20px;
+}
+
+.company-selector-button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, var(--bg-secondary, #FFFFFF) 0%, var(--bg-tertiary, #F8F9FA) 100%);
+  border: 2px solid var(--input-border, #E0E0E0);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-size: 14px;
+  color: var(--text-primary);
+  min-width: 220px;
+  font-family: inherit;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.company-selector-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  transition: left 0.5s;
+}
+
+.company-selector-button:hover::before {
+  left: 100%;
+}
+
+.company-selector-button:hover {
+  background: linear-gradient(135deg, var(--hover-bg, #F0F4FF) 0%, var(--bg-secondary, #FFFFFF) 100%);
+  border-color: var(--primary-color, #4a90e2);
+  box-shadow: 0 4px 16px rgba(74, 144, 226, 0.2), 0 2px 8px rgba(0, 0, 0, 0.12);
+  transform: translateY(-1px);
+}
+
+.company-selector-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.company-selector-button-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+
+.company-selector-icon {
+  font-size: 20px;
+  color: var(--primary-color, #4a90e2);
+  flex-shrink: 0;
+  transition: transform 0.3s ease;
+}
+
+.company-selector-button:hover .company-selector-icon {
+  transform: scale(1.1);
+}
+
+.company-selector-button-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.company-selector-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary, #666);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  line-height: 1.2;
+}
+
+.company-selector-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.3;
+}
+
+.company-selector-arrow {
+  font-size: 10px;
+  color: var(--text-secondary, #666);
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.company-selector-button:hover .company-selector-arrow {
+  transform: translateY(2px);
+  opacity: 1;
+  color: var(--primary-color, #4a90e2);
+}
+
+/* ============================================
+   МОДАЛЬНОЕ ОКНО
+   ============================================ */
+.company-selector-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  background-color: transparent;
+}
+
+/* ============================================
+   ПОЛЕ ПОИСКА
+   ============================================ */
+.company-selector-search {
+  margin-bottom: 0;
+}
+
+.company-selector-search-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.company-selector-search-icon {
+  position: absolute;
+  left: 16px;
+  font-size: 20px;
+  color: var(--text-secondary, #999);
+  pointer-events: none;
+  z-index: 1;
+  transition: color 0.3s ease;
+}
+
+.company-selector-search-input {
+  width: 100%;
+  padding: 14px 16px 14px 48px;
+  border: 2px solid var(--input-border, #E0E0E0);
+  border-radius: 12px;
+  font-size: 14px;
+  background: linear-gradient(135deg, var(--input-bg, #FFFFFF) 0%, var(--bg-tertiary, #F8F9FA) 100%);
+  color: var(--text-primary);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: inherit;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.company-selector-search-input:hover {
+  border-color: var(--border-color-strong, #B0B0B0);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+}
+
+.company-selector-search-input:focus {
+  outline: none;
+  border-color: var(--primary-color, #4a90e2);
+  box-shadow: 0 0 0 4px rgba(74, 144, 226, 0.15), 0 4px 12px rgba(0, 0, 0, 0.1);
+  background: var(--input-bg, #FFFFFF);
+}
+
+.company-selector-search-input:focus + .company-selector-search-clear,
+.company-selector-search-input:focus ~ .company-selector-search-clear {
+  color: var(--text-primary);
+}
+
+.company-selector-search-input:focus ~ .company-selector-search-icon {
+  color: var(--primary-color, #4a90e2);
+}
+
+.company-selector-search-clear {
+  position: absolute;
+  right: 12px;
+  background: var(--hover-bg, #F0F0F0);
+  border: none;
+  font-size: 18px;
+  color: var(--text-secondary, #999);
+  cursor: pointer;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  z-index: 1;
+  width: 28px;
+  height: 28px;
+}
+
+.company-selector-search-clear:hover {
+  background: var(--danger-color, #e74c3c);
+  color: white;
+  transform: scale(1.1);
+}
+
+/* ============================================
+   СПИСОК КОМПАНИЙ
+   ============================================ */
+.company-selector-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+  max-height: 420px;
+  padding-right: 4px;
+  margin-top: 4px;
+  background-color: transparent;
+}
+
+.company-selector-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.company-selector-list::-webkit-scrollbar-track {
+  background: var(--bg-tertiary, #F5F5F5);
+  border-radius: 4px;
+}
+
+.company-selector-list::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--border-color, #CCC) 0%, var(--text-secondary, #999) 100%);
+  border-radius: 4px;
+  transition: background 0.3s ease;
+}
+
+.company-selector-list::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, var(--primary-color, #4a90e2) 0%, var(--primary-color-dark, #357abd) 100%);
+}
+
+/* ============================================
+   КАРТОЧКА КОМПАНИИ
+   ============================================ */
+.company-selector-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border: 2px solid var(--border-color, #E0E0E0);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: linear-gradient(135deg, var(--bg-secondary, #FFFFFF) 0%, var(--bg-tertiary, #FAFAFA) 100%);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  animation: slideInUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  animation-fill-mode: both;
+  position: relative;
+  overflow: hidden;
+}
+
+.company-selector-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(74, 144, 226, 0.05) 0%, rgba(74, 144, 226, 0.02) 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.company-selector-item:hover::before,
+.company-selector-item.keyboard-selected::before {
+  opacity: 1;
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.company-selector-item:nth-child(1) {
+  animation-delay: 0.05s;
+}
+
+.company-selector-item:nth-child(2) {
+  animation-delay: 0.1s;
+}
+
+.company-selector-item:nth-child(3) {
+  animation-delay: 0.15s;
+}
+
+.company-selector-item:nth-child(n+4) {
+  animation-delay: 0.15s;
+}
+
+.company-selector-item:hover,
+.company-selector-item.keyboard-selected {
+  background: linear-gradient(135deg, var(--hover-bg, #E6F2FF) 0%, var(--bg-secondary, #FFFFFF) 100%);
+  border-color: var(--primary-color, #4a90e2);
+  box-shadow: 0 4px 16px rgba(74, 144, 226, 0.2), 0 2px 8px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.company-selector-item.selected {
+  background: linear-gradient(135deg, rgba(74, 144, 226, 0.1) 0%, rgba(74, 144, 226, 0.05) 100%);
+  border-color: var(--primary-color, #4a90e2);
+  border-width: 2px;
+  box-shadow: 0 0 0 4px rgba(74, 144, 226, 0.15), 0 4px 16px rgba(74, 144, 226, 0.25);
+  transform: translateY(-1px);
+}
+
+.company-selector-item.selected::before {
+  opacity: 1;
+}
+
+.company-selector-item.keyboard-selected {
+  border-color: var(--primary-color, #4a90e2);
+  border-width: 2px;
+}
+
+.company-selector-item-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+  min-width: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.company-selector-item-icon-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(74, 144, 226, 0.1) 0%, rgba(74, 144, 226, 0.05) 100%);
+  flex-shrink: 0;
+  transition: all 0.3s ease;
+}
+
+.company-selector-item:hover .company-selector-item-icon-wrapper,
+.company-selector-item.keyboard-selected .company-selector-item-icon-wrapper {
+  background: linear-gradient(135deg, rgba(74, 144, 226, 0.2) 0%, rgba(74, 144, 226, 0.1) 100%);
+  transform: scale(1.05);
+}
+
+.company-selector-item.selected .company-selector-item-icon-wrapper {
+  background: linear-gradient(135deg, var(--primary-color, #4a90e2) 0%, var(--primary-color-dark, #357abd) 100%);
+  box-shadow: 0 4px 12px rgba(74, 144, 226, 0.3);
+}
+
+.company-selector-item-icon {
+  font-size: 24px;
+  color: var(--primary-color, #4a90e2);
+  flex-shrink: 0;
+  transition: all 0.3s ease;
+}
+
+.company-selector-item.selected .company-selector-item-icon {
+  color: white;
+}
+
+.company-selector-item-info {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.company-selector-item-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+  line-height: 1.4;
+  transition: color 0.3s ease;
+}
+
+.company-selector-item.selected .company-selector-item-name {
+  color: var(--primary-color, #4a90e2);
+  font-weight: 700;
+}
+
+.company-selector-item-description {
+  font-size: 13px;
+  color: var(--text-secondary, #666);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.4;
+  transition: color 0.3s ease;
+}
+
+.company-selector-item.selected .company-selector-item-description {
+  color: var(--text-primary, #333);
+}
+
+.company-selector-item-check-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary-color, #4a90e2) 0%, var(--primary-color-dark, #357abd) 100%);
+  flex-shrink: 0;
+  margin-left: 12px;
+  position: relative;
+  z-index: 1;
+  box-shadow: 0 2px 8px rgba(74, 144, 226, 0.3);
+  animation: checkPulse 0.5s ease;
+}
+
+@keyframes checkPulse {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.company-selector-item-check {
+  font-size: 18px;
+  color: white;
+  font-weight: bold;
+}
+
+/* ============================================
+   ПУСТОЕ СОСТОЯНИЕ
+   ============================================ */
+.company-selector-empty {
+  padding: 60px 20px;
+  text-align: center;
+  color: var(--text-secondary);
+  animation: fadeIn 0.4s ease;
+}
+
+.company-selector-empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.company-selector-empty-text {
+  font-size: 15px;
+  font-weight: 500;
+  margin-bottom: 12px;
+  color: var(--text-primary);
+}
+
+.company-selector-empty-clear {
+  padding: 8px 16px;
+  background: var(--primary-color, #4a90e2);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 8px;
+}
+
+.company-selector-empty-clear:hover {
+  background: var(--primary-color-dark, #357abd);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(74, 144, 226, 0.3);
+}
+
+/* ============================================
+   ПОДСКАЗКА
+   ============================================ */
+.company-selector-hint {
+  padding: 14px 18px;
+  background: linear-gradient(135deg, var(--bg-tertiary, #F5F5F5) 0%, var(--bg-secondary, #FFFFFF) 100%);
+  border-radius: 10px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-align: center;
+  border: 1px solid var(--border-color, #E0E0E0);
+  margin-top: 4px;
+  animation: fadeIn 0.4s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.company-selector-hint-icon {
+  font-size: 16px;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ============================================
+   АДАПТИВНОСТЬ
+   ============================================ */
+@media (max-width: 768px) {
+  .company-selector-button {
+    min-width: 180px;
+    padding: 8px 12px;
+  }
+
+  .company-selector-button-text {
+    gap: 1px;
+  }
+
+  .company-selector-label {
+    font-size: 10px;
+  }
+
+  .company-selector-value {
+    font-size: 13px;
+  }
+
+  .company-selector-item {
+    padding: 14px 16px;
+  }
+
+  .company-selector-item-icon-wrapper {
+    width: 40px;
+    height: 40px;
+  }
+
+  .company-selector-item-icon {
+    font-size: 20px;
+  }
+
+  .company-selector-item-name {
+    font-size: 15px;
+  }
+
+  .company-selector-item-description {
+    font-size: 12px;
+  }
+}
+
+/* ============================================
+   ПРИНУДИТЕЛЬНЫЕ СТИЛИ ДЛЯ МОДАЛЬНОГО ОКНА
+   ============================================ */
+.modal-body .company-selector-modal,
+.modal-body .company-selector-list,
+.modal-body .company-selector-item {
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+.modal-body .company-selector-item {
+  background: linear-gradient(135deg, var(--bg-secondary, #FFFFFF) 0%, var(--bg-tertiary, #FAFAFA) 100%) !important;
+  color: var(--text-primary, #333333) !important;
+}
+
+.modal-body .company-selector-item:hover,
+.modal-body .company-selector-item.keyboard-selected {
+  background: linear-gradient(135deg, var(--hover-bg, #E6F2FF) 0%, var(--bg-secondary, #FFFFFF) 100%) !important;
+}
+
+.modal-body .company-selector-item.selected {
+  background: linear-gradient(135deg, rgba(74, 144, 226, 0.1) 0%, rgba(74, 144, 226, 0.05) 100%) !important;
+}
+
+.modal-body .company-selector-item-name {
+  color: var(--text-primary, #333333) !important;
+}
+
+.modal-body .company-selector-item.selected .company-selector-item-name {
+  color: var(--primary-color, #4a90e2) !important;
+}
+
+.modal-body .company-selector-item-description {
+  color: var(--text-secondary, #666666) !important;
+}
+
+.modal-body .company-selector-item.selected .company-selector-item-description {
+  color: var(--text-primary, #333) !important;
+}
+
+.modal-body .company-selector-empty {
+  background-color: transparent !important;
+  color: var(--text-secondary, #666666) !important;
+}
+
+.modal-body .company-selector-hint {
+  background: linear-gradient(135deg, var(--bg-tertiary, #F5F5F5) 0%, var(--bg-secondary, #FFFFFF) 100%) !important;
+  color: var(--text-secondary, #666666) !important;
+}
