@@ -40,7 +40,7 @@ def export_money_movements(
             "Сумма": float(m.amount),
             "Статья дохода": m.income_item.name if m.income_item else "",
             "Статья расхода": m.expense_item.name if m.expense_item else "",
-            "Место оплаты": m.payment_place.name if m.payment_place else "",
+            "Счет списания": m.payment_place.name if m.payment_place else "",
             "Бизнес": "Да" if m.is_business else "Нет",
             "Описание": m.description or "",
         })

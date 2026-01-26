@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { LineChart, BarChart } from '../components/charts'
-import { dashboardService } from '../services/api'
+import { dashboardService, bankCashService } from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 import { format } from 'date-fns'
 import LoadingSpinner from '../components/LoadingSpinner'
@@ -12,11 +12,14 @@ import './Dashboard.css'
 
 const Dashboard = () => {
   const [data, setData] = useState<any>(null)
+  const [accountBalances, setAccountBalances] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [loadingBalances, setLoadingBalances] = useState(true)
   const { selectedCompanyId } = useAuth()
 
   useEffect(() => {
     loadData()
+    loadAccountBalances()
   }, [selectedCompanyId])
 
   const loadData = async () => {
@@ -34,6 +37,24 @@ const Dashboard = () => {
       console.error('Error loading dashboard:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const loadAccountBalances = async () => {
+    try {
+      setLoadingBalances(true)
+      const params: any = {
+        balance_date: format(new Date(), 'yyyy-MM-dd'),
+      }
+      if (selectedCompanyId) {
+        params.company_id = selectedCompanyId
+      }
+      const balances = await bankCashService.getAccountBalances(params)
+      setAccountBalances(balances)
+    } catch (error) {
+      console.error('Error loading account balances:', error)
+    } finally {
+      setLoadingBalances(false)
     }
   }
 
@@ -211,6 +232,64 @@ const Dashboard = () => {
           }}
         />
       </div>
+
+      {accountBalances && (
+        <div className="card">
+          <div className="card-header">Остатки на счетах</div>
+          {loadingBalances ? (
+            <div style={{ padding: '16px' }}>
+              <LoadingSpinner message="Загрузка остатков..." />
+            </div>
+          ) : accountBalances.accounts && accountBalances.accounts.length > 0 ? (
+            <div style={{ padding: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+                {accountBalances.accounts.map((account: any) => (
+                  <div
+                    key={account.account_id}
+                    style={{
+                      padding: '12px',
+                      backgroundColor: 'var(--bg-secondary, #f5f5f5)',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border-color, #ddd)',
+                    }}
+                  >
+                    <div style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>
+                      {account.account_name}
+                    </div>
+                    <div style={{ 
+                      fontSize: '18px', 
+                      fontWeight: 'bold',
+                      color: account.balance >= 0 ? 'var(--success-color, #27ae60)' : 'var(--danger-color, #e74c3c)'
+                    }}>
+                      {account.balance.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ 
+                marginTop: '16px', 
+                paddingTop: '16px', 
+                borderTop: '2px solid var(--border-color, #ddd)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}>
+                <strong>ИТОГО:</strong>
+                <strong style={{ 
+                  fontSize: '20px',
+                  color: accountBalances.total_balance >= 0 ? 'var(--success-color, #27ae60)' : 'var(--danger-color, #e74c3c)'
+                }}>
+                  {accountBalances.total_balance.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽
+                </strong>
+              </div>
+            </div>
+          ) : (
+            <div style={{ padding: '16px', textAlign: 'center', color: '#666' }}>
+              Нет данных о счетах
+            </div>
+          )}
+        </div>
+      )}
 
       {data.recommendations && data.recommendations.length > 0 && (
         <div className="card">

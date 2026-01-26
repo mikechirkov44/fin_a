@@ -10,6 +10,8 @@ import Layout from './components/Layout'
 import Dashboard from './pages/Dashboard'
 import Reference from './pages/Reference'
 import Input1 from './pages/Input1'
+import BankCash from './pages/BankCash'
+import AccountBalances from './pages/AccountBalances'
 import Input2 from './pages/Input2'
 import Balance from './pages/Balance'
 import CashFlow from './pages/CashFlow'
@@ -52,7 +54,9 @@ function App() {
                     <Route index element={<Navigate to="/dashboard" replace />} />
                     <Route path="dashboard" element={<Dashboard />} />
                     <Route path="reference" element={<Reference />} />
-                    <Route path="input1" element={<Input1 />} />
+                    <Route path="input1" element={<Navigate to="/bank-cash" replace />} />
+                    <Route path="bank-cash" element={<BankCash />} />
+                    <Route path="account-balances" element={<AccountBalances />} />
                     <Route path="input2" element={<Input2 />} />
                     <Route path="balance" element={<Balance />} />
                     <Route path="cash-flow" element={<CashFlow />} />

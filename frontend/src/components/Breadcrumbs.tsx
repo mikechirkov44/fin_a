@@ -14,7 +14,8 @@ const Breadcrumbs = () => {
     const labels: Record<string, string> = {
       dashboard: 'Главное',
       realization: 'Продажи',
-      input1: 'Закупки',
+      'bank-cash': 'Движения денежных средств',
+      'account-balances': 'Остатки на счетах',
       input2: 'Активы/Пассивы',
       warehouses: 'Склады',
       inventory: 'Остатки',

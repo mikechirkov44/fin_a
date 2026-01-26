@@ -128,6 +128,15 @@ export const input1Service = {
   deleteMultiple: (ids: number[]) => apiService.post('/api/input1/delete-multiple', { ids }),
 }
 
+export const bankCashService = {
+  getMovements: (params?: any) => apiService.get('/api/bank-cash/', { params }),
+  createMovement: (data: any) => apiService.post('/api/bank-cash/', data),
+  updateMovement: (id: number, data: any) => apiService.put(`/api/bank-cash/${id}`, data),
+  deleteMovement: (id: number) => apiService.delete(`/api/bank-cash/${id}`),
+  deleteMultiple: (ids: number[]) => apiService.post('/api/bank-cash/delete-multiple', { ids }),
+  getAccountBalances: (params?: any) => apiService.get('/api/bank-cash/account-balances', { params }),
+}
+
 export const input2Service = {
   getAssets: (params?: any) => apiService.get('/api/input2/assets', { params }),
   createAsset: (data: any) => apiService.post('/api/input2/assets', data),

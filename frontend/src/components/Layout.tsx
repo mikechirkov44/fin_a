@@ -21,7 +21,8 @@ import {
   HiOutlineQuestionMarkCircle,
   HiOutlineUserGroup,
   HiOutlineMoon,
-  HiOutlineSun
+  HiOutlineSun,
+  HiOutlineCreditCard
 } from 'react-icons/hi2'
 import { 
   HiOutlineLightningBolt,
@@ -46,11 +47,15 @@ const Layout = () => {
   const getInitialExpanded = () => {
     const financePaths = ['/cash-flow', '/profit-loss', '/balance', '/cash-flow-analysis', '/profit-loss-analysis']
     const customersPaths = ['/customers', '/suppliers']
+    const bankCashPaths = ['/bank-cash', '/account-balances']
     if (financePaths.includes(location.pathname)) {
       return ['/cash-flow']
     }
     if (customersPaths.includes(location.pathname)) {
       return ['/customers']
+    }
+    if (bankCashPaths.includes(location.pathname)) {
+      return ['/bank-cash']
     }
     return []
   }
@@ -84,6 +89,7 @@ const Layout = () => {
   useEffect(() => {
     const financePaths = ['/cash-flow', '/profit-loss', '/balance', '/cash-flow-analysis', '/profit-loss-analysis']
     const customersPaths = ['/customers', '/suppliers']
+    const bankCashPaths = ['/bank-cash', '/account-balances']
     
     if (financePaths.includes(location.pathname) && 
         !expandedItems.includes('/cash-flow') && 
@@ -95,12 +101,25 @@ const Layout = () => {
         !manuallyCollapsedRef.current.has('/customers')) {
       setExpandedItems(prev => [...prev, '/customers'])
     }
+    if (bankCashPaths.includes(location.pathname) && 
+        !expandedItems.includes('/bank-cash') && 
+        !manuallyCollapsedRef.current.has('/bank-cash')) {
+      setExpandedItems(prev => [...prev, '/bank-cash'])
+    }
   }, [location.pathname])
 
   const menuItems: MenuItem[] = [
     { path: '/dashboard', label: 'Главное', icon: <HiOutlineHome /> },
     { path: '/realization', label: 'Продажи', icon: <HiOutlineTag /> },
-    { path: '/input1', label: 'Закупки', icon: <HiOutlineShoppingCart /> },
+    { 
+      path: '/bank-cash', 
+      label: 'Банк/Касса', 
+      icon: <HiOutlineCreditCard />,
+      children: [
+        { path: '/bank-cash', label: 'Движения денежных средств' },
+        { path: '/account-balances', label: 'Остатки на счетах' },
+      ]
+    },
     { path: '/input2', label: 'Активы/Пассивы', icon: <HiOutlineChartBar /> },
     { 
       path: '/warehouses', 
@@ -167,7 +186,8 @@ const Layout = () => {
   const pageTitles: Record<string, string> = {
     '/dashboard': 'Главное',
     '/realization': 'Продажи',
-    '/input1': 'Закупки',
+    '/bank-cash': 'Движения денежных средств',
+    '/account-balances': 'Остатки на счетах',
     '/input2': 'Активы/Пассивы',
     '/balance': 'БАЛАНС',
     '/cash-flow': 'ОДДС',

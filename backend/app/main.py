@@ -40,7 +40,7 @@ from app.models import (
     Supplier, SupplierOrder, SupplierOrderItem, SupplierContract
 )
 
-from app.api import auth, users, reference, input1, input2, balance, cash_flow, profit_loss, cash_flow_analysis, profit_loss_analysis, realization, shipment, products, dashboard, export, import_api, marketplace_integration, audit, budget, notification, warehouses, inventory, customers, suppliers, recommendations
+from app.api import auth, users, reference, input1, input2, balance, cash_flow, profit_loss, cash_flow_analysis, profit_loss_analysis, realization, shipment, products, dashboard, export, import_api, marketplace_integration, audit, budget, notification, warehouses, inventory, customers, suppliers, recommendations, bank_cash
 
 # Явно настраиваем мапперы после импорта всех моделей
 # Это гарантирует, что все отношения (back_populates) настроены правильно
@@ -98,6 +98,7 @@ app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(users.router, prefix="/api/users", tags=["users"])
 app.include_router(reference.router, prefix="/api/reference", tags=["reference"])
 app.include_router(input1.router, prefix="/api/input1", tags=["input1"])
+app.include_router(bank_cash.router, prefix="/api/bank-cash", tags=["bank-cash"])
 app.include_router(input2.router, prefix="/api/input2", tags=["input2"])
 app.include_router(balance.router, prefix="/api/balance", tags=["balance"])
 app.include_router(cash_flow.router, prefix="/api/cash-flow", tags=["cash-flow"])
