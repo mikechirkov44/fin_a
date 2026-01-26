@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { cashFlowAnalysisService } from '../services/api'
 import { format, subMonths } from 'date-fns'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
+import { BarChart, PieChart } from '../components/charts'
 import { useAuth } from '../contexts/AuthContext'
 import './AnalysisInsights.css'
 
@@ -435,43 +435,39 @@ const CashFlowAnalysis = () => {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
         <div className="card">
           <div className="card-header">Выручка по каналам</div>
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie
-                data={report.channels.filter((c: any) => c.revenue > 0)}
-                dataKey="revenue"
-                nameKey="channel"
-                cx="50%"
-                cy="50%"
-                outerRadius={100}
-                label={({ value }: any) => {
-                  const total = report.channels.reduce((sum: number, c: any) => sum + (c.revenue || 0), 0)
-                  const percentage = total > 0 ? (value / total * 100).toFixed(1) : '0.0'
-                  return `${value.toLocaleString('ru-RU')} (${percentage}%)`
-                }}
-              >
-                {report.channels.filter((c: any) => c.revenue > 0).map((_entry: any, index: number) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip formatter={(value: number) => value.toLocaleString('ru-RU') + ' ₽'} />
-              <Legend />
-            </PieChart>
-          </ResponsiveContainer>
+          <PieChart
+            data={report.channels.filter((c: any) => c.revenue > 0).map((c: any) => ({
+              label: c.channel,
+              value: c.revenue
+            }))}
+            height={300}
+            colors={COLORS}
+            options={{
+              showLabel: true,
+              labelInterpolationFnc: (value: number) => {
+                const total = report.channels.reduce((sum: number, c: any) => sum + (c.revenue || 0), 0)
+                const percentage = total > 0 ? (value / total * 100).toFixed(1) : '0.0'
+                return `${value.toLocaleString('ru-RU')} (${percentage}%)`
+              }
+            }}
+          />
         </div>
 
         <div className="card">
           <div className="card-header">Маржинальный доход по каналам</div>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={report.channels.filter((c: any) => c.revenue > 0)}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="channel" />
-              <YAxis />
-              <Tooltip formatter={(value: number) => value.toLocaleString('ru-RU') + ' ₽'} />
-              <Legend />
-              <Bar dataKey="marginal_income" fill="#4a90e2" name="Маржинальный доход" />
-            </BarChart>
-          </ResponsiveContainer>
+          <BarChart
+            data={{
+              labels: report.channels.filter((c: any) => c.revenue > 0).map((c: any) => c.channel),
+              series: [report.channels.filter((c: any) => c.revenue > 0).map((c: any) => c.marginal_income)]
+            }}
+            height={300}
+            colors={['#4a90e2']}
+            options={{
+              axisY: {
+                labelInterpolationFnc: (value: number) => value.toLocaleString('ru-RU') + ' ₽'
+              }
+            }}
+          />
         </div>
       </div>
 

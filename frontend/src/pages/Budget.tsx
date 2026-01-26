@@ -12,7 +12,7 @@ import { useFormValidation } from '../hooks/useFormValidation'
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
 import { format } from 'date-fns'
 import { ru } from 'date-fns/locale'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, Cell } from 'recharts'
+import { BarChart } from '../components/charts'
 import { HiOutlinePencil, HiOutlineXMark } from 'react-icons/hi2'
 
 const Budget = () => {
@@ -587,17 +587,22 @@ const Budget = () => {
           {comparison.length > 0 && (
             <div className="card" style={{ marginBottom: '16px' }}>
               <div className="card-header">График план/факт</div>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <RechartsTooltip formatter={(value: number) => value.toLocaleString('ru-RU') + ' ₽'} />
-                  <Legend />
-                  <Bar dataKey="План" fill="#4a90e2" />
-                  <Bar dataKey="Факт" fill="#27ae60" />
-                </BarChart>
-              </ResponsiveContainer>
+              <BarChart
+                data={{
+                  labels: chartData.map(item => item.name),
+                  series: [
+                    chartData.map(item => item.План),
+                    chartData.map(item => item.Факт)
+                  ]
+                }}
+                height={300}
+                colors={['#4a90e2', '#27ae60']}
+                options={{
+                  axisY: {
+                    labelInterpolationFnc: (value: number) => value.toLocaleString('ru-RU') + ' ₽'
+                  }
+                }}
+              />
             </div>
           )}
           

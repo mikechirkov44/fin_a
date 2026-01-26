@@ -9,6 +9,12 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  optimizeDeps: {
+    include: ['chartist'],
+    esbuildOptions: {
+      mainFields: ['module', 'main'],
+    },
+  },
   server: {
     port: 3000,
     proxy: {

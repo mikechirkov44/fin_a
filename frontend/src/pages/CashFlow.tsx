@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { cashFlowService } from '../services/api'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
+import { LineChart, PieChart } from '../components/charts'
 import { format, subMonths } from 'date-fns'
 import { translateChartLabels } from '../utils/dateUtils'
 
@@ -163,18 +163,26 @@ const CashFlow = () => {
 
       <div className="card">
         <div className="card-header">График движения денежных средств</div>
-        <ResponsiveContainer width="100%" height={400}>
-          <LineChart data={translateChartLabels(report.periods)}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="period" />
-            <YAxis />
-            <Tooltip formatter={(value: number) => value.toLocaleString('ru-RU') + ' ₽'} />
-            <Legend />
-            <Line type="monotone" dataKey="income" stroke="#27ae60" name="Поступления" strokeWidth={3} />
-            <Line type="monotone" dataKey="expense" stroke="#e74c3c" name="Выбытия" strokeWidth={3} />
-            <Line type="monotone" dataKey="net" stroke="#4a90e2" name="Чистый поток" strokeWidth={3} />
-          </LineChart>
-        </ResponsiveContainer>
+        <LineChart 
+          data={{
+            labels: translateChartLabels(report.periods).map((p: any) => p.period),
+            series: [
+              translateChartLabels(report.periods).map((p: any) => p.income),
+              translateChartLabels(report.periods).map((p: any) => p.expense),
+              translateChartLabels(report.periods).map((p: any) => p.net)
+            ]
+          }}
+          height={400}
+          colors={['#27ae60', '#e74c3c', '#4a90e2']}
+          options={{
+            lineSmooth: true,
+            showPoint: true,
+            showArea: false,
+            axisY: {
+              labelInterpolationFnc: (value: number) => value.toLocaleString('ru-RU') + ' ₽'
+            }
+          }}
+        />
       </div>
 
       {byCategory && (
@@ -201,29 +209,22 @@ const CashFlow = () => {
                 </table>
               </div>
               <div>
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={byCategory.income.categories}
-                      dataKey="amount"
-                      nameKey="name"
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={100}
-                      label={({ value }: any) => {
-                        const total = byCategory.income.categories.reduce((sum: number, c: any) => sum + (c.amount || 0), 0)
-                        const percentage = total > 0 ? (value / total * 100).toFixed(1) : '0.0'
-                        return `${value.toLocaleString('ru-RU')} (${percentage}%)`
-                      }}
-                    >
-                      {byCategory.income.categories.map((_entry: any, index: number) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(value: number) => value.toLocaleString('ru-RU') + ' ₽'} />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
+                <PieChart
+                  data={byCategory.income.categories.map((cat: any) => ({
+                    label: cat.name,
+                    value: cat.amount
+                  }))}
+                  height={300}
+                  colors={COLORS}
+                  options={{
+                    showLabel: true,
+                    labelInterpolationFnc: (value: number) => {
+                      const total = byCategory.income.categories.reduce((sum: number, c: any) => sum + (c.amount || 0), 0)
+                      const percentage = total > 0 ? (value / total * 100).toFixed(1) : '0.0'
+                      return `${value.toLocaleString('ru-RU')} (${percentage}%)`
+                    }
+                  }}
+                />
               </div>
             </div>
           </div>
@@ -250,29 +251,22 @@ const CashFlow = () => {
                 </table>
               </div>
               <div>
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={byCategory.expense.categories}
-                      dataKey="amount"
-                      nameKey="name"
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={100}
-                      label={({ value }: any) => {
-                        const total = byCategory.expense.categories.reduce((sum: number, c: any) => sum + (c.amount || 0), 0)
-                        const percentage = total > 0 ? (value / total * 100).toFixed(1) : '0.0'
-                        return `${value.toLocaleString('ru-RU')} (${percentage}%)`
-                      }}
-                    >
-                      {byCategory.expense.categories.map((_entry: any, index: number) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(value: number) => value.toLocaleString('ru-RU') + ' ₽'} />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
+                <PieChart
+                  data={byCategory.expense.categories.map((cat: any) => ({
+                    label: cat.name,
+                    value: cat.amount
+                  }))}
+                  height={300}
+                  colors={COLORS}
+                  options={{
+                    showLabel: true,
+                    labelInterpolationFnc: (value: number) => {
+                      const total = byCategory.expense.categories.reduce((sum: number, c: any) => sum + (c.amount || 0), 0)
+                      const percentage = total > 0 ? (value / total * 100).toFixed(1) : '0.0'
+                      return `${value.toLocaleString('ru-RU')} (${percentage}%)`
+                    }
+                  }}
+                />
               </div>
             </div>
           </div>
@@ -343,29 +337,22 @@ const CashFlow = () => {
               </table>
             </div>
             <div>
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={byGroup.income.groups}
-                    dataKey="amount"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={100}
-                    label={({ value }: any) => {
-                      const total = byGroup.income.groups.reduce((sum: number, g: any) => sum + (g.amount || 0), 0)
-                      const percentage = total > 0 ? (value / total * 100).toFixed(1) : '0.0'
-                      return `${value.toLocaleString('ru-RU')} (${percentage}%)`
-                    }}
-                  >
-                    {byGroup.income.groups.map((_entry: any, index: number) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value: number) => value.toLocaleString('ru-RU') + ' ₽'} />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
+              <PieChart
+                data={byGroup.income.groups.map((group: any) => ({
+                  label: group.name,
+                  value: group.amount
+                }))}
+                height={300}
+                colors={COLORS}
+                options={{
+                  showLabel: true,
+                  labelInterpolationFnc: (value: number) => {
+                    const total = byGroup.income.groups.reduce((sum: number, g: any) => sum + (g.amount || 0), 0)
+                    const percentage = total > 0 ? (value / total * 100).toFixed(1) : '0.0'
+                    return `${value.toLocaleString('ru-RU')} (${percentage}%)`
+                  }
+                }}
+              />
             </div>
           </div>
         </div>
@@ -435,29 +422,22 @@ const CashFlow = () => {
               </table>
             </div>
             <div>
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={byGroup.expense.groups}
-                    dataKey="amount"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={100}
-                    label={({ value }: any) => {
-                      const total = byGroup.expense.groups.reduce((sum: number, g: any) => sum + (g.amount || 0), 0)
-                      const percentage = total > 0 ? (value / total * 100).toFixed(1) : '0.0'
-                      return `${value.toLocaleString('ru-RU')} (${percentage}%)`
-                    }}
-                  >
-                    {byGroup.expense.groups.map((_entry: any, index: number) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value: number) => value.toLocaleString('ru-RU') + ' ₽'} />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
+              <PieChart
+                data={byGroup.expense.groups.map((group: any) => ({
+                  label: group.name,
+                  value: group.amount
+                }))}
+                height={300}
+                colors={COLORS}
+                options={{
+                  showLabel: true,
+                  labelInterpolationFnc: (value: number) => {
+                    const total = byGroup.expense.groups.reduce((sum: number, g: any) => sum + (g.amount || 0), 0)
+                    const percentage = total > 0 ? (value / total * 100).toFixed(1) : '0.0'
+                    return `${value.toLocaleString('ru-RU')} (${percentage}%)`
+                  }
+                }}
+              />
             </div>
           </div>
         </div>

@@ -3,20 +3,21 @@ import ReactDOM from 'react-dom/client'
 import App from './App'
 import './styles/index.css'
 import './styles/action-buttons.css'
+import './styles/chartist.css'
 
 // Установка русской локали для календаря
 // Браузеры используют локаль из атрибута lang HTML элемента
 document.documentElement.lang = 'ru-RU'
 
 // Для дополнительной поддержки устанавливаем локаль для всех date input
-if (typeof window !== 'undefined') {
+if (typeof window !== 'undefined' && document.body) {
   // Устанавливаем локаль для календаря при загрузке
   const setDateLocale = () => {
     const dateInputs = document.querySelectorAll('input[type="date"]')
     dateInputs.forEach((input: Element) => {
       const htmlInput = input as HTMLInputElement
       // Устанавливаем локаль через атрибут lang
-      if (!htmlInput.getAttribute('lang')) {
+      if (htmlInput && !htmlInput.getAttribute('lang')) {
         htmlInput.setAttribute('lang', 'ru-RU')
       }
     })

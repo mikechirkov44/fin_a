@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { profitLossAnalysisService } from '../services/api'
 import { format, subMonths } from 'date-fns'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
+import { BarChart, PieChart } from '../components/charts'
 import { useAuth } from '../contexts/AuthContext'
 import './AnalysisInsights.css'
 
@@ -361,30 +361,36 @@ const ProfitLossAnalysis = () => {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
         <div className="card">
           <div className="card-header">Валовая прибыль по каналам</div>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={report.channels.filter((c: any) => c.revenue > 0)}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="channel" />
-              <YAxis />
-              <Tooltip formatter={(value: number) => value.toLocaleString('ru-RU') + ' ₽'} />
-              <Legend />
-              <Bar dataKey="gross_profit" fill="#27ae60" name="Валовая прибыль" />
-            </BarChart>
-          </ResponsiveContainer>
+          <BarChart
+            data={{
+              labels: report.channels.filter((c: any) => c.revenue > 0).map((c: any) => c.channel),
+              series: [report.channels.filter((c: any) => c.revenue > 0).map((c: any) => c.gross_profit)]
+            }}
+            height={300}
+            colors={['#27ae60']}
+            options={{
+              axisY: {
+                labelInterpolationFnc: (value: number) => value.toLocaleString('ru-RU') + ' ₽'
+              }
+            }}
+          />
         </div>
 
         <div className="card">
           <div className="card-header">Рентабельность ВП по каналам</div>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={report.channels.filter((c: any) => c.revenue > 0)}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="channel" />
-              <YAxis />
-              <Tooltip formatter={(value: number) => value.toFixed(2) + '%'} />
-              <Legend />
-              <Bar dataKey="gross_margin" fill="#4a90e2" name="Рентабельность ВП, %" />
-            </BarChart>
-          </ResponsiveContainer>
+          <BarChart
+            data={{
+              labels: report.channels.filter((c: any) => c.revenue > 0).map((c: any) => c.channel),
+              series: [report.channels.filter((c: any) => c.revenue > 0).map((c: any) => c.gross_margin)]
+            }}
+            height={300}
+            colors={['#4a90e2']}
+            options={{
+              axisY: {
+                labelInterpolationFnc: (value: number) => value.toFixed(2) + '%'
+              }
+            }}
+          />
         </div>
       </div>
 

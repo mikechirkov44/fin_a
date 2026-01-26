@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar } from 'recharts'
+import { LineChart, BarChart } from '../components/charts'
 import { dashboardService } from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 import { format } from 'date-fns'
@@ -71,6 +71,30 @@ const Dashboard = () => {
   const netProfitDynamics = translateChartLabels(data.net_profit_dynamics || [])
   const grossProfitDynamics = translateChartLabels(data.gross_profit_dynamics || [])
 
+  // Преобразуем данные для Chartist.js
+  const cashBalanceChartData = {
+    labels: cashBalanceDynamics.map((item: any) => item.label),
+    series: [cashBalanceDynamics.map((item: any) => item.balance)]
+  }
+
+  const netProfitChartData = {
+    labels: netProfitDynamics.map((item: any) => item.label),
+    series: [netProfitDynamics.map((item: any) => item.net_profit)]
+  }
+
+  const netMarginChartData = {
+    labels: netProfitDynamics.map((item: any) => item.label),
+    series: [netProfitDynamics.map((item: any) => item.net_margin)]
+  }
+
+  const grossProfitChartData = {
+    labels: grossProfitDynamics.map((item: any) => item.label),
+    series: [
+      grossProfitDynamics.map((item: any) => item.gross_profit),
+      grossProfitDynamics.map((item: any) => item.gross_margin)
+    ]
+  }
+
   return (
     <div>
       <div className="dashboard-metrics-grid">
@@ -122,60 +146,70 @@ const Dashboard = () => {
 
       <div className="card">
         <div className="card-header">Динамика остатков на счетах</div>
-        <ResponsiveContainer width="100%" height={300}>
-          <LineChart data={cashBalanceDynamics}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="label" />
-            <YAxis />
-            <Tooltip formatter={(value: number) => value.toLocaleString('ru-RU') + ' ₽'} />
-            <Legend />
-            <Line type="monotone" dataKey="balance" stroke="#4a90e2" name="Остаток" strokeWidth={3} />
-          </LineChart>
-        </ResponsiveContainer>
+        <LineChart 
+          data={cashBalanceChartData}
+          height={300}
+          colors={['#4a90e2']}
+          options={{
+            lineSmooth: true,
+            showPoint: true,
+            showArea: false,
+            axisY: {
+              labelInterpolationFnc: (value: number) => value.toLocaleString('ru-RU') + ' ₽'
+            }
+          }}
+        />
       </div>
 
       <div className="card">
         <div className="card-header">Динамика чистой прибыли</div>
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={netProfitDynamics}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="label" />
-            <YAxis />
-            <Tooltip formatter={(value: number) => value.toLocaleString('ru-RU') + ' ₽'} />
-            <Legend />
-            <Bar dataKey="net_profit" fill="#4a90e2" name="Чистая прибыль" />
-          </BarChart>
-        </ResponsiveContainer>
+        <BarChart 
+          data={netProfitChartData}
+          height={300}
+          colors={['#4a90e2']}
+          options={{
+            axisY: {
+              labelInterpolationFnc: (value: number) => value.toLocaleString('ru-RU') + ' ₽'
+            }
+          }}
+        />
       </div>
 
       <div className="card">
         <div className="card-header">Динамика рентабельности чистой прибыли</div>
-        <ResponsiveContainer width="100%" height={300}>
-          <LineChart data={netProfitDynamics}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="label" />
-            <YAxis />
-            <Tooltip formatter={(value: number) => value + '%'} />
-            <Legend />
-            <Line type="monotone" dataKey="net_margin" stroke="#27ae60" name="Рентабельность %" strokeWidth={3} />
-          </LineChart>
-        </ResponsiveContainer>
+        <LineChart 
+          data={netMarginChartData}
+          height={300}
+          colors={['#27ae60']}
+          options={{
+            lineSmooth: true,
+            showPoint: true,
+            showArea: false,
+            axisY: {
+              labelInterpolationFnc: (value: number) => value + '%'
+            }
+          }}
+        />
       </div>
 
       <div className="card">
         <div className="card-header">Динамика валовой прибыли и рентабельности</div>
-        <ResponsiveContainer width="100%" height={300}>
-          <LineChart data={grossProfitDynamics}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="label" />
-            <YAxis yAxisId="left" />
-            <YAxis yAxisId="right" orientation="right" />
-            <Tooltip />
-            <Legend />
-            <Line yAxisId="left" type="monotone" dataKey="gross_profit" stroke="#4a90e2" name="Валовая прибыль" strokeWidth={3} />
-            <Line yAxisId="right" type="monotone" dataKey="gross_margin" stroke="#27ae60" name="Рентабельность %" strokeWidth={3} />
-          </LineChart>
-        </ResponsiveContainer>
+        <LineChart 
+          data={grossProfitChartData}
+          height={300}
+          colors={['#4a90e2', '#27ae60']}
+          options={{
+            lineSmooth: true,
+            showPoint: true,
+            showArea: false,
+            axisY: {
+              labelInterpolationFnc: (value: number) => {
+                // Первая серия - валовая прибыль в рублях, вторая - рентабельность в процентах
+                return value.toLocaleString('ru-RU')
+              }
+            }
+          }}
+        />
       </div>
 
       {data.recommendations && data.recommendations.length > 0 && (

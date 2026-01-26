@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { analyticsService } from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 import { format, subMonths } from 'date-fns'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar } from 'recharts'
+import { BarChart } from '../components/charts'
 import LoadingSpinner from '../components/LoadingSpinner'
 import EmptyState from '../components/EmptyState'
 import './Analytics.css'
@@ -135,16 +135,19 @@ const Analytics = () => {
                   <p>Средний рост: <strong>{revenueForecast.average_growth}%</strong></p>
                   <p>Выручка за последний месяц: <strong>{revenueForecast.last_month_revenue.toLocaleString('ru-RU')} ₽</strong></p>
                 </div>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={revenueForecast.forecast}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
-                    <YAxis />
-                    <Tooltip formatter={(value: number) => value.toLocaleString('ru-RU') + ' ₽'} />
-                    <Legend />
-                    <Bar dataKey="forecasted_revenue" fill="#4a90e2" name="Прогноз выручки" />
-                  </BarChart>
-                </ResponsiveContainer>
+                <BarChart 
+                  data={{
+                    labels: revenueForecast.forecast.map((item: any) => item.month),
+                    series: [revenueForecast.forecast.map((item: any) => item.forecasted_revenue)]
+                  }}
+                  height={300}
+                  colors={['#4a90e2']}
+                  options={{
+                    axisY: {
+                      labelInterpolationFnc: (value: number) => value.toLocaleString('ru-RU') + ' ₽'
+                    }
+                  }}
+                />
                 <div className="table-container" style={{ marginTop: '20px' }}>
                   <table>
                     <thead>

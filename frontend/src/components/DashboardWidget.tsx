@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { useToast } from '../contexts/ToastContext'
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import './DashboardWidget.css'
 
 interface DashboardWidgetProps {

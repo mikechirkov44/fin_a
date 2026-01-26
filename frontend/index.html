@@ -11,8 +11,19 @@
         const savedTheme = localStorage.getItem('theme');
         const validThemes = ['light-1', 'light-2', 'light-4', 'light-5', 'dark'];
         const theme = validThemes.includes(savedTheme) ? savedTheme : 'light-1';
-        document.documentElement.setAttribute('data-theme', theme);
-        document.body.setAttribute('data-theme', theme);
+        if (document.documentElement) {
+          document.documentElement.setAttribute('data-theme', theme);
+        }
+        if (document.body) {
+          document.body.setAttribute('data-theme', theme);
+        } else {
+          // Если body еще не создан, ждем его создания
+          document.addEventListener('DOMContentLoaded', function() {
+            if (document.body) {
+              document.body.setAttribute('data-theme', theme);
+            }
+          });
+        }
       })();
     </script>
   </head>
