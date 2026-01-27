@@ -116,9 +116,36 @@ const Dashboard = () => {
     ]
   }
 
+  // Формируем информацию об остатках на счетах для subtitle
+  const getAccountBalancesSubtitle = () => {
+    if (!accountBalances || !accountBalances.accounts || accountBalances.accounts.length === 0) {
+      return null
+    }
+    if (accountBalances.accounts.length <= 2) {
+      return accountBalances.accounts.map((acc: any) => 
+        `${acc.account_name}: ${acc.balance.toLocaleString('ru-RU', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} ₽`
+      ).join(' • ')
+    }
+    const positiveCount = accountBalances.accounts.filter((acc: any) => acc.balance >= 0).length
+    const negativeCount = accountBalances.accounts.length - positiveCount
+    return `${accountBalances.accounts.length} счетов (${positiveCount} положительных, ${negativeCount} отрицательных)`
+  }
+
   return (
     <div>
       <div className="dashboard-metrics-grid">
+        {accountBalances && !loadingBalances && accountBalances.accounts && accountBalances.accounts.length > 0 && (
+          <MetricCard
+            title="Остатки на счетах"
+            value={`${accountBalances.total_balance.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽`}
+            icon="💳"
+            color={accountBalances.total_balance >= 0 ? 'success' : 'danger'}
+            subtitle={getAccountBalancesSubtitle() || undefined}
+          />
+        )}
+        {accountBalances && loadingBalances && (
+          <SkeletonLoader type="card" />
+        )}
         <MetricCard
           title="Выручка"
           value={`${indicators.revenue.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽`}
@@ -271,63 +298,6 @@ const Dashboard = () => {
         />
       </div>
 
-      {accountBalances && (
-        <div className="card">
-          <div className="card-header">Остатки на счетах</div>
-          {loadingBalances ? (
-            <div style={{ padding: '16px' }}>
-              <LoadingSpinner message="Загрузка остатков..." />
-            </div>
-          ) : accountBalances.accounts && accountBalances.accounts.length > 0 ? (
-            <div style={{ padding: '16px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
-                {accountBalances.accounts.map((account: any) => (
-                  <div
-                    key={account.account_id}
-                    style={{
-                      padding: '12px',
-                      backgroundColor: 'var(--bg-secondary, #f5f5f5)',
-                      borderRadius: '8px',
-                      border: '1px solid var(--border-color, #ddd)',
-                    }}
-                  >
-                    <div style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>
-                      {account.account_name}
-                    </div>
-                    <div style={{ 
-                      fontSize: '18px', 
-                      fontWeight: 'bold',
-                      color: account.balance >= 0 ? 'var(--success-color, #27ae60)' : 'var(--danger-color, #e74c3c)'
-                    }}>
-                      {account.balance.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div style={{ 
-                marginTop: '16px', 
-                paddingTop: '16px', 
-                borderTop: '2px solid var(--border-color, #ddd)',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center'
-              }}>
-                <strong>ИТОГО:</strong>
-                <strong style={{ 
-                  fontSize: '20px',
-                  color: accountBalances.total_balance >= 0 ? 'var(--success-color, #27ae60)' : 'var(--danger-color, #e74c3c)'
-                }}>
-                  {accountBalances.total_balance.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽
-                </strong>
-              </div>
-            </div>
-          ) : (
-            <div style={{ padding: '16px', textAlign: 'center', color: '#666' }}>
-              Нет данных о счетах
-            </div>
-          )}
-        </div>
-      )}
 
       {data.recommendations && data.recommendations.length > 0 && (
         <div className="card">
