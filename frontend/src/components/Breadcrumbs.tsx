@@ -19,6 +19,8 @@ const Breadcrumbs = () => {
       input2: 'Активы/Пассивы',
       warehouses: 'Склады',
       inventory: 'Остатки',
+      'inventory-transactions': 'Отгрузки и поступления товаров',
+      'warehouse-reports': 'Отчеты по складам',
       'cash-flow': 'ОДДС',
       'cash-flow-analysis': 'Анализ ДДС',
       'profit-loss': 'ОПУ',

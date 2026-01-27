@@ -164,6 +164,138 @@ def get_inventory_balance(product_id: int, warehouse_id: int, db: Session) -> De
         return inventory.quantity
     return Decimal('0')
 
+def reverse_inventory_transaction(transaction: InventoryTransaction, db: Session):
+    """Откатить транзакцию - вернуть остатки в исходное состояние"""
+    inventory = get_or_create_inventory(transaction.product_id, transaction.warehouse_id, db)
+    
+    if transaction.transaction_type == "INCOME":
+        # Откатываем приход - уменьшаем остаток
+        if inventory.quantity < transaction.quantity:
+            raise ValueError(f"Cannot reverse transaction: insufficient inventory. Available: {inventory.quantity}, Required: {transaction.quantity}")
+        inventory.quantity -= transaction.quantity
+        
+        # Удаляем связанные партии
+        db.query(ProductCost).filter(
+            ProductCost.transaction_id == transaction.id
+        ).delete()
+        
+    elif transaction.transaction_type == "OUTCOME":
+        # Откатываем расход - увеличиваем остаток
+        inventory.quantity += transaction.quantity
+        
+    elif transaction.transaction_type == "ADJUSTMENT":
+        # Для корректировки нужно восстановить старое значение
+        # Это сложнее, так как мы не знаем старое значение
+        # Пока просто не меняем остаток при удалении корректировки
+        pass
+    
+    db.commit()
+
+def update_inventory_transaction(
+    transaction_id: int,
+    transaction_type: str = None,
+    product_id: int = None,
+    warehouse_id: int = None,
+    quantity: Decimal = None,
+    cost_price: Decimal = None,
+    transaction_date: date = None,
+    db: Session = None,
+    batch_number: str = None,
+    document_type: str = None,
+    document_id: int = None,
+    description: str = None
+) -> InventoryTransaction:
+    """Обновить транзакцию движения товара"""
+    transaction = db.query(InventoryTransaction).filter(InventoryTransaction.id == transaction_id).first()
+    if not transaction:
+        raise ValueError(f"Transaction {transaction_id} not found")
+    
+    # Откатываем старую транзакцию
+    reverse_inventory_transaction(transaction, db)
+    
+    # Обновляем поля транзакции
+    if transaction_type is not None:
+        transaction.transaction_type = transaction_type
+    if product_id is not None:
+        transaction.product_id = product_id
+    if warehouse_id is not None:
+        transaction.warehouse_id = warehouse_id
+    if quantity is not None:
+        transaction.quantity = quantity
+    if cost_price is not None:
+        transaction.cost_price = cost_price
+    if transaction_date is not None:
+        transaction.date = transaction_date
+    if batch_number is not None:
+        transaction.batch_number = batch_number
+    if document_type is not None:
+        transaction.document_type = document_type
+    if document_id is not None:
+        transaction.document_id = document_id
+    if description is not None:
+        transaction.description = description
+    
+    # Применяем новую транзакцию
+    inventory = get_or_create_inventory(transaction.product_id, transaction.warehouse_id, db)
+    
+    if transaction.transaction_type == "INCOME":
+        inventory.quantity += transaction.quantity
+        
+        # Добавляем партию
+        batch = ProductCost(
+            product_id=transaction.product_id,
+            warehouse_id=transaction.warehouse_id,
+            quantity=transaction.quantity,
+            cost_price=transaction.cost_price,
+            date=transaction.date,
+            batch_number=batch_number or f"BATCH-{transaction.id}",
+            transaction_id=transaction.id
+        )
+        db.add(batch)
+        
+    elif transaction.transaction_type == "OUTCOME":
+        if inventory.quantity < transaction.quantity:
+            raise ValueError(f"Insufficient inventory. Available: {inventory.quantity}, Required: {transaction.quantity}")
+        inventory.quantity -= transaction.quantity
+        
+        # Списываем из партий (FIFO)
+        remaining_quantity = transaction.quantity
+        batches = db.query(ProductCost).filter(
+            ProductCost.product_id == transaction.product_id,
+            ProductCost.warehouse_id == transaction.warehouse_id,
+            ProductCost.quantity > 0
+        ).order_by(ProductCost.date.asc()).all()
+        
+        for batch in batches:
+            if remaining_quantity <= 0:
+                break
+            if batch.quantity <= remaining_quantity:
+                remaining_quantity -= batch.quantity
+                batch.quantity = Decimal('0')
+            else:
+                batch.quantity -= remaining_quantity
+                remaining_quantity = Decimal('0')
+    
+    elif transaction.transaction_type == "ADJUSTMENT":
+        inventory.quantity = transaction.quantity
+    
+    db.commit()
+    db.refresh(transaction)
+    return transaction
+
+def delete_inventory_transaction(transaction_id: int, db: Session):
+    """Удалить транзакцию и откатить изменения остатков"""
+    transaction = db.query(InventoryTransaction).filter(InventoryTransaction.id == transaction_id).first()
+    if not transaction:
+        raise ValueError(f"Transaction {transaction_id} not found")
+    
+    # Откатываем транзакцию
+    reverse_inventory_transaction(transaction, db)
+    
+    # Удаляем транзакцию
+    db.delete(transaction)
+    db.commit()
+
 def get_low_stock_alerts(company_id: int, db: Session) -> List[dict]:
     """Получить список товаров с низкими остатками"""
     from app.models.warehouse import Warehouse

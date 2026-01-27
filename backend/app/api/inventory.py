@@ -13,13 +13,14 @@ from app.models.warehouse import Warehouse
 from app.models.reference import Company
 from app.schemas.inventory import (
     InventoryCreate, InventoryUpdate, InventoryResponse,
-    InventoryTransactionCreate, InventoryTransactionResponse
+    InventoryTransactionCreate, InventoryTransactionUpdate, InventoryTransactionResponse
 )
 from app.auth.security import get_current_user
 from app.auth.permissions import filter_by_user_companies, can_write, get_user_companies
 from app.services.inventory_service import (
     add_inventory_transaction, get_inventory_balance,
-    get_low_stock_alerts, calculate_average_cost
+    get_low_stock_alerts, calculate_average_cost,
+    update_inventory_transaction, delete_inventory_transaction
 )
 
 router = APIRouter()
@@ -241,6 +242,114 @@ def get_transactions(
         })
     
     return result
+
+@router.put("/transactions/{transaction_id}", response_model=InventoryTransactionResponse)
+def update_transaction(
+    transaction_id: int,
+    transaction: InventoryTransactionUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Обновить транзакцию движения товара"""
+    # Получаем существующую транзакцию
+    db_transaction = db.query(InventoryTransaction).filter(InventoryTransaction.id == transaction_id).first()
+    if not db_transaction:
+        raise HTTPException(status_code=404, detail="Transaction not found")
+    
+    # Проверка доступа через склад
+    warehouse = db.query(Warehouse).filter(Warehouse.id == db_transaction.warehouse_id).first()
+    if not warehouse:
+        raise HTTPException(status_code=404, detail="Warehouse not found")
+    
+    if not can_write(current_user, warehouse.company_id, db):
+        raise HTTPException(status_code=403, detail="No write access to this company")
+    
+    # Если меняется склад или товар, проверяем новый склад
+    new_warehouse_id = transaction.warehouse_id if transaction.warehouse_id else db_transaction.warehouse_id
+    new_product_id = transaction.product_id if transaction.product_id else db_transaction.product_id
+    
+    if transaction.warehouse_id:
+        new_warehouse = db.query(Warehouse).filter(Warehouse.id == transaction.warehouse_id).first()
+        if not new_warehouse:
+            raise HTTPException(status_code=404, detail="New warehouse not found")
+        if not can_write(current_user, new_warehouse.company_id, db):
+            raise HTTPException(status_code=403, detail="No write access to new warehouse company")
+    
+    if transaction.product_id:
+        product = db.query(Product).filter(Product.id == transaction.product_id).first()
+        if not product:
+            raise HTTPException(status_code=404, detail="Product not found")
+    
+    # Парсим дату если указана
+    transaction_date = None
+    if transaction.date:
+        try:
+            transaction_date = datetime.fromisoformat(transaction.date).date()
+        except:
+            transaction_date = db_transaction.date
+    
+    # Обновляем транзакцию
+    updated_transaction = update_inventory_transaction(
+        transaction_id=transaction_id,
+        transaction_type=transaction.transaction_type if transaction.transaction_type else db_transaction.transaction_type,
+        product_id=new_product_id,
+        warehouse_id=new_warehouse_id,
+        quantity=transaction.quantity if transaction.quantity is not None else db_transaction.quantity,
+        cost_price=transaction.cost_price if transaction.cost_price is not None else db_transaction.cost_price,
+        transaction_date=transaction_date if transaction_date else db_transaction.date,
+        db=db,
+        batch_number=transaction.batch_number if transaction.batch_number is not None else db_transaction.batch_number,
+        document_type=transaction.document_type if transaction.document_type is not None else db_transaction.document_type,
+        document_id=transaction.document_id if transaction.document_id is not None else db_transaction.document_id,
+        description=transaction.description if transaction.description is not None else db_transaction.description
+    )
+    
+    # Получаем обновленные данные
+    updated_transaction = db.query(InventoryTransaction).filter(InventoryTransaction.id == transaction_id).first()
+    product = db.query(Product).filter(Product.id == updated_transaction.product_id).first()
+    warehouse = db.query(Warehouse).filter(Warehouse.id == updated_transaction.warehouse_id).first()
+    
+    return {
+        "id": updated_transaction.id,
+        "transaction_type": updated_transaction.transaction_type,
+        "product_id": updated_transaction.product_id,
+        "warehouse_id": updated_transaction.warehouse_id,
+        "quantity": updated_transaction.quantity,
+        "cost_price": updated_transaction.cost_price,
+        "date": updated_transaction.date.isoformat(),
+        "batch_number": updated_transaction.batch_number,
+        "document_type": updated_transaction.document_type,
+        "document_id": updated_transaction.document_id,
+        "description": updated_transaction.description,
+        "created_at": updated_transaction.created_at,
+        "product_name": product.name if product else None,
+        "warehouse_name": warehouse.name if warehouse else None
+    }
+
+@router.delete("/transactions/{transaction_id}")
+def delete_transaction(
+    transaction_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Удалить транзакцию движения товара"""
+    # Получаем транзакцию
+    db_transaction = db.query(InventoryTransaction).filter(InventoryTransaction.id == transaction_id).first()
+    if not db_transaction:
+        raise HTTPException(status_code=404, detail="Transaction not found")
+    
+    # Проверка доступа через склад
+    warehouse = db.query(Warehouse).filter(Warehouse.id == db_transaction.warehouse_id).first()
+    if not warehouse:
+        raise HTTPException(status_code=404, detail="Warehouse not found")
+    
+    if not can_write(current_user, warehouse.company_id, db):
+        raise HTTPException(status_code=403, detail="No write access to this company")
+    
+    # Удаляем транзакцию
+    delete_inventory_transaction(transaction_id, db)
+    
+    return {"message": "Transaction deleted successfully"}
 
 @router.get("/turnover", response_model=List[dict])
 def get_turnover_analysis(

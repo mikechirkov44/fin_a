@@ -48,6 +48,7 @@ const Layout = () => {
     const financePaths = ['/cash-flow', '/profit-loss', '/balance', '/cash-flow-analysis', '/profit-loss-analysis']
     const customersPaths = ['/customers', '/suppliers']
     const bankCashPaths = ['/bank-cash', '/account-balances']
+    const warehousePaths = ['/warehouses', '/inventory-transactions', '/warehouse-reports']
     if (financePaths.includes(location.pathname)) {
       return ['/cash-flow']
     }
@@ -56,6 +57,9 @@ const Layout = () => {
     }
     if (bankCashPaths.includes(location.pathname)) {
       return ['/bank-cash']
+    }
+    if (warehousePaths.includes(location.pathname)) {
+      return ['/warehouses']
     }
     return []
   }
@@ -90,6 +94,7 @@ const Layout = () => {
     const financePaths = ['/cash-flow', '/profit-loss', '/balance', '/cash-flow-analysis', '/profit-loss-analysis']
     const customersPaths = ['/customers', '/suppliers']
     const bankCashPaths = ['/bank-cash', '/account-balances']
+    const warehousePaths = ['/warehouses', '/inventory-transactions', '/warehouse-reports']
     
     if (financePaths.includes(location.pathname) && 
         !expandedItems.includes('/cash-flow') && 
@@ -105,6 +110,11 @@ const Layout = () => {
         !expandedItems.includes('/bank-cash') && 
         !manuallyCollapsedRef.current.has('/bank-cash')) {
       setExpandedItems(prev => [...prev, '/bank-cash'])
+    }
+    if (warehousePaths.includes(location.pathname) && 
+        !expandedItems.includes('/warehouses') && 
+        !manuallyCollapsedRef.current.has('/warehouses')) {
+      setExpandedItems(prev => [...prev, '/warehouses'])
     }
   }, [location.pathname])
 
@@ -132,7 +142,8 @@ const Layout = () => {
       icon: <HiOutlineBuildingOffice2 />,
       children: [
         { path: '/warehouses', label: 'Склады' },
-        { path: '/inventory', label: 'Остатки' },
+        { path: '/inventory-transactions', label: 'Отгрузки и поступления товаров' },
+        { path: '/warehouse-reports', label: 'Отчеты по складам' },
       ]
     },
     { 
@@ -201,7 +212,9 @@ const Layout = () => {
     '/profit-loss-analysis': 'Анализ ОПУ',
     '/shipment': 'ОТГРУЗКА',
     '/warehouses': 'Управление складами',
-    '/inventory': 'Управление остатками',
+    '/inventory': 'Остатки',
+    '/inventory-transactions': 'Отгрузки и поступления товаров',
+    '/warehouse-reports': 'Отчеты по складам',
     '/customers': 'Клиенты',
     '/suppliers': 'Поставщики',
     '/reference': 'Предприятие',

@@ -39,6 +39,18 @@ class InventoryTransactionCreate(BaseModel):
     document_id: Optional[int] = None
     description: Optional[str] = None
 
+class InventoryTransactionUpdate(BaseModel):
+    transaction_type: Optional[str] = None
+    product_id: Optional[int] = None
+    warehouse_id: Optional[int] = None
+    quantity: Optional[Decimal] = None
+    cost_price: Optional[Decimal] = None
+    date: Optional[str] = None
+    batch_number: Optional[str] = None
+    document_type: Optional[str] = None
+    document_id: Optional[int] = None
+    description: Optional[str] = None
+
 class InventoryTransactionResponse(BaseModel):
     id: int
     transaction_type: str

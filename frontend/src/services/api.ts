@@ -251,6 +251,8 @@ export const inventoryService = {
   createInventory: (data: any) => apiService.post('/api/inventory/', data),
   getTransactions: (params?: any) => apiService.get('/api/inventory/transactions', { params }),
   createTransaction: (data: any) => apiService.post('/api/inventory/transactions', data),
+  updateTransaction: (id: number, data: any) => apiService.put(`/api/inventory/transactions/${id}`, data),
+  deleteTransaction: (id: number) => apiService.delete(`/api/inventory/transactions/${id}`),
   getTurnover: (params?: any) => apiService.get('/api/inventory/turnover', { params }),
   getAlerts: (params?: any) => apiService.get('/api/inventory/alerts', { params }),
 }
