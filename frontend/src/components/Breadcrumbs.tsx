@@ -27,6 +27,8 @@ const Breadcrumbs = () => {
       'profit-loss-analysis': 'Анализ ОПУ',
       balance: 'БАЛАНС',
       reference: 'Предприятие',
+      customers: 'Клиенты',
+      suppliers: 'Поставщики',
       'marketplace-integration': 'Интеграции',
       budget: 'Бюджетирование',
       'audit-log': 'История изменений',

@@ -43,7 +43,26 @@ class ApiService {
   }
 
   post(url: string, data?: any, config?: any) {
-    return this.client.post(url, data, config).then((res) => res.data)
+    // Если data - это URLSearchParams, преобразуем в строку
+    let processedData = data
+    if (data instanceof URLSearchParams) {
+      processedData = data.toString()
+    }
+    
+    // Создаем конфиг с правильными заголовками
+    // Заголовки из config перезапишут дефолтные
+    const mergedConfig = {
+      ...config,
+      headers: {
+        // Сначала дефолтные заголовки
+        ...this.client.defaults.headers.common,
+        ...this.client.defaults.headers.post,
+        // Затем заголовки из config (перезапишут дефолтные)
+        ...(config?.headers || {}),
+      },
+    }
+    
+    return this.client.post(url, processedData, mergedConfig).then((res) => res.data)
   }
 
   put(url: string, data?: any, config?: any) {
@@ -62,8 +81,11 @@ export const authService = {
     const formData = new URLSearchParams()
     formData.append('username', username)
     formData.append('password', password)
-    return apiService.post('/api/auth/login', formData.toString(), {
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    // Передаем URLSearchParams напрямую, axios правильно его обработает
+    return apiService.post('/api/auth/login', formData, {
+      headers: { 
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
     })
   },
   register: (email: string, username: string, password: string) => {
@@ -118,6 +140,8 @@ export const referenceService = {
   createSalesChannel: (data: any) => apiService.post('/api/reference/sales-channels', data),
   updateSalesChannel: (id: number, data: any) => apiService.put(`/api/reference/sales-channels/${id}`, data),
   deleteSalesChannel: (id: number) => apiService.delete(`/api/reference/sales-channels/${id}`),
+  // Expense Analysis
+  getExpenseAnalysis: (params?: any) => apiService.get('/api/reference/expense-analysis', { params }),
 }
 
 export const input1Service = {

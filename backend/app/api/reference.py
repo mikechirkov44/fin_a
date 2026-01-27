@@ -1,14 +1,17 @@
-from typing import List
-from fastapi import APIRouter, Depends, HTTPException
+from typing import List, Optional
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
+from sqlalchemy import func
+from datetime import date, timedelta
 from app.database import get_db
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.models.reference import (
     IncomeGroup, IncomeItem, 
     ExpenseGroup, ExpenseItem, 
     PaymentPlace, Company,
     ExpenseCategory, SalesChannel
 )
+from app.models.input1 import MoneyMovement
 from app.schemas.reference import (
     IncomeGroupCreate, IncomeGroupResponse,
     IncomeItemCreate, IncomeItemResponse,
@@ -20,6 +23,7 @@ from app.schemas.reference import (
     SalesChannelCreate, SalesChannelResponse
 )
 from app.auth.security import get_current_user
+from app.auth.permissions import filter_by_user_companies, get_user_companies
 
 router = APIRouter()
 
@@ -295,3 +299,86 @@ def delete_sales_channel(item_id: int, db: Session = Depends(get_db), current_us
     db.commit()
     return {"message": "Sales channel deleted"}
 
+@router.get("/expense-analysis")
+def get_expense_analysis(
+    start_date: Optional[date] = Query(None),
+    end_date: Optional[date] = Query(None),
+    company_id: Optional[int] = Query(None),
+    group_by: str = Query("item", regex="^(item|group)$"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Анализ расходов по статьям"""
+    if not start_date:
+        end_date = end_date or date.today()
+        start_date = end_date - timedelta(days=30)
+    if not end_date:
+        end_date = date.today()
+    
+    # Фильтр по организации
+    query = db.query(
+        MoneyMovement.expense_item_id,
+        func.sum(MoneyMovement.amount).label('total')
+    ).filter(
+        MoneyMovement.movement_type == "expense",
+        MoneyMovement.date >= start_date,
+        MoneyMovement.date <= end_date,
+        MoneyMovement.is_business == True
+    )
+    
+    if company_id:
+        query = query.filter(MoneyMovement.company_id == company_id)
+        # Проверка доступа
+        if current_user.role != UserRole.ADMIN:
+            user_companies = get_user_companies(current_user.id, db)
+            if company_id not in user_companies:
+                raise HTTPException(status_code=403, detail="No access to this company")
+    else:
+        # Фильтрация по доступным организациям пользователя
+        query = filter_by_user_companies(query, current_user, MoneyMovement.company_id, db)
+    
+    expense_data = query.group_by(MoneyMovement.expense_item_id).all()
+    
+    result = []
+    
+    if group_by == "item":
+        # Группировка по статьям
+        for expense_item_id, total in expense_data:
+            if not expense_item_id:
+                continue
+            item = db.query(ExpenseItem).filter(ExpenseItem.id == expense_item_id).first()
+            if item:
+                group_name = None
+                if item.group_id:
+                    group = db.query(ExpenseGroup).filter(ExpenseGroup.id == item.group_id).first()
+                    group_name = group.name if group else None
+                result.append({
+                    "id": item.id,
+                    "name": item.name,
+                    "group_id": item.group_id,
+                    "group_name": group_name,
+                    "amount": float(total)
+                })
+    else:
+        # Группировка по группам
+        group_totals = {}
+        for expense_item_id, total in expense_data:
+            if not expense_item_id:
+                continue
+            item = db.query(ExpenseItem).filter(ExpenseItem.id == expense_item_id).first()
+            if item and item.group_id:
+                if item.group_id not in group_totals:
+                    group = db.query(ExpenseGroup).filter(ExpenseGroup.id == item.group_id).first()
+                    group_totals[item.group_id] = {
+                        "id": item.group_id,
+                        "name": group.name if group else f"Группа #{item.group_id}",
+                        "amount": 0
+                    }
+                group_totals[item.group_id]["amount"] += float(total)
+        
+        result = list(group_totals.values())
+    
+    # Сортируем по сумме (убывание)
+    result.sort(key=lambda x: x["amount"], reverse=True)
+    
+    return result

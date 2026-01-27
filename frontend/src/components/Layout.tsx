@@ -46,20 +46,20 @@ const Layout = () => {
   // Автоматически раскрываем раздел, если открыта его страница
   const getInitialExpanded = () => {
     const financePaths = ['/cash-flow', '/profit-loss', '/balance', '/cash-flow-analysis', '/profit-loss-analysis']
-    const customersPaths = ['/customers', '/suppliers']
     const bankCashPaths = ['/bank-cash', '/account-balances']
-    const warehousePaths = ['/warehouses', '/inventory-transactions', '/warehouse-reports']
+    const warehousePaths = ['/inventory-transactions', '/warehouse-reports']
+    const referencePaths = ['/reference', '/warehouses', '/customers', '/suppliers']
     if (financePaths.includes(location.pathname)) {
       return ['/cash-flow']
-    }
-    if (customersPaths.includes(location.pathname)) {
-      return ['/customers']
     }
     if (bankCashPaths.includes(location.pathname)) {
       return ['/bank-cash']
     }
     if (warehousePaths.includes(location.pathname)) {
-      return ['/warehouses']
+      return ['/inventory-transactions']
+    }
+    if (referencePaths.includes(location.pathname)) {
+      return ['/reference']
     }
     return []
   }
@@ -92,19 +92,14 @@ const Layout = () => {
   // Обновляем раскрытые разделы при изменении пути (только если они не были свернуты вручную)
   useEffect(() => {
     const financePaths = ['/cash-flow', '/profit-loss', '/balance', '/cash-flow-analysis', '/profit-loss-analysis']
-    const customersPaths = ['/customers', '/suppliers']
     const bankCashPaths = ['/bank-cash', '/account-balances']
-    const warehousePaths = ['/warehouses', '/inventory-transactions', '/warehouse-reports']
+    const warehousePaths = ['/inventory-transactions', '/warehouse-reports']
+    const referencePaths = ['/reference', '/warehouses', '/customers', '/suppliers']
     
     if (financePaths.includes(location.pathname) && 
         !expandedItems.includes('/cash-flow') && 
         !manuallyCollapsedRef.current.has('/cash-flow')) {
       setExpandedItems(prev => [...prev, '/cash-flow'])
-    }
-    if (customersPaths.includes(location.pathname) && 
-        !expandedItems.includes('/customers') && 
-        !manuallyCollapsedRef.current.has('/customers')) {
-      setExpandedItems(prev => [...prev, '/customers'])
     }
     if (bankCashPaths.includes(location.pathname) && 
         !expandedItems.includes('/bank-cash') && 
@@ -112,9 +107,14 @@ const Layout = () => {
       setExpandedItems(prev => [...prev, '/bank-cash'])
     }
     if (warehousePaths.includes(location.pathname) && 
-        !expandedItems.includes('/warehouses') && 
-        !manuallyCollapsedRef.current.has('/warehouses')) {
-      setExpandedItems(prev => [...prev, '/warehouses'])
+        !expandedItems.includes('/inventory-transactions') && 
+        !manuallyCollapsedRef.current.has('/inventory-transactions')) {
+      setExpandedItems(prev => [...prev, '/inventory-transactions'])
+    }
+    if (referencePaths.includes(location.pathname) && 
+        !expandedItems.includes('/reference') && 
+        !manuallyCollapsedRef.current.has('/reference')) {
+      setExpandedItems(prev => [...prev, '/reference'])
     }
   }, [location.pathname])
 
@@ -137,22 +137,12 @@ const Layout = () => {
     },
     { path: '/input2', label: 'Активы/Пассивы', icon: <HiOutlineChartBar /> },
     { 
-      path: '/warehouses', 
+      path: '/inventory-transactions', 
       label: 'Склады и остатки', 
       icon: <HiOutlineBuildingOffice2 />,
       children: [
-        { path: '/warehouses', label: 'Склады' },
         { path: '/inventory-transactions', label: 'Отгрузки и поступления товаров' },
         { path: '/warehouse-reports', label: 'Отчеты по складам' },
-      ]
-    },
-    { 
-      path: '/customers', 
-      label: 'Клиенты и поставщики', 
-      icon: <HiOutlineUsers />,
-      children: [
-        { path: '/customers', label: 'Клиенты' },
-        { path: '/suppliers', label: 'Поставщики' },
       ]
     },
     { 
@@ -167,7 +157,17 @@ const Layout = () => {
         { path: '/balance', label: 'БАЛАНС' },
       ]
     },
-    { path: '/reference', label: 'Предприятие', icon: <HiOutlineBuildingOffice /> },
+    { 
+      path: '/reference', 
+      label: 'Предприятие', 
+      icon: <HiOutlineBuildingOffice />,
+      children: [
+        { path: '/reference', label: 'Основные данные' },
+        { path: '/warehouses', label: 'Склады' },
+        { path: '/customers', label: 'Клиенты' },
+        { path: '/suppliers', label: 'Поставщики' },
+      ]
+    },
     { path: '/recommendations', label: 'Рекомендации', icon: <HiOutlineLightningBolt /> },
     { path: '/marketplace-integration', label: 'Интеграции', icon: <HiOutlineLink /> },
     { path: '/budget', label: 'Бюджетирование', icon: <HiOutlineTrendingUp /> },
@@ -211,7 +211,7 @@ const Layout = () => {
     '/profit-loss': 'ОПУ',
     '/profit-loss-analysis': 'Анализ ОПУ',
     '/shipment': 'ОТГРУЗКА',
-    '/warehouses': 'Управление складами',
+    '/warehouses': 'Склады',
     '/inventory': 'Остатки',
     '/inventory-transactions': 'Отгрузки и поступления товаров',
     '/warehouse-reports': 'Отчеты по складам',

@@ -71,6 +71,10 @@ app.add_middleware(
 # Обработчик ошибок валидации
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    print(f"Validation error: {exc.errors()}")
+    print(f"Request URL: {request.url}")
+    print(f"Request method: {request.method}")
+    traceback.print_exc()
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         content={"detail": exc.errors()},
@@ -83,7 +87,15 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 # Обработчик исключений для добавления CORS заголовков к ошибкам
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
+    print(f"\n{'='*80}")
+    print(f"GLOBAL EXCEPTION HANDLER")
+    print(f"URL: {request.url}")
+    print(f"Method: {request.method}")
+    print(f"Exception type: {type(exc).__name__}")
+    print(f"Exception message: {str(exc)}")
+    print(f"{'='*80}")
     traceback.print_exc()
+    print(f"{'='*80}\n")
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content={"detail": str(exc)},

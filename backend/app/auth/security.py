@@ -13,7 +13,24 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/login")
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify a password against a hash"""
-    return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
+    try:
+        if not plain_password or not hashed_password:
+            return False
+        
+        # Если hashed_password уже байты, используем как есть, иначе кодируем
+        if isinstance(hashed_password, bytes):
+            hashed_bytes = hashed_password
+        else:
+            hashed_bytes = hashed_password.encode('utf-8')
+        
+        plain_bytes = plain_password.encode('utf-8')
+        return bcrypt.checkpw(plain_bytes, hashed_bytes)
+    except Exception as e:
+        # Логируем ошибку для отладки
+        import traceback
+        print(f"Error in verify_password: {str(e)}")
+        traceback.print_exc()
+        return False
 
 def get_password_hash(password: str) -> str:
     """Hash a password using bcrypt"""
@@ -22,14 +39,27 @@ def get_password_hash(password: str) -> str:
     return hashed.decode('utf-8')
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
-    to_encode = data.copy()
-    if expires_delta:
-        expire = datetime.utcnow() + expires_delta
-    else:
-        expire = datetime.utcnow() + timedelta(minutes=settings.access_token_expire_minutes)
-    to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
-    return encoded_jwt
+    try:
+        if not data or "sub" not in data:
+            raise ValueError("Token data must contain 'sub' field")
+        
+        to_encode = data.copy()
+        if expires_delta:
+            expire = datetime.utcnow() + expires_delta
+        else:
+            expire = datetime.utcnow() + timedelta(minutes=settings.access_token_expire_minutes)
+        to_encode.update({"exp": expire})
+        
+        if not settings.secret_key:
+            raise ValueError("Secret key is not configured")
+        
+        encoded_jwt = jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
+        return encoded_jwt
+    except Exception as e:
+        import traceback
+        print(f"Error in create_access_token: {str(e)}")
+        traceback.print_exc()
+        raise
 
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     credentials_exception = HTTPException(

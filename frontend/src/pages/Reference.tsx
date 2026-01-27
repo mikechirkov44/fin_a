@@ -4,15 +4,17 @@ import { useToast } from '../contexts/ToastContext'
 import { useConfirm } from '../contexts/ConfirmContext'
 import { useAuth } from '../contexts/AuthContext'
 import Modal from '../components/Modal'
+import IncomeExpenseHierarchy from '../components/IncomeExpenseHierarchy'
 import { HiOutlinePencil, HiOutlineTrash } from 'react-icons/hi2'
+import { format, subMonths } from 'date-fns'
 
-type TabType = 'income' | 'expense' | 'payment' | 'company' | 'incomeGroup' | 'expenseGroup' | 'expenseCategory' | 'salesChannel' | 'product' | 'customerSegment'
+type TabType = 'incomeExpense' | 'expenseAnalysis' | 'payment' | 'company' | 'expenseCategory' | 'salesChannel' | 'product' | 'customerSegment'
 
 const Reference = () => {
   const { showSuccess, showError } = useToast()
   const { confirm } = useConfirm()
   const { selectedCompanyId } = useAuth()
-  const [activeTab, setActiveTab] = useState<TabType>('income')
+  const [activeTab, setActiveTab] = useState<TabType>('incomeExpense')
   const [incomeItems, setIncomeItems] = useState<any[]>([])
   const [expenseItems, setExpenseItems] = useState<any[]>([])
   const [paymentPlaces, setPaymentPlaces] = useState<any[]>([])
@@ -33,6 +35,11 @@ const Reference = () => {
   const [allProducts, setAllProducts] = useState<any[]>([])
   const [customerSegments, setCustomerSegments] = useState<any[]>([])
   const [allCustomerSegments, setAllCustomerSegments] = useState<any[]>([])
+  const [expenseAnalysis, setExpenseAnalysis] = useState<any[]>([])
+  const [expenseAnalysisLoading, setExpenseAnalysisLoading] = useState(false)
+  const [expenseAnalysisStartDate, setExpenseAnalysisStartDate] = useState(format(subMonths(new Date(), 1), 'yyyy-MM-dd'))
+  const [expenseAnalysisEndDate, setExpenseAnalysisEndDate] = useState(format(new Date(), 'yyyy-MM-dd'))
+  const [expenseAnalysisGroupBy, setExpenseAnalysisGroupBy] = useState<'item' | 'group'>('item')
   const [searchQuery, setSearchQuery] = useState('')
   const [sortColumn, setSortColumn] = useState<string | null>(null)
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
@@ -50,11 +57,33 @@ const Reference = () => {
   })
 
   useEffect(() => {
-    loadData()
-    if (activeTab === 'income' || activeTab === 'expense') {
-      loadGroups()
+    if (activeTab === 'expenseAnalysis') {
+      loadExpenseAnalysis()
+    } else if (activeTab !== 'incomeExpense') {
+      loadData()
     }
-  }, [activeTab, selectedCompanyId])
+  }, [activeTab, selectedCompanyId, expenseAnalysisStartDate, expenseAnalysisEndDate, expenseAnalysisGroupBy])
+
+  const loadExpenseAnalysis = async () => {
+    setExpenseAnalysisLoading(true)
+    try {
+      const params: any = {
+        start_date: expenseAnalysisStartDate,
+        end_date: expenseAnalysisEndDate,
+        group_by: expenseAnalysisGroupBy
+      }
+      if (selectedCompanyId) {
+        params.company_id = selectedCompanyId
+      }
+      const data = await referenceService.getExpenseAnalysis(params)
+      setExpenseAnalysis(data)
+    } catch (error) {
+      console.error('Error loading expense analysis:', error)
+      showError('Ошибка загрузки анализа расходов')
+    } finally {
+      setExpenseAnalysisLoading(false)
+    }
+  }
 
   const loadGroups = async () => {
     try {
@@ -72,15 +101,7 @@ const Reference = () => {
 
   const loadData = async () => {
     try {
-      if (activeTab === 'income') {
-        const data = await referenceService.getIncomeItems()
-        setAllIncomeItems(data)
-        setIncomeItems(data)
-      } else if (activeTab === 'expense') {
-        const data = await referenceService.getExpenseItems()
-        setAllExpenseItems(data)
-        setExpenseItems(data)
-      } else if (activeTab === 'payment') {
+      if (activeTab === 'payment') {
         const data = await referenceService.getPaymentPlaces()
         setAllPaymentPlaces(data)
         setPaymentPlaces(data)
@@ -88,14 +109,6 @@ const Reference = () => {
         const data = await referenceService.getCompanies()
         setAllCompanies(data)
         setCompanies(data)
-      } else if (activeTab === 'incomeGroup') {
-        const data = await referenceService.getIncomeGroups()
-        setAllIncomeGroups(data)
-        setIncomeGroups(data)
-      } else if (activeTab === 'expenseGroup') {
-        const data = await referenceService.getExpenseGroups()
-        setAllExpenseGroups(data)
-        setExpenseGroups(data)
       } else if (activeTab === 'expenseCategory') {
         const data = await referenceService.getExpenseCategories()
         setAllExpenseCategories(data)
@@ -128,12 +141,8 @@ const Reference = () => {
     let filtered: any[] = []
     
     // Получаем нужный массив данных
-    if (activeTab === 'income') filtered = [...allIncomeItems]
-    else if (activeTab === 'expense') filtered = [...allExpenseItems]
-    else if (activeTab === 'payment') filtered = [...allPaymentPlaces]
+    if (activeTab === 'payment') filtered = [...allPaymentPlaces]
     else if (activeTab === 'company') filtered = [...allCompanies]
-    else if (activeTab === 'incomeGroup') filtered = [...allIncomeGroups]
-    else if (activeTab === 'expenseGroup') filtered = [...allExpenseGroups]
     else if (activeTab === 'expenseCategory') filtered = [...allExpenseCategories]
     else if (activeTab === 'salesChannel') filtered = [...allSalesChannels]
     else if (activeTab === 'product') filtered = [...allProducts]
@@ -218,12 +227,8 @@ const Reference = () => {
     }
 
     // Устанавливаем отфильтрованные и отсортированные данные
-    if (activeTab === 'income') setIncomeItems(filtered)
-    else if (activeTab === 'expense') setExpenseItems(filtered)
-    else if (activeTab === 'payment') setPaymentPlaces(filtered)
+    if (activeTab === 'payment') setPaymentPlaces(filtered)
     else if (activeTab === 'company') setCompanies(filtered)
-    else if (activeTab === 'incomeGroup') setIncomeGroups(filtered)
-    else if (activeTab === 'expenseGroup') setExpenseGroups(filtered)
     else if (activeTab === 'expenseCategory') setExpenseCategories(filtered)
     else if (activeTab === 'salesChannel') setSalesChannels(filtered)
     else if (activeTab === 'product') setProducts(filtered)
@@ -265,19 +270,7 @@ const Reference = () => {
         delete submitData.subgroup_type
       }
       
-      if (activeTab === 'income') {
-        if (editingItem) {
-          await referenceService.updateIncomeItem(editingItem.id, submitData)
-        } else {
-          await referenceService.createIncomeItem(submitData)
-        }
-      } else if (activeTab === 'expense') {
-        if (editingItem) {
-          await referenceService.updateExpenseItem(editingItem.id, submitData)
-        } else {
-          await referenceService.createExpenseItem(submitData)
-        }
-      } else if (activeTab === 'payment') {
+      if (activeTab === 'payment') {
         if (editingItem) {
           await referenceService.updatePaymentPlace(editingItem.id, submitData)
         } else {
@@ -288,18 +281,6 @@ const Reference = () => {
           await referenceService.updateCompany(editingItem.id, submitData)
         } else {
           await referenceService.createCompany(submitData)
-        }
-      } else if (activeTab === 'incomeGroup') {
-        if (editingItem) {
-          await referenceService.updateIncomeGroup(editingItem.id, submitData)
-        } else {
-          await referenceService.createIncomeGroup(submitData)
-        }
-      } else if (activeTab === 'expenseGroup') {
-        if (editingItem) {
-          await referenceService.updateExpenseGroup(editingItem.id, submitData)
-        } else {
-          await referenceService.createExpenseGroup(submitData)
         }
       } else if (activeTab === 'expenseCategory') {
         if (editingItem) {
@@ -368,12 +349,8 @@ const Reference = () => {
     })
     if (!confirmed) return
     try {
-      if (activeTab === 'income') await referenceService.deleteIncomeItem(id)
-      else if (activeTab === 'expense') await referenceService.deleteExpenseItem(id)
-      else if (activeTab === 'payment') await referenceService.deletePaymentPlace(id)
+      if (activeTab === 'payment') await referenceService.deletePaymentPlace(id)
       else if (activeTab === 'company') await referenceService.deleteCompany(id)
-      else if (activeTab === 'incomeGroup') await referenceService.deleteIncomeGroup(id)
-      else if (activeTab === 'expenseGroup') await referenceService.deleteExpenseGroup(id)
       else if (activeTab === 'expenseCategory') await referenceService.deleteExpenseCategory(id)
       else if (activeTab === 'salesChannel') await referenceService.deleteSalesChannel(id)
       else if (activeTab === 'product') await productsService.deleteProduct(id)
@@ -386,12 +363,8 @@ const Reference = () => {
   }
 
   const getCurrentItems = () => {
-    if (activeTab === 'income') return incomeItems
-    if (activeTab === 'expense') return expenseItems
     if (activeTab === 'payment') return paymentPlaces
     if (activeTab === 'company') return companies
-    if (activeTab === 'incomeGroup') return incomeGroups
-    if (activeTab === 'expenseGroup') return expenseGroups
     if (activeTab === 'expenseCategory') return expenseCategories
     if (activeTab === 'salesChannel') return salesChannels
     if (activeTab === 'product') return products
@@ -400,12 +373,10 @@ const Reference = () => {
   }
 
   const getTitle = () => {
-    if (activeTab === 'income') return 'Статьи доходов'
-    if (activeTab === 'expense') return 'Статьи расходов'
+    if (activeTab === 'incomeExpense') return 'Группы и статьи доходов/расходов'
+    if (activeTab === 'expenseAnalysis') return 'Анализ расходов по статьям'
     if (activeTab === 'payment') return 'Места оплаты'
-    if (activeTab === 'company') return 'Компании'
-    if (activeTab === 'incomeGroup') return 'Группы статей доходов'
-    if (activeTab === 'expenseGroup') return 'Группы статей расходов'
+    if (activeTab === 'company') return 'Организации'
     if (activeTab === 'expenseCategory') return 'Категории расходов'
     if (activeTab === 'salesChannel') return 'Каналы продаж'
     if (activeTab === 'product') return 'Номенклатура'
@@ -420,28 +391,16 @@ const Reference = () => {
     <div>
       <div style={{ marginBottom: '16px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
         <button
-          onClick={() => { setActiveTab('income'); setShowForm(false); setEditingItem(null) }}
-          className={activeTab === 'income' ? 'primary' : ''}
+          onClick={() => { setActiveTab('incomeExpense'); setShowForm(false); setEditingItem(null) }}
+          className={activeTab === 'incomeExpense' ? 'primary' : ''}
         >
-          Статьи доходов
+          Группы и статьи доходов/расходов
         </button>
         <button
-          onClick={() => { setActiveTab('incomeGroup'); setShowForm(false); setEditingItem(null) }}
-          className={activeTab === 'incomeGroup' ? 'primary' : ''}
+          onClick={() => { setActiveTab('expenseAnalysis'); setShowForm(false); setEditingItem(null) }}
+          className={activeTab === 'expenseAnalysis' ? 'primary' : ''}
         >
-          Группы доходов
-        </button>
-        <button
-          onClick={() => { setActiveTab('expense'); setShowForm(false); setEditingItem(null) }}
-          className={activeTab === 'expense' ? 'primary' : ''}
-        >
-          Статьи расходов
-        </button>
-        <button
-          onClick={() => { setActiveTab('expenseGroup'); setShowForm(false); setEditingItem(null) }}
-          className={activeTab === 'expenseGroup' ? 'primary' : ''}
-        >
-          Группы расходов
+          Анализ расходов по статьям
         </button>
         <button
           onClick={() => { setActiveTab('expenseCategory'); setShowForm(false); setEditingItem(null) }}
@@ -459,7 +418,7 @@ const Reference = () => {
           onClick={() => { setActiveTab('company'); setShowForm(false); setEditingItem(null) }}
           className={activeTab === 'company' ? 'primary' : ''}
         >
-          Компании
+          Организации
         </button>
         <button
           onClick={() => { setActiveTab('salesChannel'); setShowForm(false); setEditingItem(null) }}
@@ -481,6 +440,95 @@ const Reference = () => {
         </button>
       </div>
 
+      {activeTab === 'incomeExpense' && (
+        <IncomeExpenseHierarchy />
+      )}
+
+      {activeTab === 'expenseAnalysis' && (
+        <div>
+          <div className="card" style={{ marginBottom: '16px' }}>
+            <div className="card-header">Параметры отчета</div>
+            <div style={{ padding: '16px', display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px' }}>Начало периода</label>
+                <input
+                  type="date"
+                  value={expenseAnalysisStartDate}
+                  onChange={(e) => setExpenseAnalysisStartDate(e.target.value)}
+                  style={{ padding: '6px', border: '1px solid #ddd', borderRadius: '4px' }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px' }}>Конец периода</label>
+                <input
+                  type="date"
+                  value={expenseAnalysisEndDate}
+                  onChange={(e) => setExpenseAnalysisEndDate(e.target.value)}
+                  style={{ padding: '6px', border: '1px solid #ddd', borderRadius: '4px' }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px' }}>Группировка</label>
+                <select
+                  value={expenseAnalysisGroupBy}
+                  onChange={(e) => setExpenseAnalysisGroupBy(e.target.value as 'item' | 'group')}
+                  style={{ padding: '6px', border: '1px solid #ddd', borderRadius: '4px' }}
+                >
+                  <option value="item">По статьям</option>
+                  <option value="group">По группам</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div className="card">
+            <div className="card-header">Анализ расходов по статьям</div>
+            {expenseAnalysisLoading ? (
+              <div style={{ padding: '20px', textAlign: 'center' }}>Загрузка...</div>
+            ) : (
+              <table>
+                <thead>
+                  <tr>
+                    <th>{expenseAnalysisGroupBy === 'item' ? 'Статья' : 'Группа'}</th>
+                    {expenseAnalysisGroupBy === 'item' && <th>Группа</th>}
+                    <th style={{ textAlign: 'right' }}>Сумма</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {expenseAnalysis.length === 0 ? (
+                    <tr>
+                      <td colSpan={expenseAnalysisGroupBy === 'item' ? 3 : 2} style={{ textAlign: 'center', padding: '20px' }}>
+                        Нет данных
+                      </td>
+                    </tr>
+                  ) : (
+                    expenseAnalysis.map((item: any) => (
+                      <tr key={item.id}>
+                        <td>{item.name}</td>
+                        {expenseAnalysisGroupBy === 'item' && <td>{item.group_name || '-'}</td>}
+                        <td style={{ textAlign: 'right', fontWeight: 'bold' }}>
+                          {item.amount.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₽
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                  {expenseAnalysis.length > 0 && (
+                    <tr style={{ fontWeight: 'bold', backgroundColor: '#f5f5f5' }}>
+                      <td colSpan={expenseAnalysisGroupBy === 'item' ? 2 : 1}>Итого</td>
+                      <td style={{ textAlign: 'right' }}>
+                        {expenseAnalysis.reduce((sum: number, item: any) => sum + item.amount, 0).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₽
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+      )}
+
+      {activeTab !== 'incomeExpense' && activeTab !== 'expenseAnalysis' && (
+        <>
       <Modal
         isOpen={showForm}
         onClose={handleClose}
@@ -753,6 +801,8 @@ const Reference = () => {
           </tbody>
         </table>
       </div>
+        </>
+      )}
     </div>
   )
 }
