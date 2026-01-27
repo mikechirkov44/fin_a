@@ -92,7 +92,7 @@ const Dashboard = () => {
   const netProfitDynamics = translateChartLabels(data.net_profit_dynamics || [])
   const grossProfitDynamics = translateChartLabels(data.gross_profit_dynamics || [])
 
-  // Преобразуем данные для Chartist.js
+  // Преобразуем данные для Chart.js
   const cashBalanceChartData = {
     labels: cashBalanceDynamics.map((item: any) => item.label),
     series: [cashBalanceDynamics.map((item: any) => item.balance)]

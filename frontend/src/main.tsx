@@ -3,7 +3,6 @@ import ReactDOM from 'react-dom/client'
 import App from './App'
 import './styles/index.css'
 import './styles/action-buttons.css'
-import './styles/chartist.css'
 
 // Установка русской локали для календаря
 // Браузеры используют локаль из атрибута lang HTML элемента

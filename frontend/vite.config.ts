@@ -10,7 +10,6 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
-    include: ['chartist'],
     esbuildOptions: {
       mainFields: ['module', 'main'],
     },

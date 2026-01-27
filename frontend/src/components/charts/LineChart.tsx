@@ -1,22 +1,61 @@
-import { useEffect, useRef } from 'react'
-// @ts-ignore
-import { LineChart as ChartistLineChart, Interpolation } from 'chartist'
-import 'chartist/dist/index.css'
+import { useMemo } from 'react'
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+} from 'chart.js'
+import { Line } from 'react-chartjs-2'
 import './LineChart.css'
 
-// Создаем объект Chartist для совместимости с типами и API
-const Chartist = {
-  Line: ChartistLineChart,
-  Interpolation: Interpolation
-} as any
+// Регистрируем компоненты Chart.js
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+)
 
 interface LineChartProps {
   data: {
     labels: string[]
     series: number[][] | number[]
   }
-  options?: Chartist.ILineChartOptions
-  responsiveOptions?: Array<Chartist.IResponsiveOptionTuple<Chartist.ILineChartOptions>>
+  options?: {
+    lineSmooth?: boolean
+    showPoint?: boolean
+    showArea?: boolean
+    chartPadding?: {
+      left?: number
+      right?: number
+      top?: number
+      bottom?: number
+    }
+    axisX?: {
+      showGrid?: boolean
+      showLabel?: boolean
+      labelOffset?: {
+        x?: number
+        y?: number
+      }
+    }
+    axisY?: {
+      showGrid?: boolean
+      showLabel?: boolean
+      onlyInteger?: boolean
+      labelInterpolationFnc?: (value: number) => string
+    }
+  }
+  responsiveOptions?: any[]
   height?: number
   className?: string
   colors?: string[]
@@ -24,267 +63,146 @@ interface LineChartProps {
   tooltipFormatter?: (value: number, label: string, seriesIndex: number, seriesName?: string) => string
 }
 
-const LineChart = ({ data, options, responsiveOptions, height = 300, className = '', colors = ['#4a90e2', '#27ae60', '#e74c3c', '#f39c12', '#9b59b6', '#1abc9c'], showTooltip = true, tooltipFormatter }: LineChartProps) => {
-  const chartRef = useRef<HTMLDivElement>(null)
-  const chartInstance = useRef<Chartist.IChartistLineChart | null>(null)
-  const tooltipRef = useRef<HTMLDivElement | null>(null)
-
-  useEffect(() => {
-    if (!chartRef.current) return
-
-    const defaultOptions: Chartist.ILineChartOptions = {
-      height,
-      showPoint: true,
-      showLine: true,
-      showArea: false,
-      fullWidth: true,
-      chartPadding: {
-        right: 40,
-        top: 20,
-        bottom: 50,
-        left: 120  // Увеличено для полной видимости значений оси Y
-      },
-      axisX: {
-        showGrid: true,
-        showLabel: true,
-        labelOffset: {
-          x: 0,
-          y: 20
+const LineChart = ({ 
+  data, 
+  options = {}, 
+  responsiveOptions: any, 
+  height = 300, 
+  className = '', 
+  colors = ['#4a90e2', '#27ae60', '#e74c3c', '#f39c12', '#9b59b6', '#1abc9c'], 
+  showTooltip = true, 
+  tooltipFormatter 
+}: LineChartProps) => {
+  // Преобразуем данные из формата Chartist в формат Chart.js
+  const chartData = useMemo(() => {
+    const seriesArray = Array.isArray(data.series[0]) ? data.series as number[][] : [data.series as number[]]
+    
+    return {
+      labels: data.labels,
+      datasets: seriesArray.map((series, index) => {
+        const color = colors[index % colors.length]
+        return {
+          label: `Серия ${index + 1}`,
+          data: series,
+          borderColor: color,
+          backgroundColor: options.showArea 
+            ? color + '33' // Добавляем прозрачность для заливки
+            : 'transparent',
+          borderWidth: 3,
+          pointRadius: options.showPoint !== false ? 4 : 0,
+          pointHoverRadius: 6,
+          pointBackgroundColor: color,
+          pointBorderColor: color,
+          pointBorderWidth: 2,
+          fill: options.showArea || false,
+          tension: options.lineSmooth !== false ? 0.4 : 0,
+          pointHoverBackgroundColor: color,
+          pointHoverBorderColor: '#fff',
+          pointHoverBorderWidth: 2,
         }
-      },
-      axisY: {
-        showGrid: true,
-        showLabel: true,
-        onlyInteger: false,
-        labelOffset: {
-          x: 0,
-          y: 0
+      })
+    }
+  }, [data, colors, options.showArea, options.showPoint, options.lineSmooth])
+
+  // Преобразуем опции Chartist в опции Chart.js
+  const chartOptions = useMemo(() => {
+    const defaultLabelInterpolation = (value: number) => {
+      if (typeof value !== 'number' || isNaN(value) || !isFinite(value)) {
+        return '0'
+      }
+      return value.toLocaleString('ru-RU')
+    }
+
+    const labelInterpolationFnc = options.axisY?.labelInterpolationFnc || defaultLabelInterpolation
+
+    return {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: false
         },
-        // Default label interpolation, can be overridden by options prop
-        labelInterpolationFnc: (value: number) => {
-          if (typeof value !== 'number' || isNaN(value) || !isFinite(value)) {
-            return '0'
+        tooltip: {
+          enabled: showTooltip,
+          mode: 'index' as const,
+          intersect: false,
+          callbacks: {
+            label: (context: any) => {
+              const value = context.parsed.y
+              const label = context.label
+              const datasetIndex = context.datasetIndex
+              
+              if (tooltipFormatter) {
+                return tooltipFormatter(value, label, datasetIndex)
+              }
+              
+              const formattedValue = typeof value === 'number' && !isNaN(value) && isFinite(value)
+                ? value.toLocaleString('ru-RU', { minimumFractionDigits: 2 })
+                : '0.00'
+              return `${label}: ${formattedValue}`
+            }
+          },
+          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          titleColor: '#fff',
+          bodyColor: '#fff',
+          borderColor: 'rgba(255, 255, 255, 0.1)',
+          borderWidth: 1,
+          padding: 12,
+          displayColors: true,
+          titleFont: {
+            size: 14,
+            weight: 'bold' as const
+          },
+          bodyFont: {
+            size: 13
           }
-          return value.toLocaleString('ru-RU')
         }
       },
-      lineSmooth: Chartist.Interpolation.cardinal({
-        tension: 0.5
-      }),
-      ...options
-    }
-
-    chartInstance.current = new Chartist.Line(chartRef.current, data, defaultOptions, responsiveOptions)
-
-    // Создаем tooltip элемент
-    if (showTooltip && !tooltipRef.current && chartRef.current) {
-      const tooltip = document.createElement('div')
-      tooltip.className = 'line-chart-tooltip'
-      tooltipRef.current = tooltip
-      chartRef.current.appendChild(tooltip)
-    }
-
-    // Применяем цвета, анимации и tooltips
-    const applyStyles = () => {
-      const svg = chartRef.current?.querySelector('svg')
-      if (!svg) return
-
-      const seriesArray = Array.isArray(data.series[0]) ? data.series as number[][] : [data.series as number[]]
-      const seriesCount = seriesArray.length
-      const pointsPerSeries = seriesArray[0]?.length || 0
-
-      // Применяем цвета к линиям
-      const lines = svg.querySelectorAll('.ct-line')
-      lines.forEach((line, index) => {
-        const color = colors[index % colors.length]
-        if (line instanceof SVGPathElement) {
-          line.style.stroke = color
-          line.style.strokeWidth = '3px'
-        }
-      })
-
-      // Применяем цвета к точкам и добавляем tooltips
-      // В Chartist.js точки могут быть сгруппированы по сериям
-      const seriesGroups = svg.querySelectorAll('.ct-series')
-      let globalPointIndex = 0
-      
-      seriesGroups.forEach((seriesGroup, seriesIndex) => {
-        const points = seriesGroup.querySelectorAll('.ct-point')
-        const color = colors[seriesIndex % colors.length]
-        
-        points.forEach((point, pointIndexInSeries) => {
-          if (point instanceof SVGCircleElement) {
-            point.style.fill = color
-            point.style.stroke = color
-            point.style.cursor = 'pointer'
-            point.style.transition = 'r 0.2s ease'
-            
-            if (showTooltip && pointIndexInSeries < data.labels.length && seriesIndex < seriesCount) {
-              const label = data.labels[pointIndexInSeries]
-              const value = seriesArray[seriesIndex]?.[pointIndexInSeries]
-              
-              if (value !== undefined && value !== null) {
-                let tooltipText = ''
-                if (tooltipFormatter) {
-                  tooltipText = tooltipFormatter(value, label, seriesIndex)
-                } else {
-                  const formattedValue = typeof value === 'number' && !isNaN(value) && isFinite(value)
-                    ? value.toLocaleString('ru-RU', { minimumFractionDigits: 2 })
-                    : '0'
-                  tooltipText = `${label}\n${formattedValue}`
-                }
-                
-                // Удаляем старые обработчики, если они есть
-                const newPoint = point.cloneNode(true) as SVGCircleElement
-                point.parentNode?.replaceChild(newPoint, point)
-                
-                newPoint.addEventListener('mouseenter', (e) => {
-                  if (tooltipRef.current) {
-                    const chartRect = chartRef.current?.getBoundingClientRect()
-                    if (chartRect) {
-                      const x = e.clientX - chartRect.left
-                      const y = e.clientY - chartRect.top
-                      
-                      tooltipRef.current.textContent = tooltipText
-                      tooltipRef.current.style.left = `${x}px`
-                      tooltipRef.current.style.top = `${y - 50}px`
-                      tooltipRef.current.style.transform = 'translateX(-50%)'
-                      tooltipRef.current.classList.add('visible', 'bottom')
-                      tooltipRef.current.classList.remove('top', 'left', 'right')
-                    }
-                  }
-                  // Увеличиваем точку при наведении
-                  newPoint.setAttribute('r', '6')
-                })
-                
-                newPoint.addEventListener('mouseleave', () => {
-                  if (tooltipRef.current) {
-                    tooltipRef.current.classList.remove('visible')
-                  }
-                  // Возвращаем размер точки
-                  newPoint.setAttribute('r', '4')
-                })
-                
-                newPoint.addEventListener('mousemove', (e) => {
-                  if (tooltipRef.current && chartRef.current) {
-                    const chartRect = chartRef.current.getBoundingClientRect()
-                    const x = e.clientX - chartRect.left
-                    const y = e.clientY - chartRect.top
-                    
-                    tooltipRef.current.style.left = `${x}px`
-                    tooltipRef.current.style.top = `${y - 50}px`
-                  }
-                })
-              }
-            }
+      scales: {
+        x: {
+          display: options.axisX?.showLabel !== false,
+          grid: {
+            display: options.axisX?.showGrid !== false,
+            color: 'rgba(0, 0, 0, 0.1)'
+          },
+          ticks: {
+            padding: options.axisX?.labelOffset?.y || 10
           }
-          globalPointIndex++
-        })
-      })
-      
-      // Если точки не сгруппированы по сериям, используем старый метод
-      if (seriesGroups.length === 0) {
-        const points = svg.querySelectorAll('.ct-point')
-        points.forEach((point, index) => {
-          const seriesIndex = Math.floor(index / pointsPerSeries)
-          const pointIndex = index % pointsPerSeries
-          const color = colors[seriesIndex % colors.length]
-          
-          if (point instanceof SVGCircleElement) {
-            point.style.fill = color
-            point.style.stroke = color
-            point.style.cursor = 'pointer'
-            point.style.transition = 'r 0.2s ease'
-            
-            if (showTooltip && pointIndex < data.labels.length && seriesIndex < seriesCount) {
-              const label = data.labels[pointIndex]
-              const value = seriesArray[seriesIndex]?.[pointIndex]
-              
-              if (value !== undefined && value !== null) {
-                let tooltipText = ''
-                if (tooltipFormatter) {
-                  tooltipText = tooltipFormatter(value, label, seriesIndex)
-                } else {
-                  const formattedValue = typeof value === 'number' && !isNaN(value) && isFinite(value)
-                    ? value.toLocaleString('ru-RU', { minimumFractionDigits: 2 })
-                    : '0'
-                  tooltipText = `${label}\n${formattedValue}`
-                }
-                
-                point.addEventListener('mouseenter', (e) => {
-                  if (tooltipRef.current) {
-                    const chartRect = chartRef.current?.getBoundingClientRect()
-                    if (chartRect) {
-                      const x = e.clientX - chartRect.left
-                      const y = e.clientY - chartRect.top
-                      
-                      tooltipRef.current.textContent = tooltipText
-                      tooltipRef.current.style.left = `${x}px`
-                      tooltipRef.current.style.top = `${y - 50}px`
-                      tooltipRef.current.style.transform = 'translateX(-50%)'
-                      tooltipRef.current.classList.add('visible', 'bottom')
-                      tooltipRef.current.classList.remove('top', 'left', 'right')
-                    }
-                  }
-                  point.setAttribute('r', '6')
-                })
-                
-                point.addEventListener('mouseleave', () => {
-                  if (tooltipRef.current) {
-                    tooltipRef.current.classList.remove('visible')
-                  }
-                  point.setAttribute('r', '4')
-                })
-                
-                point.addEventListener('mousemove', (e) => {
-                  if (tooltipRef.current && chartRef.current) {
-                    const chartRect = chartRef.current.getBoundingClientRect()
-                    const x = e.clientX - chartRect.left
-                    const y = e.clientY - chartRect.top
-                    
-                    tooltipRef.current.style.left = `${x}px`
-                    tooltipRef.current.style.top = `${y - 50}px`
-                  }
-                })
+        },
+        y: {
+          display: options.axisY?.showLabel !== false,
+          grid: {
+            display: options.axisY?.showGrid !== false,
+            color: 'rgba(0, 0, 0, 0.1)'
+          },
+          ticks: {
+            stepSize: options.axisY?.onlyInteger ? 1 : undefined,
+            callback: function(value: any) {
+              if (typeof value === 'number') {
+                return labelInterpolationFnc(value)
               }
+              return value
             }
-          }
-        })
-      }
-
-      // Применяем цвета к областям
-      const areas = svg.querySelectorAll('.ct-area')
-      areas.forEach((area, index) => {
-        const color = colors[index % colors.length]
-        if (area instanceof SVGPathElement) {
-          area.style.fill = color
-          area.style.fillOpacity = '0.1'
+          },
+          beginAtZero: false
         }
-      })
-    }
-
-    // Применяем стили после рендеринга
-    setTimeout(applyStyles, 100)
-
-    // Подписываемся на события обновления
-    chartInstance.current.on('draw', (data: any) => {
-      if (data.type === 'line' || data.type === 'point' || data.type === 'area') {
-        setTimeout(applyStyles, 50)
-      }
-    })
-
-    return () => {
-      if (chartInstance.current) {
-        chartInstance.current.detach()
-      }
-      if (tooltipRef.current) {
-        tooltipRef.current.remove()
-        tooltipRef.current = null
+      },
+      layout: {
+        padding: {
+          left: options.chartPadding?.left || 20,
+          right: options.chartPadding?.right || 20,
+          top: options.chartPadding?.top || 20,
+          bottom: options.chartPadding?.bottom || 20
+        }
       }
     }
-  }, [data, options, responsiveOptions, height, colors, showTooltip, tooltipFormatter])
+  }, [options, showTooltip, tooltipFormatter])
 
-  return <div ref={chartRef} className={`ct-chart ct-line-chart ${className}`} style={{ height: `${height}px` }} />
+  return (
+    <div className={`line-chart-container ${className}`} style={{ height: `${height}px` }}>
+      <Line data={chartData} options={chartOptions} />
+    </div>
+  )
 }
 
 export default LineChart
