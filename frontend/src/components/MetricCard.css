@@ -1,12 +1,13 @@
 .metric-card {
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 2px 8px var(--shadow);
-  transition: all 0.3s ease;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
+  backdrop-filter: blur(10px);
 }
 
 .metric-card::before {
@@ -16,83 +17,100 @@
   left: 0;
   right: 0;
   height: 4px;
-  background: linear-gradient(90deg, #4a90e2 0%, #357abd 100%);
+  background: linear-gradient(90deg, var(--primary-color) 0%, var(--primary-hover) 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
 .metric-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px var(--shadow-hover);
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--border-color-strong);
+}
+
+.metric-card:hover::before {
+  opacity: 1;
 }
 
 .metric-card-primary::before {
-  background: linear-gradient(90deg, #4a90e2 0%, #357abd 100%);
+  background: linear-gradient(90deg, var(--primary-color) 0%, var(--primary-hover) 100%);
 }
 
 .metric-card-success::before {
-  background: linear-gradient(90deg, #27ae60 0%, #229954 100%);
+  background: linear-gradient(90deg, var(--success-color) 0%, var(--success-hover) 100%);
 }
 
 .metric-card-warning::before {
-  background: linear-gradient(90deg, #f39c12 0%, #e67e22 100%);
+  background: linear-gradient(90deg, var(--warning-color) 0%, var(--warning-hover) 100%);
 }
 
 .metric-card-danger::before {
-  background: linear-gradient(90deg, #e74c3c 0%, #c0392b 100%);
+  background: linear-gradient(90deg, var(--danger-color) 0%, var(--danger-hover) 100%);
 }
 
 .metric-card-info::before {
-  background: linear-gradient(90deg, #3498db 0%, #2980b9 100%);
+  background: linear-gradient(90deg, var(--info-color) 0%, var(--info-hover) 100%);
 }
 
 .metric-card-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 }
 
 .metric-card-title {
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.05em;
 }
 
 .metric-card-icon {
-  font-size: 24px;
-  opacity: 0.7;
+  font-size: 28px;
+  opacity: 0.8;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.metric-card:hover .metric-card-icon {
+  transform: scale(1.1);
+  opacity: 1;
 }
 
 .metric-card-value {
-  font-size: 28px;
+  font-size: 32px;
   font-weight: 700;
   color: var(--text-primary);
   margin-bottom: 8px;
   line-height: 1.2;
+  letter-spacing: -0.02em;
 }
 
 .metric-card-subtitle {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--text-secondary);
-  margin-bottom: 8px;
+  margin-bottom: 12px;
+  font-weight: 500;
 }
 
 .metric-card-trend {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 13px;
+  gap: 8px;
+  font-size: 14px;
   font-weight: 600;
-  margin-top: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-color);
 }
 
 .trend-positive {
-  color: #27ae60;
+  color: var(--success-color);
 }
 
 .trend-negative {
-  color: #e74c3c;
+  color: var(--danger-color);
 }
 
 .trend-arrow {

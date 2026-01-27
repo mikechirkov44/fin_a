@@ -1,6 +1,7 @@
 import { useConfirm } from '../contexts/ConfirmContext'
 import { useToast } from '../contexts/ToastContext'
 import Tooltip from './Tooltip'
+import { HiOutlineTrash } from 'react-icons/hi2'
 import './BulkActions.css'
 
 interface BulkActionsProps {
@@ -60,8 +61,9 @@ const BulkActions = ({
           </Tooltip>
         )}
         <Tooltip content={deleteLabel}>
-          <button onClick={handleDelete} className="bulk-action-btn danger">
-            🗑️ Удалить
+          <button onClick={handleDelete} className="bulk-action-btn bulk-action-btn-delete">
+            <HiOutlineTrash />
+            <span>Удалить</span>
           </button>
         </Tooltip>
       </div>

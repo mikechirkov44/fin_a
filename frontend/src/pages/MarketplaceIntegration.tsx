@@ -5,7 +5,7 @@ import { useToast } from '../contexts/ToastContext'
 import { useConfirm } from '../contexts/ConfirmContext'
 import Modal from '../components/Modal'
 import { format, subDays } from 'date-fns'
-import { HiOutlinePencil, HiOutlineXMark } from 'react-icons/hi2'
+import { HiOutlinePencil, HiOutlineTrash } from 'react-icons/hi2'
 
 const MarketplaceIntegration = () => {
   const { selectedCompanyId, companies } = useAuth()
@@ -464,7 +464,7 @@ const MarketplaceIntegration = () => {
                         className="action-button action-button-compact action-button-delete"
                         title="Удалить интеграцию"
                       >
-                        <HiOutlineXMark />
+                        <HiOutlineTrash />
                       </button>
                     </div>
                   </td>

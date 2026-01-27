@@ -11,7 +11,7 @@ import Modal from '../components/Modal'
 import Pagination from '../components/Pagination'
 import Tooltip from '../components/Tooltip'
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
-import { HiOutlineXMark } from 'react-icons/hi2'
+import { HiOutlineTrash } from 'react-icons/hi2'
 
 const Products = () => {
   const { showSuccess, showError } = useToast()
@@ -533,7 +533,7 @@ const Products = () => {
                           onClick={() => handleDelete(product.id)} 
                           className="action-button action-button-compact action-button-delete"
                         >
-                          <HiOutlineXMark />
+                          <HiOutlineTrash />
                         </button>
                       </Tooltip>
                     </td>

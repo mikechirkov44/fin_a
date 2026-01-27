@@ -12,8 +12,9 @@ import Tooltip from '../components/Tooltip'
 import LoadingSpinner from '../components/LoadingSpinner'
 import EmptyState from '../components/EmptyState'
 import SkeletonLoader from '../components/SkeletonLoader'
+import CompanySelectField from '../components/CompanySelectField'
 import { useFormValidation } from '../hooks/useFormValidation'
-import { HiOutlineXMark, HiOutlineArrowDownCircle, HiOutlineArrowUpCircle } from 'react-icons/hi2'
+import { HiOutlineTrash, HiOutlineArrowDownCircle, HiOutlineArrowUpCircle } from 'react-icons/hi2'
 import { useDebounce } from '../hooks/useDebounce'
 import { useTableData, TableColumn } from '../hooks/useTableData'
 import { useDraftSave } from '../hooks/useDraftSave'
@@ -528,18 +529,14 @@ const BankCash = () => {
                 </select>
               </FormField>
               <FormField label="Организация" required error={validation.errors.company_id}>
-                <select
+                <CompanySelectField
                   value={formData.company_id}
-                  onChange={(e) => {
-                    setFormData({ ...formData, company_id: e.target.value })
+                  onChange={(value) => {
+                    setFormData({ ...formData, company_id: value })
                     validation.clearError('company_id')
                   }}
-                >
-                  <option value="">Выберите...</option>
-                  {companies.filter(c => c.is_active).map(company => (
-                    <option key={company.id} value={company.id}>{company.name}</option>
-                  ))}
-                </select>
+                  placeholder="Выберите организацию..."
+                />
               </FormField>
               <div className="form-group">
                 <label>
@@ -733,7 +730,7 @@ const BankCash = () => {
                         onClick={(e) => e.stopPropagation()}
                       />
                     </td>
-                    <td>{movement.date}</td>
+                    <td style={{ whiteSpace: 'nowrap' }}>{movement.date}</td>
                     <td>
                       {movement.movement_type === 'income' ? (
                         <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#27ae60' }}>
@@ -750,7 +747,12 @@ const BankCash = () => {
                     <td>{getCompanyName(movement.company_id)}</td>
                     <td>{getItemName(movement)}</td>
                     <td>{getPaymentPlaceName(movement.payment_place_id)}</td>
-                    <td className="text-right">{parseFloat(movement.amount).toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽</td>
+                    <td
+                      className="text-right"
+                      style={{ whiteSpace: 'nowrap' }}
+                    >
+                      {parseFloat(movement.amount).toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽
+                    </td>
                     <td>{movement.is_business ? 'Да' : 'Нет'}</td>
                     <td>{movement.description || '-'}</td>
                     <td onClick={(e) => e.stopPropagation()}>
@@ -759,7 +761,7 @@ const BankCash = () => {
                           onClick={() => handleDelete(movement.id)}
                           className="action-button action-button-compact action-button-delete"
                         >
-                          <HiOutlineXMark />
+                          <HiOutlineTrash />
                         </button>
                       </Tooltip>
                     </td>

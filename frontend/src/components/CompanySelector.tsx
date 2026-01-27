@@ -61,17 +61,16 @@ const CompanySelector: React.FC = () => {
     }
   }
 
-  if (loading || !user) return null
-
-  // Если у пользователя только одна организация и он не администратор, не показываем селектор
-  const isGlobalAdmin = user.role === 'ADMIN'
-  const hasAdminRoleInCompany = user.companies?.some((uc: any) => uc.role === 'ADMIN') || false
-  if (companies.length <= 1 && !isGlobalAdmin && !hasAdminRoleInCompany) return null
+  // Вычисляем переменные до ранних return
+  const isGlobalAdmin = user?.role === 'ADMIN'
+  const hasAdminRoleInCompany = user?.companies?.some((uc: any) => uc.role === 'ADMIN') || false
 
   // Используем те же переменные для фильтрации
-  const filteredCompanies = companies.filter(company =>
-    company.name.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  const filteredCompanies = React.useMemo(() => {
+    return companies.filter(company =>
+      company.name.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+  }, [companies, searchQuery])
 
   // Формируем список всех элементов для навигации с клавиатуры
   const allItems = React.useMemo(() => {
@@ -184,6 +183,12 @@ const CompanySelector: React.FC = () => {
     setSelectedIndex(-1)
   }
 
+  // Ранние return после всех хуков
+  if (loading || !user) return null
+
+  // Если у пользователя только одна организация и он не администратор, не показываем селектор
+  if (companies.length <= 1 && !isGlobalAdmin && !hasAdminRoleInCompany) return null
+
   return (
     <>
       <div className="company-selector">
@@ -208,7 +213,7 @@ const CompanySelector: React.FC = () => {
         isOpen={isModalOpen}
         onClose={handleCloseModal}
         title="Выбор организации"
-        maxWidth="560px"
+        maxWidth="420px"
       >
         <div className="company-selector-modal">
           <div className="company-selector-search">

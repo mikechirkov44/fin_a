@@ -10,7 +10,7 @@ import LoadingSpinner from '../components/LoadingSpinner'
 import EmptyState from '../components/EmptyState'
 import { useFormValidation } from '../hooks/useFormValidation'
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
-import { HiOutlinePencil, HiOutlineXMark } from 'react-icons/hi2'
+import { HiOutlinePencil, HiOutlineTrash } from 'react-icons/hi2'
 
 const Users = () => {
   const { isAdmin } = useAuth()
@@ -305,7 +305,7 @@ const Users = () => {
                               onClick={() => handleDelete(user.id)} 
                               className="action-button action-button-compact action-button-delete"
                             >
-                              <HiOutlineXMark />
+                              <HiOutlineTrash />
                             </button>
                           </Tooltip>
                         )}

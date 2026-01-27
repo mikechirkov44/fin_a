@@ -272,21 +272,7 @@ const Layout = () => {
         <aside className="sidebar">
           {companies.length > 0 && (
             <div className="sidebar-company-selector">
-              <label className="sidebar-company-label">Организация:</label>
-              <select
-                value={selectedCompanyId || ''}
-                onChange={(e) => setSelectedCompany(e.target.value ? parseInt(e.target.value, 10) : null)}
-                className="sidebar-company-select"
-              >
-                {user?.role === 'ADMIN' && (
-                  <option value="">Все организации</option>
-                )}
-                {companies.filter(c => c.is_active).map((company) => (
-                  <option key={company.id} value={company.id}>
-                    {company.name}
-                  </option>
-                ))}
-              </select>
+              <CompanySelector />
             </div>
           )}
           <nav className="sidebar-nav">

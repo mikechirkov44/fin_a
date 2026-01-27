@@ -8,9 +8,10 @@ import Modal from '../components/Modal'
 import Tooltip from '../components/Tooltip'
 import LoadingSpinner from '../components/LoadingSpinner'
 import EmptyState from '../components/EmptyState'
+import CompanySelectField from '../components/CompanySelectField'
 import { useFormValidation } from '../hooks/useFormValidation'
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
-import { HiOutlinePencil, HiOutlineXMark } from 'react-icons/hi2'
+import { HiOutlinePencil, HiOutlineTrash } from 'react-icons/hi2'
 
 const Warehouses = () => {
   const { selectedCompanyId, canWrite } = useAuth()
@@ -218,20 +219,14 @@ const Warehouses = () => {
               />
             </FormField>
             <FormField label="Организация" required error={validation.errors.company_id}>
-              <select
-                value={formData.company_id}
-                onChange={(e) => {
-                  setFormData({ ...formData, company_id: parseInt(e.target.value, 10) })
+              <CompanySelectField
+                value={formData.company_id ? formData.company_id.toString() : ''}
+                onChange={(value) => {
+                  setFormData({ ...formData, company_id: value ? parseInt(value, 10) : 0 })
                   validation.clearError('company_id')
                 }}
-              >
-                <option value="0">Выберите организацию</option>
-                {companies.map(company => (
-                  <option key={company.id} value={company.id}>
-                    {company.name}
-                  </option>
-                ))}
-              </select>
+                placeholder="Выберите организацию..."
+              />
             </FormField>
             <div style={{ display: 'flex', gap: '12px', marginTop: '20px', justifyContent: 'flex-end' }}>
               <button type="button" onClick={handleClose}>
@@ -306,7 +301,7 @@ const Warehouses = () => {
                               onClick={() => handleDelete(warehouse.id)} 
                               className="action-button action-button-compact action-button-delete"
                             >
-                              <HiOutlineXMark />
+                              <HiOutlineTrash />
                             </button>
                           </Tooltip>
                         </div>

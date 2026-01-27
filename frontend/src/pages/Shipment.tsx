@@ -11,9 +11,10 @@ import BulkActions from '../components/BulkActions'
 import Tooltip from '../components/Tooltip'
 import LoadingSpinner from '../components/LoadingSpinner'
 import EmptyState from '../components/EmptyState'
+import CompanySelectField from '../components/CompanySelectField'
 import { useFormValidation } from '../hooks/useFormValidation'
 import { useDebounce } from '../hooks/useDebounce'
-import { HiOutlineXMark } from 'react-icons/hi2'
+import { HiOutlineTrash } from 'react-icons/hi2'
 import { useTableData, TableColumn } from '../hooks/useTableData'
 import { useDraftSave } from '../hooks/useDraftSave'
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
@@ -398,18 +399,14 @@ const Shipment = () => {
                 </select>
               </FormField>
               <FormField label="Организация" required error={validation.errors.company_id}>
-                <select
+                <CompanySelectField
                   value={formData.company_id}
-                  onChange={(e) => {
-                    setFormData({ ...formData, company_id: e.target.value })
+                  onChange={(value) => {
+                    setFormData({ ...formData, company_id: value })
                     validation.clearError('company_id')
                   }}
-                >
-                  <option value="">Выберите...</option>
-                  {companies.filter(c => c.is_active).map(company => (
-                    <option key={company.id} value={company.id}>{company.name}</option>
-                  ))}
-                </select>
+                  placeholder="Выберите организацию..."
+                />
               </FormField>
               <FormField label="Канал продаж" required error={validation.errors.sales_channel_id}>
                 <select
@@ -641,7 +638,7 @@ const Shipment = () => {
                             onClick={() => handleDelete(shipment.id)}
                             className="action-button action-button-compact action-button-delete"
                           >
-                            <HiOutlineXMark />
+                            <HiOutlineTrash />
                           </button>
                         </Tooltip>
                       </td>

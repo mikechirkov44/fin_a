@@ -10,10 +10,11 @@ import Pagination from '../components/Pagination'
 import Tooltip from '../components/Tooltip'
 import LoadingSpinner from '../components/LoadingSpinner'
 import EmptyState from '../components/EmptyState'
+import CompanySelectField from '../components/CompanySelectField'
 import { useFormValidation } from '../hooks/useFormValidation'
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
 import { format } from 'date-fns'
-import { HiOutlineXMark } from 'react-icons/hi2'
+import { HiOutlineTrash } from 'react-icons/hi2'
 
 const Input2 = () => {
   const { selectedCompanyId, companies } = useAuth()
@@ -396,18 +397,14 @@ const Input2 = () => {
                 />
               </FormField>
               <FormField label="Организация" required error={validation.errors.company_id}>
-                <select
+                <CompanySelectField
                   value={formData.company_id}
-                  onChange={(e) => {
-                    setFormData({ ...formData, company_id: e.target.value })
+                  onChange={(value) => {
+                    setFormData({ ...formData, company_id: value })
                     validation.clearError('company_id')
                   }}
-                >
-                  <option value="">Выберите...</option>
-                  {companies.filter(c => c.is_active).map(company => (
-                    <option key={company.id} value={company.id}>{company.name}</option>
-                  ))}
-                </select>
+                  placeholder="Выберите организацию..."
+                />
               </FormField>
             </div>
             <div className="form-group">
@@ -606,7 +603,7 @@ const Input2 = () => {
                           onClick={() => handleDelete(item.id)} 
                           className="action-button action-button-compact action-button-delete"
                         >
-                          <HiOutlineXMark />
+                          <HiOutlineTrash />
                         </button>
                       </Tooltip>
                     </td>

@@ -12,8 +12,9 @@ import Tooltip from '../components/Tooltip'
 import LoadingSpinner from '../components/LoadingSpinner'
 import EmptyState from '../components/EmptyState'
 import SkeletonLoader from '../components/SkeletonLoader'
+import CompanySelectField from '../components/CompanySelectField'
 import { useFormValidation } from '../hooks/useFormValidation'
-import { HiOutlineXMark } from 'react-icons/hi2'
+import { HiOutlineTrash } from 'react-icons/hi2'
 import { useDebounce } from '../hooks/useDebounce'
 import { useTableData, TableColumn } from '../hooks/useTableData'
 import { useDraftSave } from '../hooks/useDraftSave'
@@ -528,18 +529,14 @@ const Input1 = () => {
                 </select>
               </FormField>
               <FormField label="Организация" required error={validation.errors.company_id}>
-                <select
+                <CompanySelectField
                   value={formData.company_id}
-                  onChange={(e) => {
-                    setFormData({ ...formData, company_id: e.target.value })
+                  onChange={(value) => {
+                    setFormData({ ...formData, company_id: value })
                     validation.clearError('company_id')
                   }}
-                >
-                  <option value="">Выберите...</option>
-                  {companies.filter(c => c.is_active).map(company => (
-                    <option key={company.id} value={company.id}>{company.name}</option>
-                  ))}
-                </select>
+                  placeholder="Выберите организацию..."
+                />
               </FormField>
               <div className="form-group">
                 <label>
@@ -747,7 +744,7 @@ const Input1 = () => {
                           onClick={() => handleDelete(movement.id)}
                           className="action-button action-button-compact action-button-delete"
                         >
-                          <HiOutlineXMark />
+                          <HiOutlineTrash />
                         </button>
                       </Tooltip>
                     </td>

@@ -9,7 +9,7 @@ import FormField from '../components/FormField'
 import Modal from '../components/Modal'
 import Pagination from '../components/Pagination'
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
-import { HiOutlinePencil, HiOutlineXMark } from 'react-icons/hi2'
+import { HiOutlinePencil, HiOutlineTrash } from 'react-icons/hi2'
 import '../components/CompactForm.css'
 
 const Suppliers = () => {
@@ -356,7 +356,7 @@ const Suppliers = () => {
                           className="action-button action-button-compact action-button-delete"
                           title="Удалить"
                         >
-                          <HiOutlineXMark />
+                          <HiOutlineTrash />
                         </button>
                       </div>
                     </td>

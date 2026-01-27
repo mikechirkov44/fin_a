@@ -10,10 +10,11 @@ import Pagination from '../components/Pagination'
 import BulkActions from '../components/BulkActions'
 import LoadingSpinner from '../components/LoadingSpinner'
 import EmptyState from '../components/EmptyState'
+import CompanySelectField from '../components/CompanySelectField'
 import { useFormValidation } from '../hooks/useFormValidation'
 import { useDebounce } from '../hooks/useDebounce'
 import { useTableData, TableColumn } from '../hooks/useTableData'
-import { HiOutlineXMark } from 'react-icons/hi2'
+import { HiOutlineTrash } from 'react-icons/hi2'
 import { useDraftSave } from '../hooks/useDraftSave'
 import { format } from 'date-fns'
 
@@ -155,7 +156,7 @@ const Realization = () => {
     },
     {
       key: 'revenue',
-      label: 'Выручка',
+      label: 'Сумма',
       sortable: true,
       getValue: (item) => parseFloat(item.revenue) || 0,
     },
@@ -416,18 +417,14 @@ const Realization = () => {
               />
             </FormField>
             <FormField label="Организация" required error={validation.errors.company_id}>
-              <select
+              <CompanySelectField
                 value={formData.company_id}
-                onChange={(e) => {
-                  setFormData({ ...formData, company_id: e.target.value })
+                onChange={(value) => {
+                  setFormData({ ...formData, company_id: value })
                   validation.clearError('company_id')
                 }}
-              >
-                <option value="">Выберите...</option>
-                {companies.filter(c => c.is_active).map(company => (
-                  <option key={company.id} value={company.id}>{company.name}</option>
-                ))}
-              </select>
+                placeholder="Выберите организацию..."
+              />
             </FormField>
             <FormField label="Канал продаж" required error={validation.errors.sales_channel_id}>
               <select
@@ -521,7 +518,7 @@ const Realization = () => {
                             className="action-button action-button-compact action-button-delete"
                             title="Удалить"
                           >
-                            <HiOutlineXMark />
+                            <HiOutlineTrash />
                           </button>
                         </td>
                       </tr>
@@ -690,10 +687,15 @@ const Realization = () => {
                         onClick={(e) => e.stopPropagation()}
                       />
                     </td>
-                    <td>{realization.date}</td>
+                    <td style={{ whiteSpace: 'nowrap' }}>{realization.date}</td>
                     <td>{getCompanyName(realization.company_id)}</td>
                     <td>{salesChannels.find(sc => sc.id === realization.sales_channel_id)?.name || '-'}</td>
-                    <td className="text-right">{parseFloat(realization.revenue).toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽</td>
+                    <td 
+                      className="text-right"
+                      style={{ whiteSpace: 'nowrap' }}
+                    >
+                      {parseFloat(realization.revenue).toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽
+                    </td>
                     <td className="text-right">
                       {realization.quantity}
                       {(realization.items && realization.items.length > 0) && (
@@ -709,7 +711,7 @@ const Realization = () => {
                         className="action-button action-button-compact action-button-delete"
                         title="Удалить"
                       >
-                        Удалить
+                        <HiOutlineTrash />
                       </button>
                     </td>
                   </tr>
