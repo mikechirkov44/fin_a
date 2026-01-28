@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
-import { AuthProvider } from './contexts/AuthContext'
+import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { ThemeProvider } from './contexts/ThemeContext'
 import { ToastProvider } from './contexts/ToastContext'
 import { ConfirmProvider } from './contexts/ConfirmContext'
@@ -35,6 +35,24 @@ import Settings from './pages/Settings'
 import Help from './pages/Help'
 import Recommendations from './pages/Recommendations'
 
+// Ограничение доступа по роли администратора (глобальный или в компании)
+const AdminRoute = ({ children }: { children: JSX.Element }) => {
+  const { user } = useAuth()
+  const isGlobalAdmin = user?.role === 'ADMIN'
+  const hasAdminRoleInCompany = user?.companies?.some((uc: any) => uc.role === 'ADMIN') || false
+  const isCompanyAdmin = isGlobalAdmin || hasAdminRoleInCompany
+
+  if (!user) {
+    return <Navigate to="/login" replace />
+  }
+
+  if (!isCompanyAdmin) {
+    return <Navigate to="/dashboard" replace />
+  }
+
+  return children
+}
+
 function App() {
   return (
     <ErrorBoundary>
@@ -69,9 +87,23 @@ function App() {
                     <Route path="shipment" element={<Shipment />} />
                     <Route path="products" element={<Products />} />
                     <Route path="marketplace-integration" element={<MarketplaceIntegration />} />
-                    <Route path="audit-log" element={<AuditLog />} />
+                    <Route
+                      path="audit-log"
+                      element={
+                        <AdminRoute>
+                          <AuditLog />
+                        </AdminRoute>
+                      }
+                    />
                     <Route path="budget" element={<Budget />} />
-                    <Route path="users" element={<Users />} />
+                    <Route
+                      path="users"
+                      element={
+                        <AdminRoute>
+                          <Users />
+                        </AdminRoute>
+                      }
+                    />
                     <Route path="warehouses" element={<Warehouses />} />
                     <Route path="inventory" element={<Inventory />} />
                     <Route path="inventory-transactions" element={<InventoryTransactions />} />

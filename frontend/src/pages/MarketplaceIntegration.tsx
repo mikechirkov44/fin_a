@@ -5,7 +5,7 @@ import { useToast } from '../contexts/ToastContext'
 import { useConfirm } from '../contexts/ConfirmContext'
 import Modal from '../components/Modal'
 import { format, subDays } from 'date-fns'
-import { HiOutlinePencil, HiOutlineTrash } from 'react-icons/hi2'
+import { HiOutlinePencil, HiOutlineTrash, HiOutlineArrowPath, HiOutlineLink } from 'react-icons/hi2'
 
 const MarketplaceIntegration = () => {
   const { selectedCompanyId, companies } = useAuth()
@@ -384,7 +384,7 @@ const MarketplaceIntegration = () => {
               <th>Статус</th>
               <th>Последняя синхронизация</th>
               <th>Автосинхронизация</th>
-              <th style={{ width: 'auto', minWidth: '320px' }}>Действия</th>
+              <th style={{ width: 'auto', minWidth: '200px' }}>Действия</th>
             </tr>
           </thead>
           <tbody>
@@ -426,40 +426,31 @@ const MarketplaceIntegration = () => {
                     {integration.auto_sync ? `Каждые ${integration.sync_interval_hours} ч.` : 'Нет'}
                   </td>
                   <td>
-                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
-                      <button 
+                    <div className="action-buttons-group" style={{ flexWrap: 'nowrap' }}>
+                      <button
                         onClick={() => handleTestConnection(integration)}
                         disabled={testLoading === integration.id}
-                        style={{ 
-                          padding: '4px 8px', 
-                          fontSize: '12px',
-                          whiteSpace: 'nowrap'
-                        }}
+                        className="action-button action-button-compact action-button-view"
                         title="Проверить подключение к API"
                       >
-                        {testLoading === integration.id ? '⏳' : '✓'} Проверить
+                        {testLoading === integration.id ? '⏳' : <HiOutlineLink />}
                       </button>
-                      <button 
+                      <button
                         onClick={() => handleSync(integration)}
                         disabled={syncLoading === integration.id || !integration.is_active}
-                        className="primary"
-                        style={{ 
-                          padding: '4px 8px', 
-                          fontSize: '12px',
-                          whiteSpace: 'nowrap'
-                        }}
+                        className="action-button action-button-compact action-button-update"
                         title="Синхронизировать данные с маркетплейсом"
                       >
-                        {syncLoading === integration.id ? '⏳' : '🔄'} Синхронизировать
+                        {syncLoading === integration.id ? '⏳' : <HiOutlineArrowPath />}
                       </button>
-                      <button 
+                      <button
                         onClick={() => handleEdit(integration)}
                         className="action-button action-button-compact action-button-edit"
                         title="Редактировать настройки интеграции"
                       >
                         <HiOutlinePencil />
                       </button>
-                      <button 
+                      <button
                         onClick={() => handleDelete(integration.id)}
                         className="action-button action-button-compact action-button-delete"
                         title="Удалить интеграцию"

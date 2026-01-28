@@ -26,7 +26,7 @@
 
 ```bash
 # Добавить remote (замените YOUR_USERNAME на ваш GitHub username)
-git remote add origin https://github.com/YOUR_USERNAME/fin_a.git
+git remote add origin https://github.com/mikechirkov44/fin_a.git
 
 # Или если используете SSH:
 # git remote add origin git@github.com:YOUR_USERNAME/fin_a.git

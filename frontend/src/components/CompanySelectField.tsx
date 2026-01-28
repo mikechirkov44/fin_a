@@ -183,6 +183,9 @@ const CompanySelectField: React.FC<CompanySelectFieldProps> = ({
             alignItems: 'center',
             justifyContent: 'space-between',
             transition: 'all 0.2s ease',
+            height: '40px',
+            minHeight: '40px',
+            boxSizing: 'border-box',
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.borderColor = 'var(--border-color-strong)'

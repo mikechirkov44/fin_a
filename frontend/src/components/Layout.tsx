@@ -95,6 +95,7 @@ const Layout = () => {
     const bankCashPaths = ['/bank-cash', '/account-balances']
     const warehousePaths = ['/inventory-transactions', '/warehouse-reports']
     const referencePaths = ['/reference', '/warehouses', '/customers', '/suppliers']
+    const settingsPaths = ['/settings', '/marketplace-integration', '/audit-log', '/users']
     
     if (financePaths.includes(location.pathname) && 
         !expandedItems.includes('/cash-flow') && 
@@ -116,12 +117,18 @@ const Layout = () => {
         !manuallyCollapsedRef.current.has('/reference')) {
       setExpandedItems(prev => [...prev, '/reference'])
     }
+    if (settingsPaths.includes(location.pathname) &&
+        !expandedItems.includes('/settings') &&
+        !manuallyCollapsedRef.current.has('/settings')) {
+      setExpandedItems(prev => [...prev, '/settings'])
+    }
   }, [location.pathname])
 
   // Проверяем, является ли пользователь администратором (глобально или в организации)
   const isGlobalAdmin = user?.role === 'ADMIN'
   const hasAdminRoleInCompany = user?.companies?.some((uc: any) => uc.role === 'ADMIN') || false
-  const canManageUsers = isGlobalAdmin || hasAdminRoleInCompany
+  // Администратором считаем либо глобального ADMIN, либо ADMIN в рамках компании
+  const isCompanyAdmin = isGlobalAdmin || hasAdminRoleInCompany
 
   const menuItems: MenuItem[] = [
     { path: '/dashboard', label: 'Главное', icon: <HiOutlineHome /> },
@@ -169,12 +176,21 @@ const Layout = () => {
       ]
     },
     { path: '/recommendations', label: 'Рекомендации', icon: <HiOutlineLightningBolt /> },
-    { path: '/marketplace-integration', label: 'Интеграции', icon: <HiOutlineLink /> },
     { path: '/budget', label: 'Бюджетирование', icon: <HiOutlineTrendingUp /> },
-    { path: '/audit-log', label: 'История изменений', icon: <HiOutlineDocumentText /> },
-    { path: '/settings', label: 'Настройки', icon: <HiOutlineCog6Tooth /> },
+    { 
+      path: '/settings', 
+      label: 'Настройки', 
+      icon: <HiOutlineCog6Tooth />,
+      children: [
+        { path: '/settings', label: 'Общие настройки' },
+        { path: '/marketplace-integration', label: 'Интеграции' },
+        // История изменений только для администраторов
+        ...(isCompanyAdmin ? [{ path: '/audit-log', label: 'История изменений' }] : []),
+        // Пользователи только для администраторов
+        ...(isCompanyAdmin ? [{ path: '/users', label: 'Пользователи' }] : []),
+      ]
+    },
     { path: '/help', label: 'Справка', icon: <HiOutlineQuestionMarkCircle /> },
-    ...(canManageUsers ? [{ path: '/users', label: 'Пользователи', icon: <HiOutlineUserGroup /> }] : []),
   ]
 
   const toggleExpanded = (path: string) => {
@@ -360,6 +376,14 @@ const Layout = () => {
           </div>
         </main>
       </div>
+
+      <footer className="layout-footer">
+        <div className="layout-footer-content">
+          <span className="layout-footer-text">
+            Управление предприятием v.1.0 — Mikhail Chirkov, 2026
+          </span>
+        </div>
+      </footer>
     </div>
   )
 }

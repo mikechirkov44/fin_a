@@ -604,38 +604,40 @@ const Budget = () => {
           
           <div className="card">
             <div className="card-header">Сравнение план/факт</div>
-            <table>
-              <thead>
-                <tr>
-                  <th>Статья</th>
-                  <th>План</th>
-                  <th>Факт</th>
-                  <th>Отклонение</th>
-                  <th>Отклонение %</th>
-                </tr>
-              </thead>
-              <tbody>
-                {comparison.length === 0 ? (
+            <div className="table-container">
+              <table>
+                <thead>
                   <tr>
-                    <td colSpan={5} className="text-center">Нет данных для сравнения</td>
+                    <th>Статья</th>
+                    <th className="text-right">План</th>
+                    <th className="text-right">Факт</th>
+                    <th className="text-right">Отклонение</th>
+                    <th className="text-right">Отклонение %</th>
                   </tr>
-                ) : (
-                  comparison.map((item) => (
-                    <tr key={item.budget_id}>
-                      <td>{item.item_name || '-'}</td>
-                      <td className="text-right">{item.planned_amount.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽</td>
-                      <td className="text-right">{item.actual_amount.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽</td>
-                      <td className={`text-right ${item.deviation >= 0 ? 'text-success' : 'text-danger'}`}>
-                        {item.deviation >= 0 ? '+' : ''}{item.deviation.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽
-                      </td>
-                      <td className={`text-right ${item.deviation_percent >= 0 ? 'text-success' : 'text-danger'}`}>
-                        {item.deviation_percent >= 0 ? '+' : ''}{item.deviation_percent.toFixed(2)}%
-                      </td>
+                </thead>
+                <tbody>
+                  {comparison.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="text-center">Нет данных для сравнения</td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ) : (
+                    comparison.map((item) => (
+                      <tr key={item.budget_id}>
+                        <td>{item.item_name || '-'}</td>
+                        <td className="text-right">{item.planned_amount.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽</td>
+                        <td className="text-right">{item.actual_amount.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽</td>
+                        <td className={`text-right ${item.deviation >= 0 ? 'text-success' : 'text-danger'}`}>
+                          {item.deviation >= 0 ? '+' : ''}{item.deviation.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽
+                        </td>
+                        <td className={`text-right ${item.deviation_percent >= 0 ? 'text-success' : 'text-danger'}`}>
+                          {item.deviation_percent >= 0 ? '+' : ''}{item.deviation_percent.toFixed(2)}%
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </>
       )}

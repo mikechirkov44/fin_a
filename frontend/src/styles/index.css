@@ -523,6 +523,13 @@ textarea {
   line-height: 1.5;
 }
 
+/* Единая высота для полей ввода (кроме textarea) */
+input,
+select {
+  height: 40px;
+  min-height: 40px;
+}
+
 input:hover,
 select:hover,
 textarea:hover {
