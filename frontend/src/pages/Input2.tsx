@@ -14,7 +14,8 @@ import CompanySelectField from '../components/CompanySelectField'
 import { useFormValidation } from '../hooks/useFormValidation'
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
 import { format } from 'date-fns'
-import { HiOutlineTrash } from 'react-icons/hi2'
+import { HiOutlineTrash, HiOutlinePlus } from 'react-icons/hi2'
+import { Button, Input, Select, SearchInput } from '../components/ui'
 
 const Input2 = () => {
   const { selectedCompanyId, companies } = useAuth()
@@ -327,19 +328,19 @@ const Input2 = () => {
   return (
     <div>
       <div style={{ marginBottom: '16px' }}>
-        <button
+        <Button
           onClick={() => { setActiveTab('assets'); setShowForm(false); setEditingItem(null) }}
-          className={activeTab === 'assets' ? 'primary' : ''}
+          variant={activeTab === 'assets' ? 'primary' : 'secondary'}
           style={{ marginRight: '8px' }}
         >
           Активы
-        </button>
-        <button
+        </Button>
+        <Button
           onClick={() => { setActiveTab('liabilities'); setShowForm(false); setEditingItem(null) }}
-          className={activeTab === 'liabilities' ? 'primary' : ''}
+          variant={activeTab === 'liabilities' ? 'primary' : 'secondary'}
         >
           Обязательства
-        </button>
+        </Button>
       </div>
 
       <Modal
@@ -351,7 +352,7 @@ const Input2 = () => {
         <form onSubmit={handleSubmit}>
             <div className="form-row">
               <FormField label="Наименование" required error={validation.errors.name}>
-                <input
+                <Input
                   type="text"
                   value={formData.name}
                   onChange={(e) => {
@@ -361,21 +362,24 @@ const Input2 = () => {
                 />
               </FormField>
               <FormField label="Категория" required error={validation.errors.category}>
-                <select
+                <Select
                   value={formData.category}
                   onChange={(e) => {
                     setFormData({ ...formData, category: e.target.value })
                     validation.clearError('category')
                   }}
-                >
-                  <option value="">Выберите...</option>
-                  {categories.map(cat => (
-                    <option key={cat.value} value={cat.value}>{cat.label}</option>
-                  ))}
-                </select>
+                  placeholder="Выберите..."
+                  options={[
+                    { value: '', label: 'Выберите...' },
+                    ...categories.map(cat => ({
+                      value: cat.value,
+                      label: cat.label
+                    }))
+                  ]}
+                />
               </FormField>
               <FormField label="Стоимость" required error={validation.errors.value}>
-                <input
+                <Input
                   type="number"
                   step="0.01"
                   min="0"
@@ -387,7 +391,7 @@ const Input2 = () => {
                 />
               </FormField>
               <FormField label="Дата" required error={validation.errors.date}>
-                <input
+                <Input
                   type="date"
                   value={formData.date}
                   onChange={(e) => {
@@ -416,12 +420,12 @@ const Input2 = () => {
               />
             </div>
             <div style={{ display: 'flex', gap: '12px', marginTop: '20px', justifyContent: 'flex-end' }}>
-              <button type="button" onClick={handleClose}>
+              <Button type="button" variant="secondary" onClick={handleClose}>
                 Отмена
-              </button>
-              <button type="submit" className="primary">
+              </Button>
+              <Button type="submit" variant="primary">
                 Сохранить
-              </button>
+              </Button>
             </div>
           </form>
       </Modal>
@@ -431,20 +435,20 @@ const Input2 = () => {
         <div style={{ marginBottom: '12px', display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', gap: '8px' }}>
             <Tooltip content="Создать новую запись (Ctrl+N)">
-              <button onClick={() => { setShowForm(true); setEditingItem(null); resetForm() }} className="primary">
+              <Button variant="primary" icon={<HiOutlinePlus />} onClick={() => { setShowForm(true); setEditingItem(null); resetForm() }}>
                 Добавить
-              </button>
+              </Button>
             </Tooltip>
             <Tooltip content="Экспортировать в Excel">
-              <button 
+              <Button 
+                variant="secondary"
                 onClick={() => activeTab === 'assets' 
                   ? exportService.exportAssets({ format: 'xlsx' })
                   : exportService.exportLiabilities({ format: 'xlsx' })
                 }
-                style={{ fontSize: '13px' }}
               >
                 Экспорт Excel
-              </button>
+              </Button>
             </Tooltip>
             <Tooltip content="Импортировать из файла">
               <label style={{ display: 'inline-block' }}>
@@ -472,51 +476,35 @@ const Input2 = () => {
                   }}
                   style={{ display: 'none' }}
                 />
-                <button type="button" onClick={() => document.getElementById('import-file-input-input2')?.click()}>
+                <Button type="button" variant="secondary" onClick={() => document.getElementById('import-file-input-input2')?.click()}>
                   Импорт
-                </button>
+                </Button>
               </label>
             </Tooltip>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <select
+            <Select
               value={filterCompanyId}
               onChange={(e) => setFilterCompanyId(e.target.value)}
-              style={{
-                padding: '4px 8px',
-                border: '1px solid #808080',
-                fontSize: '13px',
-                width: '180px'
-              }}
-            >
-              <option value="">Все организации</option>
-              {companies.filter(c => c.is_active).map(company => (
-                <option key={company.id} value={company.id}>{company.name}</option>
-              ))}
-            </select>
-            <input
-              type="text"
+              placeholder="Все организации"
+              options={[
+                { value: '', label: 'Все организации' },
+                ...companies.filter(c => c.is_active).map(company => ({
+                  value: company.id.toString(),
+                  label: company.name
+                }))
+              ]}
+              fullWidth={false}
+              style={{ width: '180px' }}
+            />
+            <SearchInput
               placeholder="Поиск..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              style={{
-                padding: '4px 8px',
-                border: '1px solid #808080',
-                fontSize: '13px',
-                width: '200px'
-              }}
+              onClear={() => setSearchQuery('')}
+              fullWidth={false}
+              style={{ width: '200px' }}
             />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                style={{
-                  padding: '4px 8px',
-                  fontSize: '12px'
-                }}
-              >
-                ✕
-              </button>
-            )}
           </div>
         </div>
         <div className="table-container">
@@ -599,12 +587,12 @@ const Input2 = () => {
                     <td>{item.description || '-'}</td>
                     <td onClick={(e) => e.stopPropagation()}>
                       <Tooltip content="Удалить запись">
-                        <button 
+                        <Button 
+                          variant="danger"
+                          size="small"
                           onClick={() => handleDelete(item.id)} 
-                          className="action-button action-button-compact action-button-delete"
-                        >
-                          <HiOutlineTrash />
-                        </button>
+                          icon={<HiOutlineTrash />}
+                        />
                       </Tooltip>
                     </td>
                   </tr>

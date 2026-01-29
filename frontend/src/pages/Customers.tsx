@@ -9,7 +9,8 @@ import FormField from '../components/FormField'
 import Modal from '../components/Modal'
 import Pagination from '../components/Pagination'
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
-import { HiOutlinePencil, HiOutlineTrash } from 'react-icons/hi2'
+import { HiOutlinePencil, HiOutlineTrash, HiOutlinePlus } from 'react-icons/hi2'
+import { Button, Input, SearchInput, Select } from '../components/ui'
 import '../components/CompactForm.css'
 
 const Customers = () => {
@@ -250,22 +251,18 @@ const Customers = () => {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
         <div style={{ display: 'flex', gap: '12px', flex: 1 }}>
-          <input
-            type="text"
+          <SearchInput
             placeholder="Поиск клиентов..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            style={{
-              padding: '8px 12px',
-              border: '1px solid var(--input-border)',
-              borderRadius: '4px',
-              fontSize: '14px',
-              flex: 1,
-              maxWidth: '400px'
-            }}
+            onClear={() => setSearchQuery('')}
+            fullWidth={false}
+            style={{ maxWidth: '400px' }}
           />
         </div>
-        <button
+        <Button
+          variant="primary"
+          icon={<HiOutlinePlus />}
           onClick={() => {
             setEditingItem(null)
             setFormData({
@@ -283,18 +280,9 @@ const Customers = () => {
             })
             setShowForm(true)
           }}
-          style={{
-            padding: '8px 16px',
-            backgroundColor: 'var(--primary-color)',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            fontWeight: 'bold'
-          }}
         >
-          + Добавить клиента
-        </button>
+          Добавить клиента
+        </Button>
       </div>
 
       {customers.length === 0 ? (
@@ -331,27 +319,32 @@ const Customers = () => {
                     <td>{customer.ltv ? `${parseFloat(customer.ltv).toLocaleString('ru-RU')} ₽` : '-'}</td>
                     <td>
                       <div className="action-buttons-group">
-                        <button
+                        <Button
+                          variant="primary"
+                          size="small"
                           onClick={() => handleEdit(customer)}
-                          className="action-button action-button-compact action-button-edit"
+                          icon={<HiOutlinePencil />}
                           title="Редактировать"
                         >
-                          <HiOutlinePencil />
-                        </button>
-                        <button
+                          <span style={{ display: 'none' }}></span>
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          size="small"
                           onClick={() => handleUpdateMetrics(customer.id)}
-                          className="action-button action-button-compact action-button-update"
                           title="Обновить метрики"
                         >
                           ↻
-                        </button>
-                        <button
+                        </Button>
+                        <Button
+                          variant="danger"
+                          size="small"
                           onClick={() => handleDelete(customer.id)}
-                          className="action-button action-button-compact action-button-delete"
+                          icon={<HiOutlineTrash />}
                           title="Удалить"
                         >
-                          <HiOutlineTrash />
-                        </button>
+                          <span style={{ display: 'none' }}></span>
+                        </Button>
                       </div>
                     </td>
                   </tr>
@@ -385,7 +378,7 @@ const Customers = () => {
               <div className="compact-form-section-title">Основная информация</div>
               <div className="compact-form-grid">
                 <FormField label="Имя" required>
-                  <input
+                  <Input
                     type="text"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -393,44 +386,41 @@ const Customers = () => {
                   />
                 </FormField>
                 <FormField label="Организация">
-                  <select
+                  <Select
                     value={formData.company_id}
                     onChange={(e) => setFormData({ ...formData, company_id: e.target.value })}
-                  >
-                    {companies.map((c: any) => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
-                  </select>
+                    options={companies.map((c: any) => ({ value: c.id, label: c.name }))}
+                  />
                 </FormField>
                 <FormField label="Тип">
-                  <select
+                  <Select
                     value={formData.type}
                     onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                  >
-                    <option value="individual">Физическое лицо</option>
-                    <option value="company">Юридическое лицо</option>
-                  </select>
+                    options={[
+                      { value: 'individual', label: 'Физическое лицо' },
+                      { value: 'company', label: 'Юридическое лицо' }
+                    ]}
+                  />
                 </FormField>
                 <FormField label="Сегмент">
-                  <select
+                  <Select
                     value={formData.segment_id}
                     onChange={(e) => setFormData({ ...formData, segment_id: e.target.value })}
-                  >
-                    <option value="">Не выбран</option>
-                    {segments.map((s: any) => (
-                      <option key={s.id} value={s.id}>{s.name}</option>
-                    ))}
-                  </select>
+                    options={[
+                      { value: '', label: 'Не выбран' },
+                      ...segments.map((s: any) => ({ value: s.id, label: s.name }))
+                    ]}
+                  />
                 </FormField>
                 <FormField label="Телефон">
-                  <input
+                  <Input
                     type="text"
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   />
                 </FormField>
                 <FormField label="Email">
-                  <input
+                  <Input
                     type="email"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
@@ -453,14 +443,14 @@ const Customers = () => {
                 <div className="compact-form-section-title">Реквизиты юридического лица</div>
                 <div className="compact-form-grid">
                   <FormField label="ИНН">
-                    <input
+                    <Input
                       type="text"
                       value={formData.inn}
                       onChange={(e) => setFormData({ ...formData, inn: e.target.value })}
                     />
                   </FormField>
                   <FormField label="КПП">
-                    <input
+                    <Input
                       type="text"
                       value={formData.kpp}
                       onChange={(e) => setFormData({ ...formData, kpp: e.target.value })}
@@ -469,7 +459,7 @@ const Customers = () => {
                 </div>
                 <div className="compact-form-grid full-width">
                   <FormField label="Юридическое название">
-                    <input
+                    <Input
                       type="text"
                       value={formData.legal_name}
                       onChange={(e) => setFormData({ ...formData, legal_name: e.target.value })}
@@ -492,22 +482,22 @@ const Customers = () => {
             </div>
 
             <div className="compact-form-actions">
-              <button
+              <Button
                 type="button"
+                variant="secondary"
                 onClick={() => {
                   setShowForm(false)
                   setEditingItem(null)
                 }}
-                className="compact-form-button-cancel"
               >
                 Отмена
-              </button>
-              <button
+              </Button>
+              <Button
                 type="submit"
-                className="compact-form-button-submit"
+                variant="primary"
               >
                 Сохранить
-              </button>
+              </Button>
             </div>
           </form>
         </Modal>

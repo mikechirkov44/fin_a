@@ -1,0 +1,62 @@
+/* Унифицированный компонент SearchInput */
+
+.ui-search-input {
+  position: relative;
+}
+
+.ui-search-input--full-width {
+  width: 100%;
+}
+
+.ui-search-input__input {
+  transition: width 0.2s ease;
+}
+
+.ui-search-input__clear {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.ui-search-input__clear:hover {
+  color: var(--text-primary);
+  background-color: var(--hover-bg);
+}
+
+.ui-search-input__clear:focus-visible {
+  box-shadow: 0 0 0 2px var(--primary-light);
+}
+
+.ui-search-input__clear svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Адаптивность для глобального поиска */
+.ui-search-input.ui-search-input--global {
+  width: 240px;
+}
+
+.ui-search-input.ui-search-input--global .ui-input:focus {
+  width: 280px;
+}
+
+@media (max-width: 768px) {
+  .ui-search-input.ui-search-input--global {
+    width: 100%;
+  }
+  
+  .ui-search-input.ui-search-input--global .ui-input:focus {
+    width: 100%;
+  }
+}

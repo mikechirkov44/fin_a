@@ -14,11 +14,12 @@ import EmptyState from '../components/EmptyState'
 import CompanySelectField from '../components/CompanySelectField'
 import { useFormValidation } from '../hooks/useFormValidation'
 import { useDebounce } from '../hooks/useDebounce'
-import { HiOutlineTrash } from 'react-icons/hi2'
+import { HiOutlineTrash, HiOutlinePlus } from 'react-icons/hi2'
 import { useTableData, TableColumn } from '../hooks/useTableData'
 import { useDraftSave } from '../hooks/useDraftSave'
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
 import { format } from 'date-fns'
+import { Button, Input, Select, SearchInput } from '../components/ui'
 
 const Shipment = () => {
   const { selectedCompanyId, companies } = useAuth()
@@ -375,7 +376,7 @@ const Shipment = () => {
         <form onSubmit={handleSubmit}>
             <div className="form-row">
               <FormField label="Дата" required error={validation.errors.date}>
-                <input
+                <Input
                   type="date"
                   value={formData.date}
                   onChange={(e) => {
@@ -385,18 +386,21 @@ const Shipment = () => {
                 />
               </FormField>
               <FormField label="Товар" error={validation.errors.product_id}>
-                <select
+                <Select
                   value={formData.product_id}
                   onChange={(e) => {
                     setFormData({ ...formData, product_id: e.target.value })
                     validation.clearError('product_id')
                   }}
-                >
-                  <option value="">Не указан</option>
-                  {products.map(product => (
-                    <option key={product.id} value={product.id}>{product.name}</option>
-                  ))}
-                </select>
+                  placeholder="Не указан"
+                  options={[
+                    { value: '', label: 'Не указан' },
+                    ...products.map(product => ({
+                      value: product.id.toString(),
+                      label: product.name
+                    }))
+                  ]}
+                />
               </FormField>
               <FormField label="Организация" required error={validation.errors.company_id}>
                 <CompanySelectField
@@ -409,23 +413,26 @@ const Shipment = () => {
                 />
               </FormField>
               <FormField label="Канал продаж" required error={validation.errors.sales_channel_id}>
-                <select
+                <Select
                   value={formData.sales_channel_id}
                   onChange={(e) => {
                     setFormData({ ...formData, sales_channel_id: e.target.value })
                     validation.clearError('sales_channel_id')
                   }}
-                >
-                  <option value="">Выберите...</option>
-                  {salesChannels.filter(sc => sc.is_active).map(channel => (
-                    <option key={channel.id} value={channel.id}>{channel.name}</option>
-                  ))}
-                </select>
+                  placeholder="Выберите..."
+                  options={[
+                    { value: '', label: 'Выберите...' },
+                    ...salesChannels.filter(sc => sc.is_active).map(channel => ({
+                      value: channel.id.toString(),
+                      label: channel.name
+                    }))
+                  ]}
+                />
               </FormField>
             </div>
             <div className="form-row">
               <FormField label="Количество" required error={validation.errors.quantity}>
-                <input
+                <Input
                   type="number"
                   min="0"
                   value={formData.quantity}
@@ -436,7 +443,7 @@ const Shipment = () => {
                 />
               </FormField>
               <FormField label="Себестоимость (за единицу)" required error={validation.errors.cost_price}>
-                <input
+                <Input
                   type="number"
                   step="0.01"
                   min="0"
@@ -456,12 +463,12 @@ const Shipment = () => {
               />
             </FormField>
             <div style={{ display: 'flex', gap: '12px', marginTop: '20px', justifyContent: 'flex-end' }}>
-              <button type="button" onClick={handleClose}>
+              <Button type="button" variant="secondary" onClick={handleClose}>
                 Отмена
-              </button>
-              <button type="submit" className="primary">
+              </Button>
+              <Button type="submit" variant="primary">
                 Сохранить
-              </button>
+              </Button>
             </div>
           </form>
       </Modal>
@@ -469,14 +476,14 @@ const Shipment = () => {
       <div className="card">
         <div style={{ marginBottom: '12px', display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'space-between' }}>
             <Tooltip content="Создать новую отгрузку (Ctrl+N)">
-              <button onClick={() => { setShowForm(true); setEditingItem(null); resetForm() }} className="primary">
+              <Button variant="primary" icon={<HiOutlinePlus />} onClick={() => { setShowForm(true); setEditingItem(null); resetForm() }}>
                 Добавить
-              </button>
+              </Button>
             </Tooltip>
             <Tooltip content="Экспортировать в Excel">
-              <button onClick={() => exportService.exportShipments({ format: 'xlsx' })}>
+              <Button variant="secondary" onClick={() => exportService.exportShipments({ format: 'xlsx' })}>
                 Экспорт Excel
-              </button>
+              </Button>
             </Tooltip>
             <Tooltip content="Импортировать из файла">
               <label style={{ display: 'inline-block' }}>
@@ -502,50 +509,34 @@ const Shipment = () => {
                   }}
                   style={{ display: 'none' }}
                 />
-                <button type="button" onClick={() => document.getElementById('import-file-input-shipment')?.click()}>
+                <Button type="button" variant="secondary" onClick={() => document.getElementById('import-file-input-shipment')?.click()}>
                   Импорт
-                </button>
+                </Button>
               </label>
             </Tooltip>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <select
+            <Select
               value={filterCompanyId}
               onChange={(e) => setFilterCompanyId(e.target.value)}
-              style={{
-                padding: '4px 8px',
-                border: '1px solid #808080',
-                fontSize: '13px',
-                width: '180px'
-              }}
-            >
-              <option value="">Все организации</option>
-              {companies.filter(c => c.is_active).map(company => (
-                <option key={company.id} value={company.id}>{company.name}</option>
-              ))}
-            </select>
-            <input
-              type="text"
+              placeholder="Все организации"
+              options={[
+                { value: '', label: 'Все организации' },
+                ...companies.filter(c => c.is_active).map(company => ({
+                  value: company.id.toString(),
+                  label: company.name
+                }))
+              ]}
+              fullWidth={false}
+              style={{ width: '180px' }}
+            />
+            <SearchInput
               placeholder="Поиск..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              style={{
-                padding: '4px 8px',
-                border: '1px solid #808080',
-                fontSize: '13px',
-                width: '200px'
-              }}
+              onClear={() => setSearchQuery('')}
+              fullWidth={false}
+              style={{ width: '200px' }}
             />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                style={{
-                  padding: '4px 8px',
-                  fontSize: '12px'
-                }}
-              >
-                ✕
-              </button>
-            )}
           </div>
         </div>
         {selectedItems.size > 0 && (
@@ -634,12 +625,12 @@ const Shipment = () => {
                       <td>{shipment.description || '-'}</td>
                       <td onClick={(e) => e.stopPropagation()}>
                         <Tooltip content="Удалить отгрузку">
-                          <button
+                          <Button
+                            variant="danger"
+                            size="small"
                             onClick={() => handleDelete(shipment.id)}
-                            className="action-button action-button-compact action-button-delete"
-                          >
-                            <HiOutlineTrash />
-                          </button>
+                            icon={<HiOutlineTrash />}
+                          />
                         </Tooltip>
                       </td>
                     </tr>

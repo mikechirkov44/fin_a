@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { referenceService } from '../services/api'
 import Modal from './Modal'
-import { HiOutlineBuildingOffice, HiOutlineCheck, HiOutlineMagnifyingGlass, HiOutlineXMark } from 'react-icons/hi2'
+import { HiOutlineBuildingOffice, HiOutlineCheck } from 'react-icons/hi2'
+import { Button, SearchInput } from './ui'
 import './CompanySelector.css'
 
 interface Company {
@@ -18,7 +19,7 @@ const CompanySelector: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedIndex, setSelectedIndex] = useState(-1)
-  const searchInputRef = useRef<HTMLInputElement>(null)
+  const searchInputRef = useRef<HTMLInputElement | null>(null)
   const listRef = useRef<HTMLDivElement>(null)
 
   React.useEffect(() => {
@@ -192,11 +193,12 @@ const CompanySelector: React.FC = () => {
   return (
     <>
       <div className="company-selector">
-        <button
-          className="company-selector-button"
+        <Button
+          variant="secondary"
           onClick={() => setIsModalOpen(true)}
-          type="button"
+          className="company-selector-button"
           aria-label="Выбрать организацию"
+          fullWidth
         >
           <div className="company-selector-button-content">
             <HiOutlineBuildingOffice className="company-selector-icon" />
@@ -206,7 +208,7 @@ const CompanySelector: React.FC = () => {
             </div>
           </div>
           <span className="company-selector-arrow">▼</span>
-        </button>
+        </Button>
       </div>
 
       <Modal
@@ -217,31 +219,19 @@ const CompanySelector: React.FC = () => {
       >
         <div className="company-selector-modal">
           <div className="company-selector-search">
-            <div className="company-selector-search-wrapper">
-              <HiOutlineMagnifyingGlass className="company-selector-search-icon" />
-              <input
-                ref={searchInputRef}
-                type="text"
-                placeholder="Поиск организации..."
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value)
-                  setSelectedIndex(-1)
-                }}
-                className="company-selector-search-input"
-                autoFocus
-              />
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={handleClearSearch}
-                  className="company-selector-search-clear"
-                  aria-label="Очистить поиск"
-                >
-                  <HiOutlineXMark />
-                </button>
-              )}
-            </div>
+            <SearchInput
+              ref={searchInputRef}
+              placeholder="Поиск организации..."
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value)
+                setSelectedIndex(-1)
+              }}
+              onClear={handleClearSearch}
+              className="company-selector-search-input"
+              autoFocus
+              fullWidth
+            />
           </div>
 
           <div className="company-selector-list" ref={listRef}>
@@ -275,13 +265,14 @@ const CompanySelector: React.FC = () => {
                   {searchQuery ? 'Организации не найдены' : 'Нет доступных организаций'}
                 </div>
                 {searchQuery && (
-                  <button
-                    type="button"
+                  <Button
+                    variant="primary"
+                    size="small"
                     onClick={handleClearSearch}
                     className="company-selector-empty-clear"
                   >
                     Очистить поиск
-                  </button>
+                  </Button>
                 )}
               </div>
             ) : (

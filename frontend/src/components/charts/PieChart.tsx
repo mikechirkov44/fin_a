@@ -110,7 +110,7 @@ const PieChart = ({
             padding: 15,
             usePointStyle: true,
             font: {
-              size: 12
+              size: 14
             },
             generateLabels: (chart: any) => {
               const data = chart.data
@@ -155,7 +155,14 @@ const PieChart = ({
           borderColor: 'rgba(255, 255, 255, 0.1)',
           borderWidth: 1,
           padding: 12,
-          displayColors: true
+          displayColors: true,
+          titleFont: {
+            size: 16,
+            weight: 'bold' as const
+          },
+          bodyFont: {
+            size: 15
+          }
         }
       },
       cutout: options.donut ? `${options.donutWidth || 60}%` : 0,

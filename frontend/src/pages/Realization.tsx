@@ -14,9 +14,10 @@ import CompanySelectField from '../components/CompanySelectField'
 import { useFormValidation } from '../hooks/useFormValidation'
 import { useDebounce } from '../hooks/useDebounce'
 import { useTableData, TableColumn } from '../hooks/useTableData'
-import { HiOutlineTrash } from 'react-icons/hi2'
+import { HiOutlineTrash, HiOutlinePlus } from 'react-icons/hi2'
 import { useDraftSave } from '../hooks/useDraftSave'
 import { format } from 'date-fns'
+import { Button, Input, Select, SearchInput } from '../components/ui'
 
 interface RealizationItem {
   product_id: string
@@ -407,7 +408,7 @@ const Realization = () => {
         <form onSubmit={handleSubmit}>
           <div className="form-row">
             <FormField label="Дата" required error={validation.errors.date}>
-              <input
+              <Input
                 type="date"
                 value={formData.date}
                 onChange={(e) => {
@@ -427,25 +428,25 @@ const Realization = () => {
               />
             </FormField>
             <FormField label="Канал продаж" required error={validation.errors.sales_channel_id}>
-              <select
+              <Select
                 value={formData.sales_channel_id}
                 onChange={(e) => {
                   setFormData({ ...formData, sales_channel_id: e.target.value })
                   validation.clearError('sales_channel_id')
                 }}
-              >
-                <option value="">Выберите...</option>
-                {salesChannels.filter(sc => sc.is_active).map(channel => (
-                  <option key={channel.id} value={channel.id}>{channel.name}</option>
-                ))}
-              </select>
+                placeholder="Выберите..."
+                options={salesChannels.filter(sc => sc.is_active).map(channel => ({
+                  value: channel.id,
+                  label: channel.name
+                }))}
+              />
             </FormField>
           </div>
           <FormField label="Товары" required>
             <div style={{ marginBottom: '8px' }}>
-              <button type="button" onClick={addItem} style={{ fontSize: '14px', padding: '6px 12px' }}>
-                + Добавить товар
-              </button>
+              <Button type="button" variant="secondary" size="small" icon={<HiOutlinePlus />} onClick={addItem}>
+                Добавить товар
+              </Button>
             </div>
             {formData.items.length === 0 ? (
               <div style={{ padding: '12px', textAlign: 'center', color: '#666', border: '1px dashed #ccc', borderRadius: '4px' }}>
@@ -468,58 +469,61 @@ const Realization = () => {
                     {formData.items.map((item, index) => (
                       <tr key={index}>
                         <td style={{ padding: '4px' }}>
-                          <select
+                          <Select
                             value={item.product_id}
                             onChange={(e) => updateItem(index, 'product_id', e.target.value)}
-                            style={{ width: '100%', padding: '4px' }}
-                          >
-                            <option value="">Выберите...</option>
-                            {products.map(product => (
-                              <option key={product.id} value={product.id}>{product.name}</option>
-                            ))}
-                          </select>
+                            placeholder="Выберите..."
+                            options={[
+                              { value: '', label: 'Выберите...' },
+                              ...products.map(product => ({
+                                value: product.id.toString(),
+                                label: product.name
+                              }))
+                            ]}
+                            fullWidth
+                          />
                         </td>
                         <td style={{ padding: '4px' }}>
-                          <input
+                          <Input
                             type="number"
                             min="1"
                             value={item.quantity}
                             onChange={(e) => updateItem(index, 'quantity', e.target.value)}
-                            style={{ width: '100%', padding: '4px', textAlign: 'right' }}
+                            fullWidth
                           />
                         </td>
                         <td style={{ padding: '4px' }}>
-                          <input
+                          <Input
                             type="number"
                             step="0.01"
                             min="0"
                             value={item.price}
                             onChange={(e) => updateItem(index, 'price', e.target.value)}
-                            style={{ width: '100%', padding: '4px', textAlign: 'right' }}
+                            fullWidth
                           />
                         </td>
                         <td style={{ padding: '4px' }}>
-                          <input
+                          <Input
                             type="number"
                             step="0.01"
                             min="0"
                             value={item.cost_price}
                             onChange={(e) => updateItem(index, 'cost_price', e.target.value)}
-                            style={{ width: '100%', padding: '4px', textAlign: 'right' }}
+                            fullWidth
                           />
                         </td>
                         <td style={{ padding: '4px', textAlign: 'right' }}>
                           {(parseFloat(item.price) * parseInt(item.quantity)).toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽
                         </td>
                         <td style={{ padding: '4px', textAlign: 'center' }}>
-                          <button
+                          <Button
                             type="button"
+                            variant="danger"
+                            size="small"
                             onClick={() => removeItem(index)}
-                            className="action-button action-button-compact action-button-delete"
+                            icon={<HiOutlineTrash />}
                             title="Удалить"
-                          >
-                            <HiOutlineTrash />
-                          </button>
+                          />
                         </td>
                       </tr>
                     ))}
@@ -549,12 +553,12 @@ const Realization = () => {
             />
           </FormField>
           <div style={{ display: 'flex', gap: '12px', marginTop: '20px', justifyContent: 'flex-end' }}>
-            <button type="button" onClick={handleClose}>
+            <Button type="button" variant="secondary" onClick={handleClose}>
               Отмена
-            </button>
-            <button type="submit" className="primary">
+            </Button>
+            <Button type="submit" variant="primary">
               Сохранить
-            </button>
+            </Button>
           </div>
         </form>
       </Modal>
@@ -562,55 +566,39 @@ const Realization = () => {
       <div className="card">
         <div style={{ marginBottom: '12px', display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', gap: '8px' }}>
-            <button onClick={() => { setShowForm(true); setEditingItem(null); resetForm() }} className="primary">
+            <Button variant="primary" icon={<HiOutlinePlus />} onClick={() => { setShowForm(true); setEditingItem(null); resetForm() }}>
               Добавить
-            </button>
-            <button onClick={() => exportService.exportRealizations({ format: 'xlsx' })}>
+            </Button>
+            <Button variant="secondary" onClick={() => exportService.exportRealizations({ format: 'xlsx' })}>
               Экспорт Excel
-            </button>
-            <button onClick={() => exportService.exportRealizations({ format: 'csv' })}>
+            </Button>
+            <Button variant="secondary" onClick={() => exportService.exportRealizations({ format: 'csv' })}>
               Экспорт CSV
-            </button>
+            </Button>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <select
+            <Select
               value={filterCompanyId}
               onChange={(e) => setFilterCompanyId(e.target.value)}
-              style={{
-                padding: '4px 8px',
-                border: '1px solid #808080',
-                fontSize: '13px',
-                width: '180px'
-              }}
-            >
-              <option value="">Все организации</option>
-              {companies.filter(c => c.is_active).map(company => (
-                <option key={company.id} value={company.id}>{company.name}</option>
-              ))}
-            </select>
-            <input
-              type="text"
+              placeholder="Все организации"
+              options={[
+                { value: '', label: 'Все организации' },
+                ...companies.filter(c => c.is_active).map(company => ({
+                  value: company.id.toString(),
+                  label: company.name
+                }))
+              ]}
+              fullWidth={false}
+              style={{ width: '180px' }}
+            />
+            <SearchInput
               placeholder="Поиск..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              style={{
-                padding: '4px 8px',
-                border: '1px solid #808080',
-                fontSize: '13px',
-                width: '200px'
-              }}
+              onClear={() => setSearchQuery('')}
+              fullWidth={false}
+              style={{ width: '200px' }}
             />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                style={{
-                  padding: '4px 8px',
-                  fontSize: '12px'
-                }}
-              >
-                ✕
-              </button>
-            )}
           </div>
         </div>
         {selectedItems.size > 0 && (
@@ -706,13 +694,13 @@ const Realization = () => {
                     </td>
                     <td>{realization.description || '-'}</td>
                     <td onClick={(e) => e.stopPropagation()}>
-                      <button
+                      <Button
+                        variant="danger"
+                        size="small"
                         onClick={() => handleDelete(realization.id)}
-                        className="action-button action-button-compact action-button-delete"
+                        icon={<HiOutlineTrash />}
                         title="Удалить"
-                      >
-                        <HiOutlineTrash />
-                      </button>
+                      />
                     </td>
                   </tr>
                 ))

@@ -1,0 +1,164 @@
+/* Унифицированный компонент Select */
+
+.ui-select-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ui-select-wrapper--full-width {
+  width: 100%;
+}
+
+.ui-select-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 0;
+}
+
+.ui-select-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.ui-select {
+  width: 100%;
+  height: 40px;
+  padding: 10px 14px;
+  padding-right: 40px;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  background-color: var(--input-bg);
+  border: 1.5px solid var(--input-border);
+  border-radius: 8px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  outline: none;
+  appearance: none;
+  cursor: pointer;
+  background-image: none;
+}
+
+.ui-select--auto-width {
+  width: auto;
+}
+
+/* Стрелка */
+.ui-select-arrow {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+  transition: color 0.2s ease;
+}
+
+.ui-select-arrow svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* Состояния */
+.ui-select:hover:not(:disabled) {
+  border-color: var(--border-color-strong);
+}
+
+.ui-select:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px var(--primary-light);
+  background-color: var(--bg-secondary);
+}
+
+.ui-select:focus + .ui-select-arrow {
+  color: var(--primary-color);
+}
+
+.ui-select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background-color: var(--bg-tertiary);
+}
+
+/* Ошибка */
+.ui-select--error {
+  border-color: var(--danger-color);
+  background-color: rgba(239, 68, 68, 0.05);
+}
+
+.ui-select--error:focus {
+  border-color: var(--danger-color);
+  box-shadow: 0 0 0 3px var(--danger-light);
+}
+
+.ui-select--error + .ui-select-arrow {
+  color: var(--danger-color);
+}
+
+[data-theme="dark"] .ui-select--error {
+  background-color: rgba(239, 68, 68, 0.1);
+}
+
+/* Опции */
+.ui-select option {
+  padding: 8px;
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.ui-select option:disabled {
+  color: var(--text-secondary);
+  opacity: 0.6;
+}
+
+/* Сообщения */
+.ui-select-error {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--danger-color);
+  margin-top: 0;
+}
+
+.ui-select-error::before {
+  content: '⚠';
+  font-size: 14px;
+}
+
+.ui-select-hint {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 0;
+}
+
+/* Размеры */
+.ui-select-wrapper--small .ui-select {
+  height: 32px;
+  padding: 6px 10px;
+  padding-right: 36px;
+  font-size: 12px;
+}
+
+.ui-select-wrapper--small .ui-select-arrow {
+  right: 10px;
+}
+
+.ui-select-wrapper--large .ui-select {
+  height: 48px;
+  padding: 12px 16px;
+  padding-right: 44px;
+  font-size: 16px;
+}
+
+.ui-select-wrapper--large .ui-select-arrow {
+  right: 16px;
+}

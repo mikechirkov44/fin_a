@@ -150,11 +150,11 @@ const LineChart = ({
           padding: 12,
           displayColors: true,
           titleFont: {
-            size: 14,
+            size: 16,
             weight: 'bold' as const
           },
           bodyFont: {
-            size: 13
+            size: 15
           }
         }
       },
@@ -166,7 +166,16 @@ const LineChart = ({
             color: 'rgba(0, 0, 0, 0.1)'
           },
           ticks: {
-            padding: options.axisX?.labelOffset?.y || 10
+            padding: options.axisX?.labelOffset?.y || 10,
+            font: {
+              size: 14
+            }
+          },
+          title: {
+            display: false,
+            font: {
+              size: 14
+            }
           }
         },
         y: {
@@ -177,11 +186,20 @@ const LineChart = ({
           },
           ticks: {
             stepSize: options.axisY?.onlyInteger ? 1 : undefined,
+            font: {
+              size: 14
+            },
             callback: function(value: any) {
               if (typeof value === 'number') {
                 return labelInterpolationFnc(value)
               }
               return value
+            }
+          },
+          title: {
+            display: false,
+            font: {
+              size: 14
             }
           },
           beginAtZero: false

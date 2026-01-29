@@ -45,7 +45,7 @@
 }
 
 .pie-chart-legend-label {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--text-primary);
   margin-bottom: 4px;
@@ -54,7 +54,7 @@
 }
 
 .pie-chart-legend-value {
-  font-size: 13px;
+  font-size: 15px;
   color: var(--text-secondary);
   line-height: 1.3;
 }
@@ -72,10 +72,10 @@
   }
   
   .pie-chart-legend-label {
-    font-size: 13px;
+    font-size: 15px;
   }
   
   .pie-chart-legend-value {
-    font-size: 12px;
+    font-size: 14px;
   }
 }

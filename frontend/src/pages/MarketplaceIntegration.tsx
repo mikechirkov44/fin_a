@@ -5,7 +5,8 @@ import { useToast } from '../contexts/ToastContext'
 import { useConfirm } from '../contexts/ConfirmContext'
 import Modal from '../components/Modal'
 import { format, subDays } from 'date-fns'
-import { HiOutlinePencil, HiOutlineTrash, HiOutlineArrowPath, HiOutlineLink } from 'react-icons/hi2'
+import { HiOutlinePencil, HiOutlineTrash, HiOutlineArrowPath, HiOutlineLink, HiOutlinePlus } from 'react-icons/hi2'
+import { Button, Input, Select } from '../components/ui'
 
 const MarketplaceIntegration = () => {
   const { selectedCompanyId, companies } = useAuth()
@@ -200,9 +201,9 @@ const MarketplaceIntegration = () => {
     <div>
       <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h2>Интеграции с маркетплейсами</h2>
-        <button onClick={() => { setShowForm(true); setEditingIntegration(null); resetForm() }} className="primary">
+        <Button variant="primary" icon={<HiOutlinePlus />} onClick={() => { setShowForm(true); setEditingIntegration(null); resetForm() }}>
           Добавить интеграцию
-        </button>
+        </Button>
       </div>
 
       <Modal
@@ -213,59 +214,57 @@ const MarketplaceIntegration = () => {
       >
         <form onSubmit={handleSubmit}>
             <div className="form-row">
-              <div className="form-group">
-                <label>Маркетплейс *</label>
-                <select
-                  value={formData.marketplace_name}
-                  onChange={(e) => setFormData({ ...formData, marketplace_name: e.target.value })}
-                  required
-                  disabled={!!editingIntegration}
-                >
-                  <option value="">Выберите...</option>
-                  {supportedMarketplaces.map(m => (
-                    <option key={m.value} value={m.value}>{m.label}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="form-group">
-                <label>Организация *</label>
-                <select
-                  value={formData.company_id}
-                  onChange={(e) => setFormData({ ...formData, company_id: e.target.value })}
-                  required
-                  disabled={!!editingIntegration}
-                >
-                  <option value="">Выберите...</option>
-                  {companies.filter(c => c.is_active).map(c => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
-              </div>
+              <Select
+                label="Маркетплейс"
+                required
+                value={formData.marketplace_name}
+                onChange={(e) => setFormData({ ...formData, marketplace_name: e.target.value })}
+                disabled={!!editingIntegration}
+                placeholder="Выберите..."
+                options={[
+                  { value: '', label: 'Выберите...' },
+                  ...supportedMarketplaces.map(m => ({
+                    value: m.value,
+                    label: m.label
+                  }))
+                ]}
+              />
+              <Select
+                label="Организация"
+                required
+                value={formData.company_id}
+                onChange={(e) => setFormData({ ...formData, company_id: e.target.value })}
+                disabled={!!editingIntegration}
+                placeholder="Выберите..."
+                options={[
+                  { value: '', label: 'Выберите...' },
+                  ...companies.filter(c => c.is_active).map(c => ({
+                    value: c.id.toString(),
+                    label: c.name
+                  }))
+                ]}
+              />
             </div>
 
             {formData.marketplace_name && isOzon(formData.marketplace_name) && (
               <>
                 <div className="form-row">
-                  <div className="form-group">
-                    <label>OZON Client ID *</label>
-                    <input
-                      type="text"
-                      value={formData.ozon_client_id}
-                      onChange={(e) => setFormData({ ...formData, ozon_client_id: e.target.value })}
-                      placeholder="Введите Client ID из личного кабинета OZON"
-                      required={isOzon(formData.marketplace_name)}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>OZON API Key *</label>
-                    <input
-                      type="password"
-                      value={formData.ozon_api_key}
-                      onChange={(e) => setFormData({ ...formData, ozon_api_key: e.target.value })}
-                      placeholder="Введите API Key из личного кабинета OZON"
-                      required={isOzon(formData.marketplace_name)}
-                    />
-                  </div>
+                  <Input
+                    label="OZON Client ID"
+                    required={isOzon(formData.marketplace_name)}
+                    type="text"
+                    value={formData.ozon_client_id}
+                    onChange={(e) => setFormData({ ...formData, ozon_client_id: e.target.value })}
+                    placeholder="Введите Client ID из личного кабинета OZON"
+                  />
+                  <Input
+                    label="OZON API Key"
+                    required={isOzon(formData.marketplace_name)}
+                    type="password"
+                    value={formData.ozon_api_key}
+                    onChange={(e) => setFormData({ ...formData, ozon_api_key: e.target.value })}
+                    placeholder="Введите API Key из личного кабинета OZON"
+                  />
                 </div>
                 <div style={{ fontSize: '12px', color: '#666', marginBottom: '12px' }}>
                   Как получить API ключи: Настройки → API → Создать ключ
@@ -276,25 +275,21 @@ const MarketplaceIntegration = () => {
             {formData.marketplace_name && isWildberries(formData.marketplace_name) && (
               <>
                 <div className="form-row">
-                  <div className="form-group">
-                    <label>Wildberries API Key *</label>
-                    <input
-                      type="password"
-                      value={formData.wb_api_key}
-                      onChange={(e) => setFormData({ ...formData, wb_api_key: e.target.value })}
-                      placeholder="Введите API Key из личного кабинета WB"
-                      required={isWildberries(formData.marketplace_name)}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Wildberries Stat API Key (опционально)</label>
-                    <input
-                      type="password"
-                      value={formData.wb_stat_api_key}
-                      onChange={(e) => setFormData({ ...formData, wb_stat_api_key: e.target.value })}
-                      placeholder="Введите Stat API Key (если отличается)"
-                    />
-                  </div>
+                  <Input
+                    label="Wildberries API Key"
+                    required={isWildberries(formData.marketplace_name)}
+                    type="password"
+                    value={formData.wb_api_key}
+                    onChange={(e) => setFormData({ ...formData, wb_api_key: e.target.value })}
+                    placeholder="Введите API Key из личного кабинета WB"
+                  />
+                  <Input
+                    label="Wildberries Stat API Key (опционально)"
+                    type="password"
+                    value={formData.wb_stat_api_key}
+                    onChange={(e) => setFormData({ ...formData, wb_stat_api_key: e.target.value })}
+                    placeholder="Введите Stat API Key (если отличается)"
+                  />
                 </div>
                 <div style={{ fontSize: '12px', color: '#666', marginBottom: '12px' }}>
                   Как получить API ключи: Настройки → API → Создать ключ
@@ -324,25 +319,23 @@ const MarketplaceIntegration = () => {
                 </label>
               </div>
               {formData.auto_sync && (
-                <div className="form-group">
-                  <label>Интервал синхронизации (часов)</label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={formData.sync_interval_hours}
-                    onChange={(e) => setFormData({ ...formData, sync_interval_hours: parseInt(e.target.value) || 24 })}
-                  />
-                </div>
+                <Input
+                  label="Интервал синхронизации (часов)"
+                  type="number"
+                  min="1"
+                  value={formData.sync_interval_hours}
+                  onChange={(e) => setFormData({ ...formData, sync_interval_hours: parseInt(e.target.value) || 24 })}
+                />
               )}
             </div>
 
             <div style={{ display: 'flex', gap: '12px', marginTop: '20px', justifyContent: 'flex-end' }}>
-              <button type="button" onClick={handleClose}>
+              <Button type="button" variant="secondary" onClick={handleClose}>
                 Отмена
-              </button>
-              <button type="submit" className="primary">
+              </Button>
+              <Button type="submit" variant="primary">
                 Сохранить
-              </button>
+              </Button>
             </div>
           </form>
       </Modal>
@@ -350,24 +343,20 @@ const MarketplaceIntegration = () => {
       <div className="card" style={{ marginBottom: '16px' }}>
         <div className="card-header">Параметры синхронизации</div>
         <div style={{ padding: '12px', display: 'flex', gap: '12px', alignItems: 'center' }}>
-          <div className="form-group" style={{ margin: 0 }}>
-            <label>Дата начала</label>
-            <input
-              type="date"
-              value={syncPeriod.start || format(subDays(new Date(), 30), 'yyyy-MM-dd')}
-              onChange={(e) => setSyncPeriod({ ...syncPeriod, start: e.target.value })}
-              style={{ fontSize: '13px' }}
-            />
-          </div>
-          <div className="form-group" style={{ margin: 0 }}>
-            <label>Дата окончания</label>
-            <input
-              type="date"
-              value={syncPeriod.end || format(new Date(), 'yyyy-MM-dd')}
-              onChange={(e) => setSyncPeriod({ ...syncPeriod, end: e.target.value })}
-              style={{ fontSize: '13px' }}
-            />
-          </div>
+          <Input
+            label="Дата начала"
+            type="date"
+            value={syncPeriod.start || format(subDays(new Date(), 30), 'yyyy-MM-dd')}
+            onChange={(e) => setSyncPeriod({ ...syncPeriod, start: e.target.value })}
+            fullWidth={false}
+          />
+          <Input
+            label="Дата окончания"
+            type="date"
+            value={syncPeriod.end || format(new Date(), 'yyyy-MM-dd')}
+            onChange={(e) => setSyncPeriod({ ...syncPeriod, end: e.target.value })}
+            fullWidth={false}
+          />
           <div style={{ fontSize: '12px', color: '#666', marginTop: '20px' }}>
             По умолчанию: последние 30 дней
           </div>
@@ -427,36 +416,40 @@ const MarketplaceIntegration = () => {
                   </td>
                   <td>
                     <div className="action-buttons-group" style={{ flexWrap: 'nowrap' }}>
-                      <button
+                      <Button
+                        variant="secondary"
+                        size="small"
                         onClick={() => handleTestConnection(integration)}
                         disabled={testLoading === integration.id}
-                        className="action-button action-button-compact action-button-view"
+                        icon={testLoading === integration.id ? undefined : <HiOutlineLink />}
                         title="Проверить подключение к API"
                       >
-                        {testLoading === integration.id ? '⏳' : <HiOutlineLink />}
-                      </button>
-                      <button
+                        {testLoading === integration.id ? '⏳' : ''}
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        size="small"
                         onClick={() => handleSync(integration)}
                         disabled={syncLoading === integration.id || !integration.is_active}
-                        className="action-button action-button-compact action-button-update"
+                        icon={syncLoading === integration.id ? undefined : <HiOutlineArrowPath />}
                         title="Синхронизировать данные с маркетплейсом"
                       >
-                        {syncLoading === integration.id ? '⏳' : <HiOutlineArrowPath />}
-                      </button>
-                      <button
+                        {syncLoading === integration.id ? '⏳' : ''}
+                      </Button>
+                      <Button
+                        variant="primary"
+                        size="small"
                         onClick={() => handleEdit(integration)}
-                        className="action-button action-button-compact action-button-edit"
+                        icon={<HiOutlinePencil />}
                         title="Редактировать настройки интеграции"
-                      >
-                        <HiOutlinePencil />
-                      </button>
-                      <button
+                      />
+                      <Button
+                        variant="danger"
+                        size="small"
                         onClick={() => handleDelete(integration.id)}
-                        className="action-button action-button-compact action-button-delete"
+                        icon={<HiOutlineTrash />}
                         title="Удалить интеграцию"
-                      >
-                        <HiOutlineTrash />
-                      </button>
+                      />
                     </div>
                   </td>
                 </tr>

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
+import { Button, SearchInput } from './ui'
 import './GlobalSearch.css'
 
 interface SearchResult {
@@ -173,15 +174,17 @@ const GlobalSearch = () => {
 
   if (!isOpen) {
     return (
-      <button
+      <Button
         onClick={() => setIsOpen(true)}
+        variant="secondary"
+        size="medium"
         className="global-search-trigger"
         title="Поиск (Ctrl+K)"
       >
         <span>🔍</span>
         <span className="global-search-trigger-text">Поиск...</span>
         <kbd>Ctrl+K</kbd>
-      </button>
+      </Button>
     )
   }
 
@@ -189,31 +192,23 @@ const GlobalSearch = () => {
     <div className="global-search-overlay" onClick={() => setIsOpen(false)}>
       <div className="global-search-modal" onClick={(e) => e.stopPropagation()}>
         <div className="global-search-input-wrapper">
-          <span className="global-search-icon">🔍</span>
-          <input
+          <SearchInput
             ref={inputRef}
-            type="text"
             placeholder="Поиск по всем модулям..."
             value={query}
             onChange={(e) => {
               setQuery(e.target.value)
               setSelectedIndex(0)
             }}
+            onClear={() => {
+              setQuery('')
+              setResults([])
+              inputRef.current?.focus()
+            }}
             className="global-search-input"
+            fullWidth
             autoFocus
           />
-          {query && (
-            <button
-              onClick={() => {
-                setQuery('')
-                setResults([])
-                inputRef.current?.focus()
-              }}
-              className="global-search-clear"
-            >
-              ✕
-            </button>
-          )}
         </div>
 
         {loading && (

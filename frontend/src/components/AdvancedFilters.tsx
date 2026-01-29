@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Button, Input, Select } from './ui'
 import './AdvancedFilters.css'
 
 interface FilterOption {
@@ -46,13 +47,15 @@ const AdvancedFilters = ({ filters, onFilterChange, onReset }: AdvancedFiltersPr
 
   return (
     <div className="advanced-filters">
-      <button
+      <Button
+        variant="secondary"
+        size="medium"
         className="advanced-filters-toggle"
         onClick={() => setIsOpen(!isOpen)}
         title="Расширенные фильтры"
       >
         🔍 Фильтры {activeFiltersCount > 0 && <span className="filter-badge">{activeFiltersCount}</span>}
-      </button>
+      </Button>
 
       {isOpen && (
         <>
@@ -60,41 +63,47 @@ const AdvancedFilters = ({ filters, onFilterChange, onReset }: AdvancedFiltersPr
           <div className="advanced-filters-panel">
             <div className="advanced-filters-header">
               <h3>Фильтры</h3>
-              <button className="advanced-filters-close" onClick={() => setIsOpen(false)}>
+              <Button
+                variant="ghost"
+                size="small"
+                className="advanced-filters-close"
+                onClick={() => setIsOpen(false)}
+                aria-label="Закрыть"
+              >
                 ✕
-              </button>
+              </Button>
             </div>
             <div className="advanced-filters-body">
               {localFilters.map((filter) => (
                 <div key={filter.key} className="advanced-filters-item">
-                  <label>{filter.label}</label>
                   {filter.type === 'select' && filter.options ? (
-                    <select
+                    <Select
+                      label={filter.label}
                       value={filter.value || ''}
                       onChange={(e) => handleFilterChange(filter.key, e.target.value)}
-                    >
-                      <option value="">Все</option>
-                      {filter.options.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </option>
-                      ))}
-                    </select>
+                      options={[
+                        { value: '', label: 'Все' },
+                        ...filter.options.map(opt => ({ value: opt.value, label: opt.label }))
+                      ]}
+                    />
                   ) : filter.type === 'date' ? (
-                    <input
+                    <Input
                       type="date"
+                      label={filter.label}
                       value={filter.value || ''}
                       onChange={(e) => handleFilterChange(filter.key, e.target.value)}
                     />
                   ) : filter.type === 'number' ? (
-                    <input
+                    <Input
                       type="number"
+                      label={filter.label}
                       value={filter.value || ''}
                       onChange={(e) => handleFilterChange(filter.key, e.target.value)}
                     />
                   ) : (
-                    <input
+                    <Input
                       type="text"
+                      label={filter.label}
                       value={filter.value || ''}
                       onChange={(e) => handleFilterChange(filter.key, e.target.value)}
                       placeholder={`Введите ${filter.label.toLowerCase()}`}
@@ -104,12 +113,12 @@ const AdvancedFilters = ({ filters, onFilterChange, onReset }: AdvancedFiltersPr
               ))}
             </div>
             <div className="advanced-filters-footer">
-              <button className="advanced-filters-button" onClick={handleReset}>
+              <Button variant="secondary" size="medium" onClick={handleReset}>
                 Сбросить
-              </button>
-              <button className="advanced-filters-button primary" onClick={handleApply}>
+              </Button>
+              <Button variant="primary" size="medium" onClick={handleApply}>
                 Применить
-              </button>
+              </Button>
             </div>
           </div>
         </>

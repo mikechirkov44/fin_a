@@ -5,8 +5,9 @@ import { useConfirm } from '../contexts/ConfirmContext'
 import { useAuth } from '../contexts/AuthContext'
 import Modal from '../components/Modal'
 import IncomeExpenseHierarchy from '../components/IncomeExpenseHierarchy'
-import { HiOutlinePencil, HiOutlineTrash } from 'react-icons/hi2'
+import { HiOutlinePencil, HiOutlineTrash, HiOutlinePlus } from 'react-icons/hi2'
 import { format, subMonths } from 'date-fns'
+import { Button, Input, Select, SearchInput } from '../components/ui'
 
 type TabType = 'incomeExpense' | 'expenseAnalysis' | 'payment' | 'company' | 'expenseCategory' | 'salesChannel' | 'product' | 'customerSegment'
 
@@ -390,54 +391,54 @@ const Reference = () => {
   return (
     <div>
       <div style={{ marginBottom: '16px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-        <button
+        <Button
           onClick={() => { setActiveTab('incomeExpense'); setShowForm(false); setEditingItem(null) }}
-          className={activeTab === 'incomeExpense' ? 'primary' : ''}
+          variant={activeTab === 'incomeExpense' ? 'primary' : 'secondary'}
         >
           Группы и статьи доходов/расходов
-        </button>
-        <button
+        </Button>
+        <Button
           onClick={() => { setActiveTab('expenseAnalysis'); setShowForm(false); setEditingItem(null) }}
-          className={activeTab === 'expenseAnalysis' ? 'primary' : ''}
+          variant={activeTab === 'expenseAnalysis' ? 'primary' : 'secondary'}
         >
           Анализ расходов по статьям
-        </button>
-        <button
+        </Button>
+        <Button
           onClick={() => { setActiveTab('expenseCategory'); setShowForm(false); setEditingItem(null) }}
-          className={activeTab === 'expenseCategory' ? 'primary' : ''}
+          variant={activeTab === 'expenseCategory' ? 'primary' : 'secondary'}
         >
           Категории расходов
-        </button>
-        <button
+        </Button>
+        <Button
           onClick={() => { setActiveTab('payment'); setShowForm(false); setEditingItem(null) }}
-          className={activeTab === 'payment' ? 'primary' : ''}
+          variant={activeTab === 'payment' ? 'primary' : 'secondary'}
         >
           Места оплаты
-        </button>
-        <button
+        </Button>
+        <Button
           onClick={() => { setActiveTab('company'); setShowForm(false); setEditingItem(null) }}
-          className={activeTab === 'company' ? 'primary' : ''}
+          variant={activeTab === 'company' ? 'primary' : 'secondary'}
         >
           Организации
-        </button>
-        <button
+        </Button>
+        <Button
           onClick={() => { setActiveTab('salesChannel'); setShowForm(false); setEditingItem(null) }}
-          className={activeTab === 'salesChannel' ? 'primary' : ''}
+          variant={activeTab === 'salesChannel' ? 'primary' : 'secondary'}
         >
           Каналы продаж
-        </button>
-        <button
+        </Button>
+        <Button
           onClick={() => { setActiveTab('customerSegment'); setShowForm(false); setEditingItem(null) }}
-          className={activeTab === 'customerSegment' ? 'primary' : ''}
+          variant={activeTab === 'customerSegment' ? 'primary' : 'secondary'}
         >
           Сегменты клиентов
-        </button>
-        <button
+        </Button>
+        <Button
           onClick={() => { setActiveTab('product'); setShowForm(false); setEditingItem(null) }}
-          className={activeTab === 'product' ? 'primary' : ''}
+          variant={activeTab === 'product' ? 'primary' : 'secondary'}
         >
           Номенклатура
-        </button>
+        </Button>
       </div>
 
       {activeTab === 'incomeExpense' && (
@@ -449,35 +450,30 @@ const Reference = () => {
           <div className="card" style={{ marginBottom: '16px' }}>
             <div className="card-header">Параметры отчета</div>
             <div style={{ padding: '16px', display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
-              <div>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px' }}>Начало периода</label>
-                <input
-                  type="date"
-                  value={expenseAnalysisStartDate}
-                  onChange={(e) => setExpenseAnalysisStartDate(e.target.value)}
-                  style={{ padding: '6px', border: '1px solid #ddd', borderRadius: '4px' }}
-                />
-              </div>
-              <div>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px' }}>Конец периода</label>
-                <input
-                  type="date"
-                  value={expenseAnalysisEndDate}
-                  onChange={(e) => setExpenseAnalysisEndDate(e.target.value)}
-                  style={{ padding: '6px', border: '1px solid #ddd', borderRadius: '4px' }}
-                />
-              </div>
-              <div>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px' }}>Группировка</label>
-                <select
-                  value={expenseAnalysisGroupBy}
-                  onChange={(e) => setExpenseAnalysisGroupBy(e.target.value as 'item' | 'group')}
-                  style={{ padding: '6px', border: '1px solid #ddd', borderRadius: '4px' }}
-                >
-                  <option value="item">По статьям</option>
-                  <option value="group">По группам</option>
-                </select>
-              </div>
+              <Input
+                type="date"
+                label="Начало периода"
+                value={expenseAnalysisStartDate}
+                onChange={(e) => setExpenseAnalysisStartDate(e.target.value)}
+                fullWidth={false}
+              />
+              <Input
+                type="date"
+                label="Конец периода"
+                value={expenseAnalysisEndDate}
+                onChange={(e) => setExpenseAnalysisEndDate(e.target.value)}
+                fullWidth={false}
+              />
+              <Select
+                label="Группировка"
+                value={expenseAnalysisGroupBy}
+                onChange={(e) => setExpenseAnalysisGroupBy(e.target.value as 'item' | 'group')}
+                options={[
+                  { value: 'item', label: 'По статьям' },
+                  { value: 'group', label: 'По группам' }
+                ]}
+                fullWidth={false}
+              />
             </div>
           </div>
 
@@ -536,90 +532,82 @@ const Reference = () => {
         maxWidth="800px"
       >
         <form onSubmit={handleSubmit}>
-            <div className="form-group">
-              <label>Наименование *</label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                required
-              />
-            </div>
+            <Input
+              label="Наименование"
+              required
+              type="text"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            />
             {(activeTab === 'incomeGroup' || activeTab === 'expenseGroup') && (
-              <div className="form-group">
-                <label>Родительская группа (для подгрупп)</label>
-                <select
-                  value={formData.parent_group_id || ''}
-                  onChange={(e) => setFormData({ ...formData, parent_group_id: e.target.value ? parseInt(e.target.value) : null })}
-                >
-                  <option value="">Не выбрано (основная группа)</option>
-                  {(activeTab === 'incomeGroup' ? allIncomeGroups : allExpenseGroups)
+              <Select
+                label="Родительская группа (для подгрупп)"
+                value={formData.parent_group_id || ''}
+                onChange={(e) => setFormData({ ...formData, parent_group_id: e.target.value ? parseInt(e.target.value) : null })}
+                placeholder="Не выбрано (основная группа)"
+                options={[
+                  { value: '', label: 'Не выбрано (основная группа)' },
+                  ...(activeTab === 'incomeGroup' ? allIncomeGroups : allExpenseGroups)
                     .filter((g: any) => !g.parent_group_id)
-                    .map((group: any) => (
-                      <option key={group.id} value={group.id}>{group.name}</option>
-                    ))}
-                </select>
-              </div>
+                    .map((group: any) => ({
+                      value: group.id.toString(),
+                      label: group.name
+                    }))
+                ]}
+              />
             )}
             {(activeTab === 'incomeGroup' || activeTab === 'expenseGroup') && formData.parent_group_id && (
-              <div className="form-group">
-                <label>Тип подгруппы</label>
-                <select
-                  value={formData.subgroup_type || ''}
-                  onChange={(e) => setFormData({ ...formData, subgroup_type: e.target.value || null })}
-                >
-                  <option value="">Не выбрано</option>
-                  <option value="income">Поступления</option>
-                  <option value="expense">Выбытия</option>
-                </select>
-              </div>
+              <Select
+                label="Тип подгруппы"
+                value={formData.subgroup_type || ''}
+                onChange={(e) => setFormData({ ...formData, subgroup_type: e.target.value || null })}
+                placeholder="Не выбрано"
+                options={[
+                  { value: '', label: 'Не выбрано' },
+                  { value: 'income', label: 'Поступления' },
+                  { value: 'expense', label: 'Выбытия' }
+                ]}
+              />
             )}
             {(activeTab === 'income' || activeTab === 'expense') && (
-              <div className="form-group">
-                <label>Группа/Подгруппа</label>
-                <select
-                  value={formData.group_id || ''}
-                  onChange={(e) => setFormData({ ...formData, group_id: e.target.value ? parseInt(e.target.value) : null })}
-                >
-                  <option value="">Не выбрано</option>
-                  {(activeTab === 'income' ? allIncomeGroups : allExpenseGroups).map((group: any) => (
-                    <option key={group.id} value={group.id}>
-                      {group.parent_group_id ? '  └ ' : ''}{group.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <Select
+                label="Группа/Подгруппа"
+                value={formData.group_id || ''}
+                onChange={(e) => setFormData({ ...formData, group_id: e.target.value ? parseInt(e.target.value) : null })}
+                placeholder="Не выбрано"
+                options={[
+                  { value: '', label: 'Не выбрано' },
+                  ...(activeTab === 'income' ? allIncomeGroups : allExpenseGroups).map((group: any) => ({
+                    value: group.id.toString(),
+                    label: (group.parent_group_id ? '  └ ' : '') + group.name
+                  }))
+                ]}
+              />
             )}
             {activeTab === 'product' && (
               <>
-                <div className="form-group">
-                  <label>SKU *</label>
-                  <input
-                    type="text"
-                    value={formData.sku}
-                    onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Себестоимость *</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={formData.cost_price}
-                    onChange={(e) => setFormData({ ...formData, cost_price: e.target.value })}
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Цена продажи</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={formData.selling_price}
-                    onChange={(e) => setFormData({ ...formData, selling_price: e.target.value })}
-                  />
-                </div>
+                <Input
+                  label="SKU"
+                  required
+                  type="text"
+                  value={formData.sku}
+                  onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
+                />
+                <Input
+                  label="Себестоимость"
+                  required
+                  type="number"
+                  step="0.01"
+                  value={formData.cost_price}
+                  onChange={(e) => setFormData({ ...formData, cost_price: e.target.value })}
+                />
+                <Input
+                  label="Цена продажи"
+                  type="number"
+                  step="0.01"
+                  value={formData.selling_price}
+                  onChange={(e) => setFormData({ ...formData, selling_price: e.target.value })}
+                />
               </>
             )}
             <div className="form-group">
@@ -631,12 +619,12 @@ const Reference = () => {
               />
             </div>
             <div style={{ display: 'flex', gap: '12px', marginTop: '20px', justifyContent: 'flex-end' }}>
-              <button type="button" onClick={handleClose}>
+              <Button type="button" variant="secondary" onClick={handleClose}>
                 Отмена
-              </button>
-              <button type="submit" className="primary">
+              </Button>
+              <Button type="submit" variant="primary">
                 Сохранить
-              </button>
+              </Button>
             </div>
           </form>
       </Modal>
@@ -644,33 +632,22 @@ const Reference = () => {
       <div className="card">
         <div className="card-header">{title}</div>
         <div style={{ marginBottom: '12px', display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'space-between' }}>
-          <button onClick={() => { setShowForm(true); setEditingItem(null); setFormData({ name: '', description: '', group_id: null, parent_group_id: null, subgroup_type: null, sku: '', cost_price: '', selling_price: '' }) }} className="primary">
+          <Button 
+            variant="primary" 
+            icon={<HiOutlinePlus />}
+            onClick={() => { setShowForm(true); setEditingItem(null); setFormData({ name: '', description: '', group_id: null, parent_group_id: null, subgroup_type: null, sku: '', cost_price: '', selling_price: '' }) }}
+          >
             Добавить
-          </button>
+          </Button>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <input
-              type="text"
+            <SearchInput
               placeholder="Поиск..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              style={{
-                padding: '4px 8px',
-                border: '1px solid #808080',
-                fontSize: '13px',
-                width: '200px'
-              }}
+              onClear={() => setSearchQuery('')}
+              fullWidth={false}
+              style={{ width: '200px' }}
             />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                style={{
-                  padding: '4px 8px',
-                  fontSize: '12px'
-                }}
-              >
-                ✕
-              </button>
-            )}
           </div>
         </div>
         <table>
@@ -778,20 +755,20 @@ const Reference = () => {
                     <td>{item.description || '-'}</td>
                     <td>
                       <div className="action-buttons-group">
-                        <button 
+                        <Button 
+                          variant="primary"
+                          size="small"
                           onClick={() => handleEdit(item)} 
-                          className="action-button action-button-compact action-button-edit"
+                          icon={<HiOutlinePencil />}
                           title="Изменить"
-                        >
-                          <HiOutlinePencil />
-                        </button>
-                        <button 
+                        />
+                        <Button 
+                          variant="danger"
+                          size="small"
                           onClick={() => handleDelete(item.id)} 
-                          className="action-button action-button-compact action-button-delete"
+                          icon={<HiOutlineTrash />}
                           title="Удалить"
-                        >
-                          <HiOutlineTrash />
-                        </button>
+                        />
                       </div>
                     </td>
                   </tr>

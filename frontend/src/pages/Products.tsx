@@ -11,7 +11,8 @@ import Modal from '../components/Modal'
 import Pagination from '../components/Pagination'
 import Tooltip from '../components/Tooltip'
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
-import { HiOutlineTrash } from 'react-icons/hi2'
+import { HiOutlineTrash, HiOutlinePlus } from 'react-icons/hi2'
+import { Button, Input, SearchInput } from '../components/ui'
 
 const Products = () => {
   const { showSuccess, showError } = useToast()
@@ -296,7 +297,7 @@ const Products = () => {
         <form onSubmit={handleSubmit}>
           <div className="form-row">
             <FormField label="Наименование" required error={formErrors.name}>
-              <input
+              <Input
                 type="text"
                 value={formData.name}
                 onChange={(e) => {
@@ -308,7 +309,7 @@ const Products = () => {
               />
             </FormField>
             <FormField label="Артикул (SKU)" required error={formErrors.sku}>
-              <input
+              <Input
                 type="text"
                 value={formData.sku}
                 onChange={(e) => {
@@ -322,7 +323,7 @@ const Products = () => {
           </div>
           <div className="form-row">
             <FormField label="Себестоимость" required error={formErrors.cost_price}>
-              <input
+              <Input
                 type="number"
                 step="0.01"
                 min="0"
@@ -336,7 +337,7 @@ const Products = () => {
               />
             </FormField>
             <FormField label="Цена продажи" error={formErrors.selling_price}>
-              <input
+              <Input
                 type="number"
                 step="0.01"
                 min="0"
@@ -358,12 +359,12 @@ const Products = () => {
             />
           </FormField>
           <div style={{ display: 'flex', gap: '12px', marginTop: '20px', justifyContent: 'flex-end' }}>
-            <button type="button" onClick={handleClose}>
+            <Button type="button" variant="secondary" onClick={handleClose}>
               Отмена
-            </button>
-            <button type="submit" className="primary">
+            </Button>
+            <Button type="submit" variant="primary">
               Сохранить
-            </button>
+            </Button>
           </div>
         </form>
       </Modal>
@@ -372,19 +373,23 @@ const Products = () => {
         <div style={{ marginBottom: '12px', display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', gap: '8px' }}>
             <Tooltip content="Создать новый товар (Ctrl+N)">
-              <button onClick={() => { setShowForm(true); setEditingItem(null); resetForm(); setFormErrors({}) }} className="primary">
+              <Button 
+                variant="primary" 
+                icon={<HiOutlinePlus />}
+                onClick={() => { setShowForm(true); setEditingItem(null); resetForm(); setFormErrors({}) }}
+              >
                 Добавить
-              </button>
+              </Button>
             </Tooltip>
             <Tooltip content="Экспортировать в Excel">
-              <button onClick={() => exportService.exportProducts({ format: 'xlsx' })}>
+              <Button variant="secondary" onClick={() => exportService.exportProducts({ format: 'xlsx' })}>
                 Экспорт Excel
-              </button>
+              </Button>
             </Tooltip>
             <Tooltip content="Экспортировать в CSV">
-              <button onClick={() => exportService.exportProducts({ format: 'csv' })}>
+              <Button variant="secondary" onClick={() => exportService.exportProducts({ format: 'csv' })}>
                 Экспорт CSV
-              </button>
+              </Button>
             </Tooltip>
             <Tooltip content="Импортировать из файла">
               <label style={{ display: 'inline-block' }}>
@@ -410,36 +415,24 @@ const Products = () => {
                   }}
                   style={{ display: 'none' }}
                 />
-                <button type="button" onClick={() => document.getElementById('import-file-input-products')?.click()}>
+                <Button 
+                  type="button" 
+                  variant="secondary"
+                  onClick={() => document.getElementById('import-file-input-products')?.click()}
+                >
                   Импорт
-                </button>
+                </Button>
               </label>
             </Tooltip>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <input
-              type="text"
+            <SearchInput
               placeholder="Поиск..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              style={{
-                padding: '4px 8px',
-                border: '1px solid #808080',
-                fontSize: '13px',
-                width: '200px'
-              }}
+              onClear={() => setSearchQuery('')}
+              fullWidth={false}
             />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                style={{
-                  padding: '4px 8px',
-                  fontSize: '12px'
-                }}
-              >
-                ✕
-              </button>
-            )}
           </div>
         </div>
         <table>
@@ -529,12 +522,12 @@ const Products = () => {
                     <td>{product.description || '-'}</td>
                     <td onClick={(e) => e.stopPropagation()}>
                       <Tooltip content="Удалить товар">
-                        <button 
-                          onClick={() => handleDelete(product.id)} 
-                          className="action-button action-button-compact action-button-delete"
-                        >
-                          <HiOutlineTrash />
-                        </button>
+                        <Button 
+                          variant="danger"
+                          size="small"
+                          onClick={() => handleDelete(product.id)}
+                          icon={<HiOutlineTrash />}
+                        />
                       </Tooltip>
                     </td>
                   </tr>

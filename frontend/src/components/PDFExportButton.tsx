@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { exportToPDF, exportTableToPDF, exportReportToPDF, PDFExportOptions } from '../utils/pdfExport'
 import { useToast } from '../contexts/ToastContext'
+import { Button } from './ui'
 import './PDFExportButton.css'
 
 interface PDFExportButtonProps {
@@ -52,10 +53,12 @@ const PDFExportButton = ({
   }
 
   return (
-    <button
+    <Button
       ref={buttonRef}
       onClick={handleExport}
       disabled={isExporting}
+      loading={isExporting}
+      variant="secondary"
       className={`pdf-export-button ${className}`}
       title="Экспорт в PDF"
     >
@@ -65,7 +68,7 @@ const PDFExportButton = ({
           <span>{isExporting ? 'Экспорт...' : 'Экспорт PDF'}</span>
         </>
       )}
-    </button>
+    </Button>
   )
 }
 

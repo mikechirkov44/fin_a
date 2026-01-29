@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useTheme } from '../contexts/ThemeContext'
 import { authService } from '../services/api'
+import { Button, Input } from '../components/ui'
 import './Login.css'
 
 const Login = () => {
@@ -37,7 +38,8 @@ const Login = () => {
 
   return (
     <div className="login-container">
-      <button 
+      <Button 
+        variant="ghost"
         className="theme-toggle" 
         onClick={toggleTheme}
         title={theme === 'light' ? 'Переключить на темную тему' : 'Переключить на светлую тему'}
@@ -51,57 +53,51 @@ const Login = () => {
           color: '#fff',
           padding: '10px',
           borderRadius: '8px',
-          cursor: 'pointer',
           fontSize: '24px',
-          transition: 'all 0.2s ease',
           zIndex: 1000
         }}
       >
         {theme === 'light' ? '🌙' : '☀️'}
-      </button>
+      </Button>
       <div className="login-card">
         <h1>Финансовая отчетность</h1>
         <form onSubmit={handleSubmit}>
           {isRegister && (
-            <div className="form-group">
-              <label>Email</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
+            <Input
+              type="email"
+              label="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
           )}
-          <div className="form-group">
-            <label>Имя пользователя</label>
-            <input
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              required
-            />
-          </div>
-          <div className="form-group">
-            <label>Пароль</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
+          <Input
+            type="text"
+            label="Имя пользователя"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            required
+          />
+          <Input
+            type="password"
+            label="Пароль"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
           {error && <div className="error-message">{error}</div>}
-          <button type="submit" className="primary" style={{ width: '100%', marginTop: '12px' }}>
+          <Button type="submit" variant="primary" fullWidth style={{ marginTop: '12px' }}>
             {isRegister ? 'Зарегистрироваться' : 'Войти'}
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="ghost"
             onClick={() => setIsRegister(!isRegister)}
-            style={{ width: '100%', marginTop: '8px' }}
+            fullWidth
+            style={{ marginTop: '8px' }}
           >
             {isRegister ? 'Уже есть аккаунт? Войти' : 'Нет аккаунта? Зарегистрироваться'}
-          </button>
+          </Button>
         </form>
       </div>
     </div>

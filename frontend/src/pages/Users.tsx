@@ -10,7 +10,8 @@ import LoadingSpinner from '../components/LoadingSpinner'
 import EmptyState from '../components/EmptyState'
 import { useFormValidation } from '../hooks/useFormValidation'
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
-import { HiOutlinePencil, HiOutlineTrash } from 'react-icons/hi2'
+import { HiOutlinePencil, HiOutlineTrash, HiOutlinePlus } from 'react-icons/hi2'
+import { Button, Input, Select } from '../components/ui'
 
 const Users = () => {
   const { isAdmin } = useAuth()
@@ -156,14 +157,14 @@ const Users = () => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
         <h2>Управление пользователями</h2>
         <Tooltip content="Создать нового пользователя (Ctrl+N)">
-          <button onClick={() => { 
+          <Button variant="primary" icon={<HiOutlinePlus />} onClick={() => { 
             setShowForm(true)
             setEditingUser(null)
             setFormData({ email: '', username: '', password: '', role: 'VIEWER' })
             validation.clearAllErrors()
           }}>
             Добавить пользователя
-          </button>
+          </Button>
         </Tooltip>
       </div>
 
@@ -175,7 +176,7 @@ const Users = () => {
       >
         <form onSubmit={handleSubmit}>
             <FormField label="Email" required error={validation.errors.email}>
-              <input
+              <Input
                 type="email"
                 value={formData.email}
                 onChange={(e) => {
@@ -185,7 +186,7 @@ const Users = () => {
               />
             </FormField>
             <FormField label="Имя пользователя" required error={validation.errors.username}>
-              <input
+              <Input
                 type="text"
                 value={formData.username}
                 onChange={(e) => {
@@ -199,7 +200,7 @@ const Users = () => {
               required={!editingUser}
               error={validation.errors.password}
             >
-              <input
+              <Input
                 type="password"
                 value={formData.password}
                 onChange={(e) => {
@@ -209,26 +210,27 @@ const Users = () => {
               />
             </FormField>
             <FormField label="Роль" required error={validation.errors.role}>
-              <select
+              <Select
                 value={formData.role}
                 onChange={(e) => {
                   setFormData({ ...formData, role: e.target.value })
                   validation.clearError('role')
                 }}
-              >
-                <option value="ADMIN">Администратор</option>
-                <option value="ACCOUNTANT">Бухгалтер</option>
-                <option value="MANAGER">Менеджер</option>
-                <option value="VIEWER">Просмотр</option>
-              </select>
+                options={[
+                  { value: 'ADMIN', label: 'Администратор' },
+                  { value: 'ACCOUNTANT', label: 'Бухгалтер' },
+                  { value: 'MANAGER', label: 'Менеджер' },
+                  { value: 'VIEWER', label: 'Просмотр' }
+                ]}
+              />
             </FormField>
             <div style={{ display: 'flex', gap: '12px', marginTop: '20px', justifyContent: 'flex-end' }}>
-              <button type="button" onClick={handleClose}>
+              <Button type="button" variant="secondary" onClick={handleClose}>
                 Отмена
-              </button>
-              <button type="submit" className="primary">
+              </Button>
+              <Button type="submit" variant="primary">
                 Сохранить
-              </button>
+              </Button>
             </div>
           </form>
       </Modal>
@@ -285,12 +287,12 @@ const Users = () => {
                     <td>
                       <div className="action-buttons-group">
                         <Tooltip content="Редактировать пользователя">
-                          <button 
+                          <Button 
+                            variant="primary"
+                            size="small"
                             onClick={() => handleEdit(user)} 
-                            className="action-button action-button-compact action-button-edit"
-                          >
-                            <HiOutlinePencil />
-                          </button>
+                            icon={<HiOutlinePencil />}
+                          />
                         </Tooltip>
                         {user.companies && user.companies.length > 0 && (
                           <Tooltip content={`Организации: ${user.companies.map((uc: any) => uc.company_id).join(', ')}`}>

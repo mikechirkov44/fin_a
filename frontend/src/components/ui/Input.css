@@ -1,0 +1,183 @@
+/* Унифицированный компонент Input */
+
+.ui-input-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ui-input-wrapper--full-width {
+  width: 100%;
+}
+
+.ui-input-wrapper--no-label {
+  gap: 0;
+}
+
+.ui-input-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 0;
+}
+
+.ui-input-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.ui-input {
+  width: 100%;
+  height: 40px;
+  padding: 10px 14px;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  background-color: var(--input-bg);
+  border: 1.5px solid var(--input-border);
+  border-radius: 8px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  outline: none;
+}
+
+.ui-input--auto-width {
+  width: auto;
+}
+
+/* Иконки */
+.ui-input--with-left-icon {
+  padding-left: 40px;
+}
+
+.ui-input--with-right-icon {
+  padding-right: 40px;
+}
+
+.ui-input-icon {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.ui-input-icon--left {
+  left: 12px;
+}
+
+.ui-input-icon--right {
+  right: 12px;
+}
+
+.ui-input-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* Состояния */
+.ui-input:hover:not(:disabled):not(:read-only) {
+  border-color: var(--border-color-strong);
+}
+
+.ui-input:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px var(--primary-light);
+  background-color: var(--bg-secondary);
+}
+
+.ui-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background-color: var(--bg-tertiary);
+}
+
+.ui-input:read-only {
+  background-color: var(--bg-tertiary);
+  cursor: default;
+}
+
+.ui-input::placeholder {
+  color: var(--text-secondary);
+  opacity: 1;
+}
+
+/* Ошибка */
+.ui-input--error {
+  border-color: var(--danger-color);
+  background-color: rgba(239, 68, 68, 0.05);
+}
+
+.ui-input--error:focus {
+  border-color: var(--danger-color);
+  box-shadow: 0 0 0 3px var(--danger-light);
+}
+
+[data-theme="dark"] .ui-input--error {
+  background-color: rgba(239, 68, 68, 0.1);
+}
+
+/* Сообщения */
+.ui-input-error {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--danger-color);
+  margin-top: 0;
+}
+
+.ui-input-error::before {
+  content: '⚠';
+  font-size: 14px;
+}
+
+.ui-input-hint {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 0;
+}
+
+/* Специальные типы */
+.ui-input[type="number"] {
+  text-align: right;
+  font-family: 'Courier New', monospace;
+}
+
+.ui-input[type="date"] {
+  position: relative;
+  font-family: inherit;
+}
+
+.ui-input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 1;
+  filter: invert(0);
+}
+
+[data-theme="dark"] .ui-input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+}
+
+.ui-input[type="search"]::-webkit-search-cancel-button {
+  cursor: pointer;
+}
+
+/* Размеры */
+.ui-input-wrapper--small .ui-input {
+  height: 32px;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+.ui-input-wrapper--large .ui-input {
+  height: 48px;
+  padding: 12px 16px;
+  font-size: 16px;
+}

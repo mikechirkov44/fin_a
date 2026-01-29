@@ -11,7 +11,8 @@ import EmptyState from '../components/EmptyState'
 import CompanySelectField from '../components/CompanySelectField'
 import { useFormValidation } from '../hooks/useFormValidation'
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
-import { HiOutlinePencil, HiOutlineTrash } from 'react-icons/hi2'
+import { HiOutlinePencil, HiOutlineTrash, HiOutlinePlus } from 'react-icons/hi2'
+import { Button, Input } from '../components/ui'
 
 const Warehouses = () => {
   const { selectedCompanyId, canWrite } = useAuth()
@@ -163,14 +164,14 @@ const Warehouses = () => {
         <h2>Управление складами</h2>
         {selectedCompanyId && canWrite(selectedCompanyId) && (
           <Tooltip content="Создать новый склад (Ctrl+N)">
-            <button onClick={() => { 
+            <Button variant="primary" icon={<HiOutlinePlus />} onClick={() => { 
               setShowForm(true)
               setEditingWarehouse(null)
               setFormData({ name: '', address: '', description: '', company_id: selectedCompanyId })
               validation.clearAllErrors()
             }}>
               Добавить склад
-            </button>
+            </Button>
           </Tooltip>
         )}
       </div>
@@ -195,7 +196,7 @@ const Warehouses = () => {
       >
         <form onSubmit={handleSubmit}>
             <FormField label="Название" required error={validation.errors.name}>
-              <input
+              <Input
                 type="text"
                 value={formData.name}
                 onChange={(e) => {
@@ -205,7 +206,7 @@ const Warehouses = () => {
               />
             </FormField>
             <FormField label="Адрес">
-              <input
+              <Input
                 type="text"
                 value={formData.address}
                 onChange={(e) => setFormData({ ...formData, address: e.target.value })}
@@ -229,12 +230,12 @@ const Warehouses = () => {
               />
             </FormField>
             <div style={{ display: 'flex', gap: '12px', marginTop: '20px', justifyContent: 'flex-end' }}>
-              <button type="button" onClick={handleClose}>
+              <Button type="button" variant="secondary" onClick={handleClose}>
                 Отмена
-              </button>
-              <button type="submit" className="primary">
+              </Button>
+              <Button type="submit" variant="primary">
                 Сохранить
-              </button>
+              </Button>
             </div>
           </form>
       </Modal>
@@ -289,20 +290,20 @@ const Warehouses = () => {
                       {canEdit(warehouse) && (
                         <div className="action-buttons-group">
                           <Tooltip content="Редактировать склад">
-                            <button 
+                            <Button 
+                              variant="primary"
+                              size="small"
                               onClick={() => handleEdit(warehouse)} 
-                              className="action-button action-button-compact action-button-edit"
-                            >
-                              <HiOutlinePencil />
-                            </button>
+                              icon={<HiOutlinePencil />}
+                            />
                           </Tooltip>
                           <Tooltip content="Удалить склад">
-                            <button 
+                            <Button 
+                              variant="danger"
+                              size="small"
                               onClick={() => handleDelete(warehouse.id)} 
-                              className="action-button action-button-compact action-button-delete"
-                            >
-                              <HiOutlineTrash />
-                            </button>
+                              icon={<HiOutlineTrash />}
+                            />
                           </Tooltip>
                         </div>
                       )}

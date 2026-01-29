@@ -14,7 +14,8 @@ import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
 import { format } from 'date-fns'
 import { ru } from 'date-fns/locale'
 import { BarChart } from '../components/charts'
-import { HiOutlinePencil, HiOutlineTrash } from 'react-icons/hi2'
+import { HiOutlinePencil, HiOutlineTrash, HiOutlinePlus } from 'react-icons/hi2'
+import { Button, Input, Select } from '../components/ui'
 
 const Budget = () => {
   const { selectedCompanyId, companies } = useAuth()
@@ -272,94 +273,89 @@ const Budget = () => {
       <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h2>Бюджетирование</h2>
         <Tooltip content="Создать новый бюджет (Ctrl+N)">
-          <button onClick={() => { setShowForm(true); setEditingBudget(null); resetForm() }} className="primary">
+          <Button variant="primary" icon={<HiOutlinePlus />} onClick={() => { setShowForm(true); setEditingBudget(null); resetForm() }}>
             Добавить бюджет
-          </button>
+          </Button>
         </Tooltip>
       </div>
 
       {/* Вкладки */}
       <div style={{ marginBottom: '16px', display: 'flex', gap: '8px', borderBottom: '2px solid var(--border-color)' }}>
-        <button
+        <Button
+          variant="ghost"
           onClick={() => setActiveTab('budgets')}
           style={{
-            padding: '8px 16px',
-            border: 'none',
-            background: 'transparent',
-            cursor: 'pointer',
             borderBottom: activeTab === 'budgets' ? '2px solid var(--primary-color)' : '2px solid transparent',
             marginBottom: '-2px',
             fontWeight: activeTab === 'budgets' ? 'bold' : 'normal',
+            borderRadius: 0,
           }}
         >
           Бюджеты
-        </button>
-        <button
+        </Button>
+        <Button
+          variant="ghost"
           onClick={() => { setActiveTab('comparison'); loadComparison() }}
           style={{
-            padding: '8px 16px',
-            border: 'none',
-            background: 'transparent',
-            cursor: 'pointer',
             borderBottom: activeTab === 'comparison' ? '2px solid var(--primary-color)' : '2px solid transparent',
             marginBottom: '-2px',
             fontWeight: activeTab === 'comparison' ? 'bold' : 'normal',
+            borderRadius: 0,
           }}
         >
           План/Факт
-        </button>
+        </Button>
       </div>
 
       {/* Фильтры */}
       <div className="card" style={{ marginBottom: '16px' }}>
         <div className="card-header">Фильтры</div>
         <div style={{ padding: '12px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
-          <div className="form-group">
-            <label>Тип периода</label>
-            <select
-              value={filters.period_type}
-              onChange={(e) => setFilters({ ...filters, period_type: e.target.value })}
-            >
-              <option value="month">Месяц</option>
-              <option value="quarter">Квартал</option>
-              <option value="year">Год</option>
-            </select>
-          </div>
-          <div className="form-group">
-            <label>Период</label>
-            {filters.period_type === 'month' ? (
-              <input
-                type="month"
-                value={filters.period_value}
-                onChange={(e) => setFilters({ ...filters, period_value: e.target.value })}
-              />
-            ) : filters.period_type === 'quarter' ? (
-              <input
-                type="text"
-                placeholder="2024-Q1"
-                value={filters.period_value}
-                onChange={(e) => setFilters({ ...filters, period_value: e.target.value })}
-              />
-            ) : (
-              <input
-                type="number"
-                placeholder="2024"
-                value={filters.period_value}
-                onChange={(e) => setFilters({ ...filters, period_value: e.target.value })}
-              />
-            )}
-          </div>
-          <div className="form-group">
-            <label>Тип бюджета</label>
-            <select
-              value={filters.budget_type}
-              onChange={(e) => setFilters({ ...filters, budget_type: e.target.value })}
-            >
-              <option value="">Все</option>
-              <option value="income">Доходы</option>
-              <option value="expense">Расходы</option>
-            </select>
-          </div>
+          <Select
+            label="Тип периода"
+            value={filters.period_type}
+            onChange={(e) => setFilters({ ...filters, period_type: e.target.value })}
+            options={[
+              { value: 'month', label: 'Месяц' },
+              { value: 'quarter', label: 'Квартал' },
+              { value: 'year', label: 'Год' }
+            ]}
+          />
+          {filters.period_type === 'month' ? (
+            <Input
+              type="month"
+              label="Период"
+              value={filters.period_value}
+              onChange={(e) => setFilters({ ...filters, period_value: e.target.value })}
+            />
+          ) : filters.period_type === 'quarter' ? (
+            <Input
+              type="text"
+              label="Период"
+              placeholder="2024-Q1"
+              value={filters.period_value}
+              onChange={(e) => setFilters({ ...filters, period_value: e.target.value })}
+            />
+          ) : (
+            <Input
+              type="number"
+              label="Период"
+              placeholder="2024"
+              value={filters.period_value}
+              onChange={(e) => setFilters({ ...filters, period_value: e.target.value })}
+            />
+          )}
+          <Select
+            label="Тип бюджета"
+            value={filters.budget_type}
+            onChange={(e) => setFilters({ ...filters, budget_type: e.target.value })}
+            placeholder="Все"
+            options={[
+              { value: '', label: 'Все' },
+              { value: 'income', label: 'Доходы' },
+              { value: 'expense', label: 'Расходы' }
+            ]}
+          />
         </div>
       </div>
 
@@ -383,22 +379,23 @@ const Budget = () => {
                 />
               </FormField>
               <FormField label="Тип периода" required error={validation.errors.period_type}>
-                <select
+                <Select
                   value={formData.period_type}
                   onChange={(e) => {
                     setFormData({ ...formData, period_type: e.target.value })
                     validation.clearError('period_type')
                   }}
                   disabled={!!editingBudget}
-                >
-                  <option value="month">Месяц</option>
-                  <option value="quarter">Квартал</option>
-                  <option value="year">Год</option>
-                </select>
+                  options={[
+                    { value: 'month', label: 'Месяц' },
+                    { value: 'quarter', label: 'Квартал' },
+                    { value: 'year', label: 'Год' }
+                  ]}
+                />
               </FormField>
               <FormField label="Период" required error={validation.errors.period_value}>
                 {formData.period_type === 'month' ? (
-                  <input
+                  <Input
                     type="month"
                     value={formData.period_value}
                     onChange={(e) => {
@@ -408,7 +405,7 @@ const Budget = () => {
                     disabled={!!editingBudget}
                   />
                 ) : formData.period_type === 'quarter' ? (
-                  <input
+                  <Input
                     type="text"
                     placeholder="2024-Q1"
                     value={formData.period_value}
@@ -419,7 +416,7 @@ const Budget = () => {
                     disabled={!!editingBudget}
                   />
                 ) : (
-                  <input
+                  <Input
                     type="number"
                     placeholder="2024"
                     value={formData.period_value}
@@ -434,7 +431,7 @@ const Budget = () => {
             </div>
             <div className="form-row">
               <FormField label="Тип бюджета" required error={validation.errors.budget_type}>
-                <select
+                <Select
                   value={formData.budget_type}
                   onChange={(e) => {
                     setFormData({ ...formData, budget_type: e.target.value, income_item_id: '', expense_item_id: '' })
@@ -443,17 +440,18 @@ const Budget = () => {
                     validation.clearError('expense_item_id')
                   }}
                   disabled={!!editingBudget}
-                >
-                  <option value="income">Доходы</option>
-                  <option value="expense">Расходы</option>
-                </select>
+                  options={[
+                    { value: 'income', label: 'Доходы' },
+                    { value: 'expense', label: 'Расходы' }
+                  ]}
+                />
               </FormField>
               <FormField 
                 label={formData.budget_type === 'income' ? 'Статья дохода' : 'Статья расхода'} 
                 required 
                 error={formData.budget_type === 'income' ? validation.errors.income_item_id : validation.errors.expense_item_id}
               >
-                <select
+                <Select
                   value={formData.budget_type === 'income' ? formData.income_item_id : formData.expense_item_id}
                   onChange={(e) => {
                     if (formData.budget_type === 'income') {
@@ -465,15 +463,18 @@ const Budget = () => {
                     }
                   }}
                   disabled={!!editingBudget}
-                >
-                  <option value="">Выберите...</option>
-                  {(formData.budget_type === 'income' ? incomeItems : expenseItems).map(item => (
-                    <option key={item.id} value={item.id}>{item.name}</option>
-                  ))}
-                </select>
+                  placeholder="Выберите..."
+                  options={[
+                    { value: '', label: 'Выберите...' },
+                    ...(formData.budget_type === 'income' ? incomeItems : expenseItems).map(item => ({
+                      value: item.id.toString(),
+                      label: item.name
+                    }))
+                  ]}
+                />
               </FormField>
               <FormField label="Плановая сумма" required error={validation.errors.planned_amount}>
-                <input
+                <Input
                   type="number"
                   step="0.01"
                   min="0"
@@ -493,12 +494,12 @@ const Budget = () => {
               />
             </FormField>
             <div style={{ display: 'flex', gap: '12px', marginTop: '20px', justifyContent: 'flex-end' }}>
-              <button type="button" onClick={handleClose}>
+              <Button type="button" variant="secondary" onClick={handleClose}>
                 Отмена
-              </button>
-              <button type="submit" className="primary">
+              </Button>
+              <Button type="submit" variant="primary">
                 Сохранить
-              </button>
+              </Button>
             </div>
           </form>
       </Modal>
@@ -551,20 +552,20 @@ const Budget = () => {
                       <td>
                         <div className="action-buttons-group">
                           <Tooltip content="Редактировать бюджет">
-                            <button 
+                            <Button 
+                              variant="primary"
+                              size="small"
                               onClick={() => handleEdit(budget)} 
-                              className="action-button action-button-compact action-button-edit"
-                            >
-                              <HiOutlinePencil />
-                            </button>
+                              icon={<HiOutlinePencil />}
+                            />
                           </Tooltip>
                           <Tooltip content="Удалить бюджет">
-                            <button 
+                            <Button 
+                              variant="danger"
+                              size="small"
                               onClick={() => handleDelete(budget.id)} 
-                              className="action-button action-button-compact action-button-delete"
-                            >
-                              <HiOutlineTrash />
-                            </button>
+                              icon={<HiOutlineTrash />}
+                            />
                           </Tooltip>
                         </div>
                       </td>
