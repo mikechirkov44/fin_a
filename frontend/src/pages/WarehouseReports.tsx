@@ -3,6 +3,7 @@ import { inventoryService, warehousesService } from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
 import LoadingSpinner from '../components/LoadingSpinner'
+import { Select } from '../components/ui'
 
 type SortField = 'product_name' | 'warehouse_name' | 'quantity' | 'min_stock_level'
 type SortDirection = 'asc' | 'desc'
@@ -14,7 +15,7 @@ const WarehouseReports = () => {
   const [turnoverData, setTurnoverData] = useState<any[]>([])
   const [stockData, setStockData] = useState<any[]>([])
   const [warehouses, setWarehouses] = useState<any[]>([])
-  const [selectedWarehouses, setSelectedWarehouses] = useState<number[]>([])
+  const [selectedWarehouseId, setSelectedWarehouseId] = useState<string>('')
   const [loadingTurnover, setLoadingTurnover] = useState(false)
   const [loadingStock, setLoadingStock] = useState(false)
   const [sortField, setSortField] = useState<SortField>('product_name')
@@ -38,9 +39,7 @@ const WarehouseReports = () => {
         params.company_id = selectedCompanyId
       }
       const data = await warehousesService.getWarehouses(params)
-      setWarehouses(data)
-      // По умолчанию выбираем все склады
-      setSelectedWarehouses(data.map((w: any) => w.id))
+      setWarehouses(data.filter((w: any) => w.is_active !== false))
     } catch (error) {
       console.error('Error loading warehouses:', error)
     }
@@ -76,21 +75,12 @@ const WarehouseReports = () => {
       if (selectedCompanyId) {
         params.company_id = selectedCompanyId
       }
-      // Если выбраны конкретные склады, фильтруем
-      if (selectedWarehouses.length > 0 && selectedWarehouses.length < warehouses.length) {
-        // Загружаем для каждого склада отдельно и объединяем
-        const allData: any[] = []
-        for (const warehouseId of selectedWarehouses) {
-          const warehouseParams = { ...params, warehouse_id: warehouseId }
-          const data = await inventoryService.getInventory(warehouseParams)
-          allData.push(...data)
-        }
-        setStockData(allData)
-      } else {
-        // Загружаем все
-        const data = await inventoryService.getInventory(params)
-        setStockData(data)
+      // Если выбран конкретный склад, фильтруем
+      if (selectedWarehouseId) {
+        params.warehouse_id = parseInt(selectedWarehouseId)
       }
+      const data = await inventoryService.getInventory(params)
+      setStockData(data)
     } catch (error) {
       console.error('Error loading stock:', error)
       showError('Ошибка загрузки остатков')
@@ -103,25 +93,8 @@ const WarehouseReports = () => {
     if (activeTab === 'stock' && selectedCompanyId) {
       loadStock()
     }
-  }, [selectedWarehouses])
+  }, [selectedWarehouseId])
 
-  const handleWarehouseToggle = (warehouseId: number) => {
-    setSelectedWarehouses(prev => {
-      if (prev.includes(warehouseId)) {
-        return prev.filter(id => id !== warehouseId)
-      } else {
-        return [...prev, warehouseId]
-      }
-    })
-  }
-
-  const handleSelectAll = () => {
-    if (selectedWarehouses.length === warehouses.length) {
-      setSelectedWarehouses([])
-    } else {
-      setSelectedWarehouses(warehouses.map((w: any) => w.id))
-    }
-  }
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -265,49 +238,20 @@ const WarehouseReports = () => {
           <div className="card" style={{ marginBottom: '20px' }}>
             <div className="card-header">Фильтр по складам</div>
             <div style={{ padding: '15px' }}>
-              <div style={{ marginBottom: '10px' }}>
-                <button
-                  onClick={handleSelectAll}
-                  style={{
-                    padding: '6px 12px',
-                    marginBottom: '10px',
-                    backgroundColor: 'var(--primary-color, #4a90e2)',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '4px',
-                    cursor: 'pointer'
-                  }}
-                >
-                  {selectedWarehouses.length === warehouses.length ? 'Снять все' : 'Выбрать все'}
-                </button>
-              </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-                {warehouses.map((warehouse) => (
-                  <label
-                    key={warehouse.id}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      padding: '8px 12px',
-                      border: '1px solid var(--border-color, #ddd)',
-                      borderRadius: '4px',
-                      cursor: 'pointer',
-                      backgroundColor: selectedWarehouses.includes(warehouse.id)
-                        ? 'var(--primary-color, #4a90e2)'
-                        : 'transparent',
-                      color: selectedWarehouses.includes(warehouse.id) ? 'white' : 'var(--text-primary)'
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedWarehouses.includes(warehouse.id)}
-                      onChange={() => handleWarehouseToggle(warehouse.id)}
-                      style={{ marginRight: '8px' }}
-                    />
-                    {warehouse.name}
-                  </label>
-                ))}
-              </div>
+              <Select
+                value={selectedWarehouseId}
+                onChange={(e) => setSelectedWarehouseId(e.target.value)}
+                placeholder="Все склады"
+                options={[
+                  { value: '', label: 'Все склады' },
+                  ...warehouses.map(warehouse => ({
+                    value: warehouse.id.toString(),
+                    label: warehouse.name
+                  }))
+                ]}
+                fullWidth={false}
+                style={{ width: '250px' }}
+              />
             </div>
           </div>
 

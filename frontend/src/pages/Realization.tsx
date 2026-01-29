@@ -47,6 +47,7 @@ const Realization = () => {
   const [searchQuery, setSearchQuery] = useState('')
   const debouncedSearchQuery = useDebounce(searchQuery, 300)
   const [filterCompanyId, setFilterCompanyId] = useState<string>('')
+  const [filterWarehouseId, setFilterWarehouseId] = useState<string>('')
   const [showForm, setShowForm] = useState(false)
   const [editingItem, setEditingItem] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -88,6 +89,13 @@ const Realization = () => {
       loadWarehouses()
     }
   }, [selectedCompanyId])
+
+  // Перезагружаем склады при смене фильтра организации
+  useEffect(() => {
+    if (filterCompanyId) {
+      loadWarehouses()
+    }
+  }, [filterCompanyId])
   
   // Восстановление черновика при открытии формы
   useEffect(() => {
@@ -133,8 +141,10 @@ const Realization = () => {
   const loadWarehouses = async () => {
     try {
       const params: any = {}
-      if (selectedCompanyId) {
-        params.company_id = selectedCompanyId
+      // Используем фильтр организации, если он установлен, иначе используем selectedCompanyId
+      const companyId = filterCompanyId ? parseInt(filterCompanyId) : selectedCompanyId
+      if (companyId) {
+        params.company_id = companyId
       }
       const data = await warehousesService.getWarehouses(params)
       setWarehouses(data.filter((w: any) => w.is_active !== false))
@@ -151,6 +161,7 @@ const Realization = () => {
         skip,
         limit: itemsPerPage,
         company_id: filterCompanyId ? parseInt(filterCompanyId) : undefined,
+        warehouse_id: filterWarehouseId ? parseInt(filterWarehouseId) : undefined,
       })
       
       // Поддержка старого формата (массив) и нового (объект с items)
@@ -171,7 +182,7 @@ const Realization = () => {
   
   useEffect(() => {
     loadData()
-  }, [currentPage, itemsPerPage, filterCompanyId])
+  }, [currentPage, itemsPerPage, filterCompanyId, filterWarehouseId])
 
   const getCompanyName = (id: number | null) => {
     if (!id) return '-'
@@ -678,7 +689,10 @@ const Realization = () => {
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Select
               value={filterCompanyId}
-              onChange={(e) => setFilterCompanyId(e.target.value)}
+              onChange={(e) => {
+                setFilterCompanyId(e.target.value)
+                setFilterWarehouseId('') // Сбрасываем фильтр склада при смене организации
+              }}
               placeholder="Все организации"
               options={[
                 { value: '', label: 'Все организации' },
@@ -686,6 +700,22 @@ const Realization = () => {
                   value: company.id.toString(),
                   label: company.name
                 }))
+              ]}
+              fullWidth={false}
+              style={{ width: '180px' }}
+            />
+            <Select
+              value={filterWarehouseId}
+              onChange={(e) => setFilterWarehouseId(e.target.value)}
+              placeholder="Все склады"
+              options={[
+                { value: '', label: 'Все склады' },
+                ...warehouses
+                  .filter(w => !filterCompanyId || w.company_id === parseInt(filterCompanyId))
+                  .map(warehouse => ({
+                    value: warehouse.id.toString(),
+                    label: warehouse.name
+                  }))
               ]}
               fullWidth={false}
               style={{ width: '180px' }}

@@ -11,47 +11,36 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 8px 12px !important;
-  background: linear-gradient(135deg, var(--bg-secondary, #FFFFFF) 0%, var(--bg-tertiary, #F8F9FA) 100%) !important;
-  border: 1.5px solid var(--input-border, #E0E0E0) !important;
+  padding: 10px 14px !important;
+  padding-right: 40px !important;
+  background-color: var(--input-bg) !important;
+  border: 1.5px solid var(--input-border) !important;
   border-radius: 8px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  font-size: 13px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  font-size: 14px;
+  line-height: 1.5;
   color: var(--text-primary);
   width: 100%;
   font-family: inherit;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  height: 40px !important;
+  min-height: 40px !important;
+  cursor: pointer;
   position: relative;
-  overflow: hidden;
-  height: auto !important;
-  min-height: auto !important;
-}
-
-.company-selector-button::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
-  transition: left 0.5s;
-}
-
-.company-selector-button:hover::before {
-  left: 100%;
 }
 
 .company-selector-button:hover {
-  background: linear-gradient(135deg, var(--hover-bg, #F0F4FF) 0%, var(--bg-secondary, #FFFFFF) 100%) !important;
-  border-color: var(--primary-color, #4a90e2) !important;
-  box-shadow: 0 4px 16px rgba(74, 144, 226, 0.2), 0 2px 8px rgba(0, 0, 0, 0.12);
-  transform: translateY(-1px);
+  border-color: var(--border-color-strong) !important;
+}
+
+.company-selector-button:focus {
+  outline: none;
+  border-color: var(--primary-color) !important;
+  box-shadow: 0 0 0 3px var(--primary-light) !important;
+  background-color: var(--bg-secondary) !important;
 }
 
 .company-selector-button:active {
-  transform: translateY(0);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transform: none;
 }
 
 .company-selector-button-content {
@@ -64,13 +53,14 @@
 
 .company-selector-icon {
   font-size: 16px;
-  color: var(--primary-color, #4a90e2);
+  color: var(--text-secondary);
   flex-shrink: 0;
-  transition: transform 0.3s ease;
+  transition: color 0.2s ease;
 }
 
-.company-selector-button:hover .company-selector-icon {
-  transform: scale(1.05);
+.company-selector-button:hover .company-selector-icon,
+.company-selector-button:focus .company-selector-icon {
+  color: var(--primary-color);
 }
 
 .company-selector-button-text {
@@ -82,17 +72,16 @@
 }
 
 .company-selector-label {
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--text-secondary, #666);
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
   line-height: 1.2;
+  margin-bottom: 2px;
 }
 
 .company-selector-value {
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 500;
   color: var(--text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -101,17 +90,29 @@
 }
 
 .company-selector-arrow {
-  font-size: 8px;
-  color: var(--text-secondary, #666);
-  transition: all 0.3s ease;
-  flex-shrink: 0;
-  opacity: 0.7;
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+  transition: color 0.2s ease;
+  width: 12px;
+  height: 12px;
 }
 
-.company-selector-button:hover .company-selector-arrow {
-  transform: translateY(2px);
-  opacity: 1;
-  color: var(--primary-color, #4a90e2);
+.company-selector-arrow svg {
+  width: 12px;
+  height: 12px;
+}
+
+.company-selector-button:hover .company-selector-arrow,
+.company-selector-button:focus .company-selector-arrow {
+  color: var(--primary-color);
 }
 
 /* ============================================

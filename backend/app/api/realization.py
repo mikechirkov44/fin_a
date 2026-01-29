@@ -38,8 +38,8 @@ def build_realization_response(realization: Realization) -> dict:
         "date": realization.date,
         "company_id": realization.company_id,
         "sales_channel_id": realization.sales_channel_id,
-        "customer_id": realization.customer_id,
-        "warehouse_id": realization.warehouse_id,
+        "customer_id": realization.customer_id if realization.customer_id else None,
+        "warehouse_id": realization.warehouse_id if realization.warehouse_id else None,
         "revenue": realization.revenue,
         "quantity": realization.quantity,
         "description": realization.description,
@@ -57,14 +57,17 @@ def get_realizations(
     end_date: date | None = Query(None),
     sales_channel_id: int | None = Query(None),
     company_id: int | None = Query(None),
+    warehouse_id: int | None = Query(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    # Используем outerjoin для корректной обработки NULL значений в customer_id и warehouse_id
+    from sqlalchemy.orm import outerjoin
     query = db.query(Realization).options(
         joinedload(Realization.items).joinedload(RealizationItem.product),
         joinedload(Realization.customer),
         joinedload(Realization.warehouse)
-    )
+    ).outerjoin(Realization.customer).outerjoin(Realization.warehouse)
     
     if start_date:
         query = query.filter(Realization.date >= start_date)
@@ -74,6 +77,8 @@ def get_realizations(
         query = query.filter(Realization.sales_channel_id == sales_channel_id)
     if company_id:
         query = query.filter(Realization.company_id == company_id)
+    if warehouse_id:
+        query = query.filter(Realization.warehouse_id == warehouse_id)
     
     # Получаем общее количество записей
     total = query.count()

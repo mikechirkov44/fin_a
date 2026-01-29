@@ -36,8 +36,8 @@ class RealizationResponse(BaseModel):
     date: date
     company_id: int
     sales_channel_id: int
-    customer_id: int
-    warehouse_id: int
+    customer_id: Optional[int] = None  # Опциональное для поддержки старых записей
+    warehouse_id: Optional[int] = None  # Опциональное для поддержки старых записей
     revenue: Decimal
     quantity: int
     description: str | None

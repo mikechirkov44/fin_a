@@ -207,7 +207,11 @@ const CompanySelector: React.FC = () => {
               <span className="company-selector-value">{getSelectedCompanyName()}</span>
             </div>
           </div>
-          <span className="company-selector-arrow">▼</span>
+          <span className="company-selector-arrow" aria-hidden="true">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M6 9L1 4H11L6 9Z" fill="currentColor"/>
+            </svg>
+          </span>
         </Button>
       </div>
 
