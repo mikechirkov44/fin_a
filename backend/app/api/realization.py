@@ -8,10 +8,13 @@ from app.database import get_db
 from app.models.user import User
 from app.models.realization import Realization, RealizationItem
 from app.models.product import Product
+from app.models.customer import Customer
+from app.models.warehouse import Warehouse
 from app.schemas.realization import RealizationCreate, RealizationResponse, RealizationItemResponse
 from app.schemas.common import PaginatedResponse
 from app.auth.security import get_current_user
 from app.utils.audit_logger import log_create, log_update, log_delete, model_to_dict
+from app.services.inventory_service import add_inventory_transaction
 
 router = APIRouter()
 
@@ -35,10 +38,14 @@ def build_realization_response(realization: Realization) -> dict:
         "date": realization.date,
         "company_id": realization.company_id,
         "sales_channel_id": realization.sales_channel_id,
+        "customer_id": realization.customer_id,
+        "warehouse_id": realization.warehouse_id,
         "revenue": realization.revenue,
         "quantity": realization.quantity,
         "description": realization.description,
         "created_at": realization.created_at,
+        "customer_name": realization.customer.name if realization.customer else None,
+        "warehouse_name": realization.warehouse.name if realization.warehouse else None,
         "items": items_data
     }
 
@@ -53,7 +60,11 @@ def get_realizations(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    query = db.query(Realization).options(joinedload(Realization.items).joinedload(RealizationItem.product))
+    query = db.query(Realization).options(
+        joinedload(Realization.items).joinedload(RealizationItem.product),
+        joinedload(Realization.customer),
+        joinedload(Realization.warehouse)
+    )
     
     if start_date:
         query = query.filter(Realization.date >= start_date)
@@ -88,6 +99,16 @@ def create_realization(
     if not realization.items:
         raise HTTPException(status_code=400, detail="At least one item is required")
     
+    # Проверяем существование клиента
+    customer = db.query(Customer).filter(Customer.id == realization.customer_id).first()
+    if not customer:
+        raise HTTPException(status_code=404, detail=f"Customer with id {realization.customer_id} not found")
+    
+    # Проверяем существование склада
+    warehouse = db.query(Warehouse).filter(Warehouse.id == realization.warehouse_id).first()
+    if not warehouse:
+        raise HTTPException(status_code=404, detail=f"Warehouse with id {realization.warehouse_id} not found")
+    
     # Вычисляем общую выручку и количество из items
     total_revenue = Decimal('0')
     total_quantity = 0
@@ -108,6 +129,8 @@ def create_realization(
         date=realization.date,
         company_id=realization.company_id,
         sales_channel_id=realization.sales_channel_id,
+        customer_id=realization.customer_id,
+        warehouse_id=realization.warehouse_id,
         revenue=total_revenue,
         quantity=total_quantity,
         description=realization.description
@@ -115,7 +138,7 @@ def create_realization(
     db.add(db_realization)
     db.flush()  # Получаем id реализации
     
-    # Создаем детализацию товаров
+    # Создаем детализацию товаров и автоматически списываем товары со склада
     for item in realization.items:
         db_item = RealizationItem(
             realization_id=db_realization.id,
@@ -125,6 +148,26 @@ def create_realization(
             cost_price=item.cost_price
         )
         db.add(db_item)
+        
+        # Автоматическое списание товаров со склада
+        try:
+            add_inventory_transaction(
+                transaction_type="OUTCOME",
+                product_id=item.product_id,
+                warehouse_id=realization.warehouse_id,
+                quantity=Decimal(item.quantity),
+                cost_price=item.cost_price,
+                transaction_date=realization.date,
+                db=db,
+                document_type="REALIZATION",
+                document_id=db_realization.id,
+                description=f"Списание по реализации #{db_realization.id}",
+                created_by=current_user.id
+            )
+        except ValueError as e:
+            # Откатываем транзакцию, если недостаточно товара на складе
+            db.rollback()
+            raise HTTPException(status_code=400, detail=str(e))
     
     db.commit()
     db.refresh(db_realization)
@@ -138,7 +181,9 @@ def create_realization(
     
     # Загружаем связанные данные для ответа
     db_realization = db.query(Realization).options(
-        joinedload(Realization.items).joinedload(RealizationItem.product)
+        joinedload(Realization.items).joinedload(RealizationItem.product),
+        joinedload(Realization.customer),
+        joinedload(Realization.warehouse)
     ).filter(Realization.id == db_realization.id).first()
     
     return build_realization_response(db_realization)
@@ -162,6 +207,16 @@ def update_realization(
     if not realization.items:
         raise HTTPException(status_code=400, detail="At least one item is required")
     
+    # Проверяем существование клиента
+    customer = db.query(Customer).filter(Customer.id == realization.customer_id).first()
+    if not customer:
+        raise HTTPException(status_code=404, detail=f"Customer with id {realization.customer_id} not found")
+    
+    # Проверяем существование склада
+    warehouse = db.query(Warehouse).filter(Warehouse.id == realization.warehouse_id).first()
+    if not warehouse:
+        raise HTTPException(status_code=404, detail=f"Warehouse with id {realization.warehouse_id} not found")
+    
     # Вычисляем общую выручку и количество из items
     total_revenue = Decimal('0')
     total_quantity = 0
@@ -177,10 +232,19 @@ def update_realization(
         total_revenue += item.price * Decimal(item.quantity)
         total_quantity += item.quantity
     
+    # Удаляем старые транзакции списания (если они были)
+    from app.models.inventory_transaction import InventoryTransaction
+    db.query(InventoryTransaction).filter(
+        InventoryTransaction.document_type == "REALIZATION",
+        InventoryTransaction.document_id == realization_id
+    ).delete()
+    
     # Обновляем основные поля реализации
     db_realization.date = realization.date
     db_realization.company_id = realization.company_id
     db_realization.sales_channel_id = realization.sales_channel_id
+    db_realization.customer_id = realization.customer_id
+    db_realization.warehouse_id = realization.warehouse_id
     db_realization.revenue = total_revenue
     db_realization.quantity = total_quantity
     db_realization.description = realization.description
@@ -188,7 +252,7 @@ def update_realization(
     # Удаляем старые items (cascade это сделает автоматически, но лучше явно)
     db.query(RealizationItem).filter(RealizationItem.realization_id == realization_id).delete()
     
-    # Создаем новые items
+    # Создаем новые items и автоматически списываем товары со склада
     for item in realization.items:
         db_item = RealizationItem(
             realization_id=realization_id,
@@ -198,6 +262,26 @@ def update_realization(
             cost_price=item.cost_price
         )
         db.add(db_item)
+        
+        # Автоматическое списание товаров со склада
+        try:
+            add_inventory_transaction(
+                transaction_type="OUTCOME",
+                product_id=item.product_id,
+                warehouse_id=realization.warehouse_id,
+                quantity=Decimal(item.quantity),
+                cost_price=item.cost_price,
+                transaction_date=realization.date,
+                db=db,
+                document_type="REALIZATION",
+                document_id=realization_id,
+                description=f"Списание по реализации #{realization_id}",
+                created_by=current_user.id
+            )
+        except ValueError as e:
+            # Откатываем транзакцию, если недостаточно товара на складе
+            db.rollback()
+            raise HTTPException(status_code=400, detail=str(e))
     
     db.commit()
     
@@ -211,7 +295,9 @@ def update_realization(
     
     # Загружаем связанные данные для ответа
     db_realization = db.query(Realization).options(
-        joinedload(Realization.items).joinedload(RealizationItem.product)
+        joinedload(Realization.items).joinedload(RealizationItem.product),
+        joinedload(Realization.customer),
+        joinedload(Realization.warehouse)
     ).filter(Realization.id == realization_id).first()
     
     return build_realization_response(db_realization)

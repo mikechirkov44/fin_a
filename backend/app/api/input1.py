@@ -1,6 +1,6 @@
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Body
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from datetime import date
 from app.database import get_db
 from app.models.user import User
@@ -23,7 +23,7 @@ def get_money_movements(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    query = db.query(MoneyMovement)
+    query = db.query(MoneyMovement).options(joinedload(MoneyMovement.supplier))
     
     if start_date:
         query = query.filter(MoneyMovement.date >= start_date)
@@ -40,8 +40,28 @@ def get_money_movements(
     # Получаем данные с пагинацией
     movements = query.order_by(MoneyMovement.date.desc()).offset(skip).limit(limit).all()
     
+    # Преобразуем в словари с supplier_name
+    items = []
+    for movement in movements:
+        movement_dict = {
+            "id": movement.id,
+            "date": movement.date,
+            "amount": movement.amount,
+            "movement_type": movement.movement_type,
+            "company_id": movement.company_id,
+            "income_item_id": movement.income_item_id,
+            "expense_item_id": movement.expense_item_id,
+            "payment_place_id": movement.payment_place_id,
+            "supplier_id": movement.supplier_id,
+            "description": movement.description,
+            "is_business": movement.is_business,
+            "created_at": movement.created_at,
+            "supplier_name": movement.supplier.name if movement.supplier else None
+        }
+        items.append(movement_dict)
+    
     return {
-        "items": movements,
+        "items": items,
         "total": total,
         "skip": skip,
         "limit": limit
@@ -60,10 +80,23 @@ def create_money_movement(
     if movement.movement_type == "expense" and not movement.expense_item_id:
         raise HTTPException(status_code=400, detail="Expense item is required for expense movement")
     
-    db_movement = MoneyMovement(**movement.dict())
+    # Валидация: для income должен быть supplier_id
+    if movement.movement_type == "income" and not movement.supplier_id:
+        raise HTTPException(status_code=400, detail="Supplier is required for income movement")
+    
+    # Для expense очищаем supplier_id, если он был передан
+    movement_data = movement.dict()
+    if movement.movement_type == "expense":
+        movement_data["supplier_id"] = None
+    
+    db_movement = MoneyMovement(**movement_data)
     db.add(db_movement)
     db.commit()
     db.refresh(db_movement)
+    
+    # Загружаем связанного поставщика
+    if db_movement.supplier_id:
+        db.refresh(db_movement, ['supplier'])
     
     # Логирование создания
     ip_address = request.client.host if request.client else None
@@ -72,7 +105,23 @@ def create_money_movement(
                ip_address=ip_address)
     db.commit()  # Коммитим логирование
     
-    return db_movement
+    # Возвращаем с supplier_name
+    response_dict = {
+        "id": db_movement.id,
+        "date": db_movement.date,
+        "amount": db_movement.amount,
+        "movement_type": db_movement.movement_type,
+        "company_id": db_movement.company_id,
+        "income_item_id": db_movement.income_item_id,
+        "expense_item_id": db_movement.expense_item_id,
+        "payment_place_id": db_movement.payment_place_id,
+        "supplier_id": db_movement.supplier_id,
+        "description": db_movement.description,
+        "is_business": db_movement.is_business,
+        "created_at": db_movement.created_at,
+        "supplier_name": db_movement.supplier.name if db_movement.supplier else None
+    }
+    return response_dict
 
 @router.put("/{movement_id}", response_model=MoneyMovementResponse)
 def update_money_movement(
@@ -91,13 +140,26 @@ def update_money_movement(
     if movement.movement_type == "expense" and not movement.expense_item_id:
         raise HTTPException(status_code=400, detail="Expense item is required for expense movement")
     
+    # Валидация: для income должен быть supplier_id
+    if movement.movement_type == "income" and not movement.supplier_id:
+        raise HTTPException(status_code=400, detail="Supplier is required for income movement")
+    
     # Сохраняем старые значения для логирования
     old_values = model_to_dict(db_movement)
     
-    for key, value in movement.dict().items():
+    movement_data = movement.dict()
+    # Для expense очищаем supplier_id, если он был передан
+    if movement.movement_type == "expense":
+        movement_data["supplier_id"] = None
+    
+    for key, value in movement_data.items():
         setattr(db_movement, key, value)
     db.commit()
     db.refresh(db_movement)
+    
+    # Загружаем связанного поставщика
+    if db_movement.supplier_id:
+        db.refresh(db_movement, ['supplier'])
     
     # Логирование обновления
     ip_address = request.client.host if request.client else None
@@ -106,7 +168,23 @@ def update_money_movement(
                ip_address=ip_address)
     db.commit()  # Коммитим логирование
     
-    return db_movement
+    # Возвращаем с supplier_name
+    response_dict = {
+        "id": db_movement.id,
+        "date": db_movement.date,
+        "amount": db_movement.amount,
+        "movement_type": db_movement.movement_type,
+        "company_id": db_movement.company_id,
+        "income_item_id": db_movement.income_item_id,
+        "expense_item_id": db_movement.expense_item_id,
+        "payment_place_id": db_movement.payment_place_id,
+        "supplier_id": db_movement.supplier_id,
+        "description": db_movement.description,
+        "is_business": db_movement.is_business,
+        "created_at": db_movement.created_at,
+        "supplier_name": db_movement.supplier.name if db_movement.supplier else None
+    }
+    return response_dict
 
 @router.delete("/{movement_id}")
 def delete_money_movement(

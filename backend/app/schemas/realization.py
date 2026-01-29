@@ -26,6 +26,8 @@ class RealizationCreate(BaseModel):
     date: date
     company_id: int
     sales_channel_id: int
+    customer_id: int
+    warehouse_id: int
     description: str | None = None
     items: List[RealizationItemCreate]
 
@@ -34,11 +36,15 @@ class RealizationResponse(BaseModel):
     date: date
     company_id: int
     sales_channel_id: int
+    customer_id: int
+    warehouse_id: int
     revenue: Decimal
     quantity: int
     description: str | None
     created_at: datetime
     items: List[RealizationItemResponse] = []
+    customer_name: Optional[str] = None
+    warehouse_name: Optional[str] = None
 
     class Config:
         from_attributes = True

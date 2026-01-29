@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { realizationService, referenceService, productsService } from '../services/api'
+import { realizationService, referenceService, productsService, customersService, warehousesService } from '../services/api'
 import { exportService } from '../services/exportService'
 import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
@@ -35,11 +35,15 @@ const Realization = () => {
     date: { required: true },
     company_id: { required: true },
     sales_channel_id: { required: true },
+    customer_id: { required: true },
+    warehouse_id: { required: true },
   })
   const [realizations, setRealizations] = useState<any[]>([])
   const [totalCount, setTotalCount] = useState(0)
   const [salesChannels, setSalesChannels] = useState<any[]>([])
   const [products, setProducts] = useState<any[]>([])
+  const [customers, setCustomers] = useState<any[]>([])
+  const [warehouses, setWarehouses] = useState<any[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const debouncedSearchQuery = useDebounce(searchQuery, 300)
   const [filterCompanyId, setFilterCompanyId] = useState<string>('')
@@ -53,6 +57,8 @@ const Realization = () => {
     date: format(new Date(), 'yyyy-MM-dd'),
     company_id: selectedCompanyId || '',
     sales_channel_id: '',
+    customer_id: '',
+    warehouse_id: '',
     description: '',
     items: [] as RealizationItem[],
   })
@@ -68,11 +74,18 @@ const Realization = () => {
     loadData()
     loadSalesChannels()
     loadProducts()
+    loadCustomers()
+    loadWarehouses()
   }, [])
 
   useEffect(() => {
     if (selectedCompanyId && !formData.company_id) {
       setFormData(prev => ({ ...prev, company_id: selectedCompanyId }))
+    }
+    // Перезагружаем клиентов и склады при смене организации
+    if (selectedCompanyId) {
+      loadCustomers()
+      loadWarehouses()
     }
   }, [selectedCompanyId])
   
@@ -101,6 +114,32 @@ const Realization = () => {
       setProducts(data.filter((p: any) => p.is_active))
     } catch (error) {
       console.error('Error loading products:', error)
+    }
+  }
+
+  const loadCustomers = async () => {
+    try {
+      const params: any = {}
+      if (selectedCompanyId) {
+        params.company_id = selectedCompanyId
+      }
+      const data = await customersService.getCustomers(params)
+      setCustomers(data.filter((c: any) => c.is_active !== false))
+    } catch (error) {
+      console.error('Error loading customers:', error)
+    }
+  }
+
+  const loadWarehouses = async () => {
+    try {
+      const params: any = {}
+      if (selectedCompanyId) {
+        params.company_id = selectedCompanyId
+      }
+      const data = await warehousesService.getWarehouses(params)
+      setWarehouses(data.filter((w: any) => w.is_active !== false))
+    } catch (error) {
+      console.error('Error loading warehouses:', error)
     }
   }
 
@@ -154,6 +193,18 @@ const Realization = () => {
       label: 'Канал продаж',
       sortable: true,
       getValue: (item) => salesChannels.find(sc => sc.id === item.sales_channel_id)?.name || '',
+    },
+    {
+      key: 'customer',
+      label: 'Клиент',
+      sortable: true,
+      getValue: (item) => item.customer_name || customers.find(c => c.id === item.customer_id)?.name || '-',
+    },
+    {
+      key: 'warehouse',
+      label: 'Склад списания',
+      sortable: true,
+      getValue: (item) => item.warehouse_name || warehouses.find(w => w.id === item.warehouse_id)?.name || '-',
     },
     {
       key: 'revenue',
@@ -253,10 +304,24 @@ const Realization = () => {
       const companyId = parseInt(String(formData.company_id))
       const salesChannelId = parseInt(String(formData.sales_channel_id))
       
+      const customerId = parseInt(String(formData.customer_id))
+      const warehouseId = parseInt(String(formData.warehouse_id))
+      
+      if (!customerId) {
+        showError('Выберите клиента')
+        return
+      }
+      if (!warehouseId) {
+        showError('Выберите склад списания')
+        return
+      }
+      
       const submitData = {
         date: formData.date,
         company_id: companyId,
         sales_channel_id: salesChannelId,
+        customer_id: customerId,
+        warehouse_id: warehouseId,
         description: formData.description || null,
         items: formData.items.map(item => ({
           product_id: parseInt(item.product_id),
@@ -286,6 +351,8 @@ const Realization = () => {
       date: format(new Date(), 'yyyy-MM-dd'),
       company_id: selectedCompanyId || '',
       sales_channel_id: '',
+      customer_id: '',
+      warehouse_id: '',
       description: '',
       items: [],
     })
@@ -347,6 +414,8 @@ const Realization = () => {
     setFormData({
       date: item.date,
       company_id: item.company_id?.toString() || selectedCompanyId || '',
+      customer_id: item.customer_id?.toString() || '',
+      warehouse_id: item.warehouse_id?.toString() || '',
       sales_channel_id: item.sales_channel_id?.toString() || '',
       description: item.description || '',
       items: (item.items || []).map((i: any) => ({
@@ -438,6 +507,36 @@ const Realization = () => {
                 options={salesChannels.filter(sc => sc.is_active).map(channel => ({
                   value: channel.id,
                   label: channel.name
+                }))}
+              />
+            </FormField>
+          </div>
+          <div className="form-row">
+            <FormField label="Клиент" required error={validation.errors.customer_id}>
+              <Select
+                value={formData.customer_id}
+                onChange={(e) => {
+                  setFormData({ ...formData, customer_id: e.target.value })
+                  validation.clearError('customer_id')
+                }}
+                placeholder="Выберите клиента..."
+                options={customers.map(customer => ({
+                  value: customer.id.toString(),
+                  label: customer.name
+                }))}
+              />
+            </FormField>
+            <FormField label="Склад списания" required error={validation.errors.warehouse_id}>
+              <Select
+                value={formData.warehouse_id}
+                onChange={(e) => {
+                  setFormData({ ...formData, warehouse_id: e.target.value })
+                  validation.clearError('warehouse_id')
+                }}
+                placeholder="Выберите склад..."
+                options={warehouses.map(warehouse => ({
+                  value: warehouse.id.toString(),
+                  label: warehouse.name
                 }))}
               />
             </FormField>

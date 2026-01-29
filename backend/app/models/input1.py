@@ -14,6 +14,7 @@ class MoneyMovement(Base):
     income_item_id = Column(Integer, ForeignKey("income_items.id"), nullable=True)
     expense_item_id = Column(Integer, ForeignKey("expense_items.id"), nullable=True)
     payment_place_id = Column(Integer, ForeignKey("payment_places.id"), nullable=False)
+    supplier_id = Column(Integer, ForeignKey("suppliers.id"), nullable=True, index=True)  # Только для income
     description = Column(String)
     is_business = Column(Boolean, default=True)  # True - бизнес, False - личное
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -23,4 +24,5 @@ class MoneyMovement(Base):
     income_item = relationship("IncomeItem", foreign_keys=[income_item_id])
     expense_item = relationship("ExpenseItem", foreign_keys=[expense_item_id])
     payment_place = relationship("PaymentPlace", foreign_keys=[payment_place_id])
+    supplier = relationship("Supplier", foreign_keys=[supplier_id])
 

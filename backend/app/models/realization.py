@@ -10,6 +10,8 @@ class Realization(Base):
     date = Column(Date, nullable=False, index=True)
     company_id = Column(Integer, ForeignKey("companies.id"), nullable=False, index=True)
     sales_channel_id = Column(Integer, ForeignKey("sales_channels.id"), nullable=False, index=True)
+    customer_id = Column(Integer, ForeignKey("customers.id"), nullable=False, index=True)
+    warehouse_id = Column(Integer, ForeignKey("warehouses.id"), nullable=False, index=True)
     revenue = Column(Numeric(15, 2), nullable=False)  # Общая выручка (сумма всех items)
     quantity = Column(Integer, default=0)  # Общее количество (сумма всех items)
     description = Column(String)
@@ -18,6 +20,8 @@ class Realization(Base):
 
     company = relationship("Company", foreign_keys=[company_id])
     sales_channel = relationship("SalesChannel", foreign_keys=[sales_channel_id])
+    customer = relationship("Customer", foreign_keys=[customer_id])
+    warehouse = relationship("Warehouse", foreign_keys=[warehouse_id])
     items = relationship("RealizationItem", back_populates="realization", cascade="all, delete-orphan")
 
 

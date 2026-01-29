@@ -59,14 +59,48 @@ export const clearNonCriticalData = (): void => {
 }
 
 /**
+ * Проверяет размер значения перед сохранением
+ */
+const checkValueSize = (value: string, maxSize: number = 50 * 1024): boolean => {
+  const size = new Blob([value]).size
+  if (size > maxSize) {
+    console.warn(`Value size (${(size / 1024).toFixed(2)}KB) exceeds limit (${(maxSize / 1024).toFixed(2)}KB)`)
+    return false
+  }
+  return true
+}
+
+/**
  * Безопасное сохранение в localStorage с обработкой ошибок переполнения
  */
-export const safeSetItem = (key: string, value: string): boolean => {
+export const safeSetItem = (key: string, value: string, maxSize?: number): boolean => {
+  // Проверяем размер перед сохранением (для некритических ключей)
+  if (maxSize && !CRITICAL_KEYS.includes(key)) {
+    if (!checkValueSize(value, maxSize)) {
+      // Если значение слишком большое, очищаем старые черновики и пробуем снова
+      clearAllDrafts()
+      if (!checkValueSize(value, maxSize)) {
+        console.warn('Value too large even after cleanup, skipping save')
+        return false
+      }
+    }
+  }
+
   try {
     localStorage.setItem(key, value)
     return true
   } catch (e: any) {
-    if (e.name === 'QuotaExceededError' || e.message?.includes('quota')) {
+    // Обрабатываем различные варианты ошибок квоты
+    const isQuotaError = 
+      e.name === 'QuotaExceededError' || 
+      e.name === 'NS_ERROR_DOM_QUOTA_REACHED' ||
+      e.message?.includes('quota') ||
+      e.message?.includes('QuotaExceeded') ||
+      e.code === 22 ||
+      (e.code === 1014 && e.name === 'NS_ERROR_DOM_QUOTA_REACHED') ||
+      e.toString().includes('QuotaExceeded')
+
+    if (isQuotaError) {
       console.warn('LocalStorage quota exceeded, attempting cleanup...')
       
       // Сначала пытаемся очистить только черновики
@@ -91,15 +125,23 @@ export const safeSetItem = (key: string, value: string): boolean => {
           if (key !== 'token') {
             try {
               const token = localStorage.getItem('token')
+              const selectedCompanyId = localStorage.getItem('selectedCompanyId')
               localStorage.clear()
               if (token) {
                 localStorage.setItem('token', token)
+              }
+              if (selectedCompanyId) {
+                localStorage.setItem('selectedCompanyId', selectedCompanyId)
               }
               localStorage.setItem(key, value)
               console.log('Successfully saved after full cleanup')
               return true
             } catch (e4) {
               console.error('Failed to save even after full cleanup:', e4)
+              // Если даже после полной очистки не получается, возможно значение слишком большое
+              if (maxSize && value.length > maxSize) {
+                console.warn('Value is too large to save, even after cleanup')
+              }
             }
           }
           return false
@@ -149,18 +191,26 @@ export const checkAndCleanStorage = (): void => {
       if (key) {
         const value = localStorage.getItem(key)
         if (value) {
-          const size = value.length
+          const size = new Blob([value]).size
           totalSize += size
           items.push({ key, size })
         }
       }
     }
     
-    // Если общий размер превышает 4MB (80% от типичного лимита 5MB), очищаем черновики
-    if (totalSize > 4 * 1024 * 1024) {
+    // Если общий размер превышает 3MB (60% от типичного лимита 5MB), очищаем черновики
+    if (totalSize > 3 * 1024 * 1024) {
       console.warn(`LocalStorage size (${(totalSize / 1024 / 1024).toFixed(2)}MB) is high, clearing drafts`)
       clearAllDrafts()
     }
+    
+    // Также проверяем размер отдельных элементов - если какой-то черновик слишком большой, удаляем его
+    items.forEach(({ key, size }) => {
+      if (DRAFT_KEYS.includes(key) && size > 50 * 1024) {
+        console.warn(`Draft ${key} is too large (${(size / 1024).toFixed(2)}KB), removing it`)
+        safeRemoveItem(key)
+      }
+    })
   } catch (e) {
     console.error('Error checking localStorage size:', e)
   }

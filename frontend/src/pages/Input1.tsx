@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { input1Service, referenceService } from '../services/api'
+import { input1Service, referenceService, suppliersService } from '../services/api'
 import { exportService, importService } from '../services/exportService'
 import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
@@ -34,6 +34,7 @@ const Input1 = () => {
   const [incomeItems, setIncomeItems] = useState<any[]>([])
   const [expenseItems, setExpenseItems] = useState<any[]>([])
   const [paymentPlaces, setPaymentPlaces] = useState<any[]>([])
+  const [suppliers, setSuppliers] = useState<any[]>([])
   const [showForm, setShowForm] = useState(false)
   const [editingItem, setEditingItem] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -63,6 +64,14 @@ const Input1 = () => {
         return null
       }
     },
+    supplier_id: {
+      custom: (value) => {
+        if (formData.movement_type === 'income' && !value) {
+          return 'Выберите поставщика'
+        }
+        return null
+      }
+    },
   })
   const [formData, setFormData] = useState({
     date: format(new Date(), 'yyyy-MM-dd'),
@@ -72,6 +81,7 @@ const Input1 = () => {
     income_item_id: '',
     expense_item_id: '',
     payment_place_id: '',
+    supplier_id: '',
     description: '',
     is_business: true,
   })
@@ -290,14 +300,16 @@ const Input1 = () => {
 
   const loadReferences = async () => {
     try {
-      const [income, expense, places] = await Promise.all([
+      const [income, expense, places, suppliersData] = await Promise.all([
         referenceService.getIncomeItems(),
         referenceService.getExpenseItems(),
         referenceService.getPaymentPlaces(),
+        suppliersService.getSuppliers({ company_id: selectedCompanyId }),
       ])
       setIncomeItems(income)
       setExpenseItems(expense)
       setPaymentPlaces(places)
+      setSuppliers(suppliersData.filter((s: any) => s.is_active !== false))
     } catch (error) {
       console.error('Error loading references:', error)
     }
@@ -319,6 +331,7 @@ const Input1 = () => {
         income_item_id: formData.movement_type === 'income' ? parseInt(String(formData.income_item_id)) : null,
         expense_item_id: formData.movement_type === 'expense' ? parseInt(String(formData.expense_item_id)) : null,
         payment_place_id: parseInt(String(formData.payment_place_id)),
+        supplier_id: formData.movement_type === 'income' ? parseInt(String(formData.supplier_id)) : null,
         is_business: formData.is_business,
       }
       if (editingItem) {
@@ -345,6 +358,7 @@ const Input1 = () => {
       income_item_id: '',
       expense_item_id: '',
       payment_place_id: '',
+      supplier_id: '',
       description: '',
       is_business: true,
     })
@@ -364,6 +378,7 @@ const Input1 = () => {
       amount: item.amount.toString(),
       movement_type: item.movement_type,
       company_id: item.company_id?.toString() || selectedCompanyId || '',
+      supplier_id: item.supplier_id?.toString() || '',
       income_item_id: item.income_item_id?.toString() || '',
       expense_item_id: item.expense_item_id?.toString() || '',
       payment_place_id: item.payment_place_id.toString(),
@@ -461,9 +476,10 @@ const Input1 = () => {
                 <Select
                   value={formData.movement_type}
                   onChange={(e) => {
-                    setFormData({ ...formData, movement_type: e.target.value, income_item_id: '', expense_item_id: '' })
+                    setFormData({ ...formData, movement_type: e.target.value, income_item_id: '', expense_item_id: '', supplier_id: '' })
                     validation.clearError('income_item_id')
                     validation.clearError('expense_item_id')
+                    validation.clearError('supplier_id')
                   }}
                   options={[
                     { value: 'income', label: 'Поступление' },
@@ -486,23 +502,42 @@ const Input1 = () => {
             </div>
             <div className="form-row">
               {formData.movement_type === 'income' ? (
-                <FormField label="Статья дохода" required error={validation.errors.income_item_id}>
-                  <Select
-                    value={formData.income_item_id}
-                    onChange={(e) => {
-                      setFormData({ ...formData, income_item_id: e.target.value })
-                      validation.clearError('income_item_id')
-                    }}
-                    placeholder="Выберите..."
-                    options={[
-                      { value: '', label: 'Выберите...' },
-                      ...incomeItems.map(item => ({
-                        value: item.id.toString(),
-                        label: item.name
-                      }))
-                    ]}
-                  />
-                </FormField>
+                <>
+                  <FormField label="Статья дохода" required error={validation.errors.income_item_id}>
+                    <Select
+                      value={formData.income_item_id}
+                      onChange={(e) => {
+                        setFormData({ ...formData, income_item_id: e.target.value })
+                        validation.clearError('income_item_id')
+                      }}
+                      placeholder="Выберите..."
+                      options={[
+                        { value: '', label: 'Выберите...' },
+                        ...incomeItems.map(item => ({
+                          value: item.id.toString(),
+                          label: item.name
+                        }))
+                      ]}
+                    />
+                  </FormField>
+                  <FormField label="Поставщик" required error={validation.errors.supplier_id}>
+                    <Select
+                      value={formData.supplier_id}
+                      onChange={(e) => {
+                        setFormData({ ...formData, supplier_id: e.target.value })
+                        validation.clearError('supplier_id')
+                      }}
+                      placeholder="Выберите поставщика..."
+                      options={[
+                        { value: '', label: 'Выберите...' },
+                        ...suppliers.map(supplier => ({
+                          value: supplier.id.toString(),
+                          label: supplier.name
+                        }))
+                      ]}
+                    />
+                  </FormField>
+                </>
               ) : (
                 <FormField label="Статья расхода" required error={validation.errors.expense_item_id}>
                   <Select

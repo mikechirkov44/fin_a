@@ -1,5 +1,31 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { safeSetItem, safeGetItem, safeRemoveItem, clearAllDrafts } from '../utils/localStorageHelper'
+
+// Максимальный размер черновика (50KB вместо 100KB)
+const MAX_DRAFT_SIZE = 50 * 1024
+
+/**
+ * Ограничивает размер данных для черновика
+ * Для массивов ограничивает количество элементов
+ */
+const limitDraftSize = <T>(data: T): T => {
+  if (!data || typeof data !== 'object') {
+    return data
+  }
+
+  const dataCopy = JSON.parse(JSON.stringify(data)) as any
+
+  // Если есть массив items (например, товары в реализации), ограничиваем его
+  if (dataCopy.items && Array.isArray(dataCopy.items)) {
+    // Оставляем только последние 50 элементов
+    if (dataCopy.items.length > 50) {
+      console.warn(`Draft has ${dataCopy.items.length} items, limiting to 50`)
+      dataCopy.items = dataCopy.items.slice(-50)
+    }
+  }
+
+  return dataCopy as T
+}
 
 /**
  * Хук для автосохранения черновиков в localStorage
@@ -13,6 +39,7 @@ export const useDraftSave = <T>(
   enabled: boolean = true
 ) => {
   const [hasDraft, setHasDraft] = useState(false)
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Функция для очистки старых черновиков
   const clearOldDrafts = useCallback(() => {
@@ -43,13 +70,13 @@ export const useDraftSave = <T>(
       draftKeys.forEach(draftKey => {
         const item = safeGetItem(draftKey)
         if (item) {
-          totalSize += item.length
+          totalSize += new Blob([item]).size
         }
       })
       
-      // Если общий размер черновиков превышает 500KB, очищаем все кроме текущего
-      if (totalSize > 500 * 1024) {
-        console.warn('Drafts size exceeded 500KB, clearing old drafts')
+      // Если общий размер черновиков превышает 200KB, очищаем все кроме текущего
+      if (totalSize > 200 * 1024) {
+        console.warn(`Drafts size exceeded 200KB (${(totalSize / 1024).toFixed(2)}KB), clearing old drafts`)
         clearOldDrafts()
       }
     } catch (e) {
@@ -71,30 +98,53 @@ export const useDraftSave = <T>(
     }
   }, [key, enabled, clearOldDrafts])
 
-  // Автосохранение при изменении данных
+  // Автосохранение при изменении данных с debounce
   useEffect(() => {
     if (!enabled) return
+    
+    // Очищаем предыдущий таймер
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current)
+    }
     
     // Проверяем, есть ли данные для сохранения
     const hasData = data && typeof data === 'object' && Object.keys(data).length > 0
     
     if (hasData) {
-      try {
-        const dataString = JSON.stringify(data)
-        // Проверяем размер данных (localStorage ограничен ~5-10MB, но лучше ограничить черновики до 100KB)
-        if (dataString.length > 100 * 1024) {
-          console.warn('Draft data too large, skipping save')
-          return
+      // Используем debounce - сохраняем через 1 секунду после последнего изменения
+      saveTimeoutRef.current = setTimeout(() => {
+        try {
+          // Ограничиваем размер данных перед сохранением
+          const limitedData = limitDraftSize(data)
+          const dataString = JSON.stringify(limitedData)
+          
+          // Проверяем размер данных
+          const dataSize = new Blob([dataString]).size
+          if (dataSize > MAX_DRAFT_SIZE) {
+            console.warn(`Draft data too large (${(dataSize / 1024).toFixed(2)}KB), skipping save`)
+            return
+          }
+          
+          // Сохраняем с ограничением размера
+          const success = safeSetItem(key, dataString, MAX_DRAFT_SIZE)
+          if (success) {
+            setHasDraft(true)
+          } else {
+            console.warn('Failed to save draft, storage may be full')
+          }
+        } catch (e: any) {
+          console.error('Error saving draft:', e)
         }
-        const success = safeSetItem(key, dataString)
-        if (success) {
-          setHasDraft(true)
-        }
-      } catch (e: any) {
-        console.error('Error saving draft:', e)
+      }, 1000) // Debounce 1 секунда
+    }
+
+    // Очистка таймера при размонтировании
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current)
       }
     }
-  }, [key, data, enabled, clearOldDrafts])
+  }, [key, data, enabled])
 
   // Загрузка черновика
   const loadDraft = useCallback((): T | null => {
