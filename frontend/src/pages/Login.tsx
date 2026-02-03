@@ -12,6 +12,8 @@ const Login = () => {
   const [error, setError] = useState('')
   const [isRegister, setIsRegister] = useState(false)
   const [email, setEmail] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+  const [isExiting, setIsExiting] = useState(false)
   const { login } = useAuth()
   const { theme, toggleTheme } = useTheme()
   const navigate = useNavigate()
@@ -19,13 +21,18 @@ const Login = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    setIsLoading(true)
 
     try {
       if (isRegister) {
         await authService.register(email, username, password)
       }
       await login(username, password)
-      navigate('/dashboard')
+      setIsExiting(true)
+      // Небольшая задержка для плавного перехода
+      setTimeout(() => {
+        navigate('/dashboard')
+      }, 400)
     } catch (err: any) {
       console.error('Login error:', err)
       const errorMessage = 
@@ -33,6 +40,7 @@ const Login = () => {
         err?.message || 
         (isRegister ? 'Ошибка регистрации' : 'Ошибка входа. Проверьте имя пользователя и пароль.')
       setError(errorMessage)
+      setIsLoading(false)
     }
   }
 
@@ -59,7 +67,7 @@ const Login = () => {
       >
         {theme === 'light' ? '🌙' : '☀️'}
       </Button>
-      <div className="login-card">
+      <div className={`login-card ${isExiting ? 'login-card-exit' : ''}`}>
         <h1>Финансовая отчетность</h1>
         <form onSubmit={handleSubmit}>
           {isRegister && (
@@ -86,8 +94,14 @@ const Login = () => {
             required
           />
           {error && <div className="error-message">{error}</div>}
-          <Button type="submit" variant="primary" fullWidth style={{ marginTop: '12px' }}>
-            {isRegister ? 'Зарегистрироваться' : 'Войти'}
+          <Button 
+            type="submit" 
+            variant="primary" 
+            fullWidth 
+            style={{ marginTop: '12px' }}
+            disabled={isLoading}
+          >
+            {isLoading ? '⏳' : (isRegister ? 'Зарегистрироваться' : 'Войти')}
           </Button>
           <Button
             type="button"

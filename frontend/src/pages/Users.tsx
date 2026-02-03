@@ -224,13 +224,45 @@ const Users = () => {
                 ]}
               />
             </FormField>
-            <div style={{ display: 'flex', gap: '12px', marginTop: '20px', justifyContent: 'flex-end' }}>
-              <Button type="button" variant="secondary" onClick={handleClose}>
-                Отмена
-              </Button>
-              <Button type="submit" variant="primary">
-                Сохранить
-              </Button>
+            <div style={{ display: 'flex', gap: '12px', marginTop: '20px', justifyContent: 'space-between' }}>
+              <div>
+                {editingUser && editingUser.is_active && (
+                  <Button 
+                    type="button" 
+                    variant="danger" 
+                    onClick={async () => {
+                      const confirmed = await confirm({
+                        title: 'Деактивация пользователя',
+                        message: 'Вы уверены, что хотите деактивировать этого пользователя?',
+                        confirmText: 'Деактивировать',
+                        cancelText: 'Отмена',
+                        type: 'danger',
+                      })
+                      if (confirmed) {
+                        try {
+                          await usersService.updateUser(editingUser.id, { is_active: false })
+                          showSuccess('Пользователь деактивирован')
+                          handleClose()
+                          loadData()
+                        } catch (error: any) {
+                          showError(error.response?.data?.detail || 'Ошибка деактивации пользователя')
+                        }
+                      }
+                    }}
+                    icon={<HiOutlineTrash />}
+                  >
+                    Деактивировать
+                  </Button>
+                )}
+              </div>
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <Button type="button" variant="secondary" onClick={handleClose}>
+                  Отмена
+                </Button>
+                <Button type="submit" variant="primary">
+                  Сохранить
+                </Button>
+              </div>
             </div>
           </form>
       </Modal>
@@ -244,7 +276,6 @@ const Users = () => {
                 <th>Имя пользователя</th>
                 <th>Роль</th>
                 <th>Активен</th>
-                <th>Действия</th>
               </tr>
             </thead>
             <tbody>
@@ -284,35 +315,6 @@ const Users = () => {
                       {user.role === 'VIEWER' && 'Просмотр'}
                     </td>
                     <td>{user.is_active ? 'Да' : 'Нет'}</td>
-                    <td>
-                      <div className="action-buttons-group">
-                        <Tooltip content="Редактировать пользователя">
-                          <Button 
-                            variant="primary"
-                            size="small"
-                            onClick={() => handleEdit(user)} 
-                            icon={<HiOutlinePencil />}
-                          />
-                        </Tooltip>
-                        {user.companies && user.companies.length > 0 && (
-                          <Tooltip content={`Организации: ${user.companies.map((uc: any) => uc.company_id).join(', ')}`}>
-                            <button className="action-button action-button-compact action-button-view">
-                              🏢
-                            </button>
-                          </Tooltip>
-                        )}
-                        {user.is_active && (
-                          <Tooltip content="Деактивировать пользователя">
-                            <button 
-                              onClick={() => handleDelete(user.id)} 
-                              className="action-button action-button-compact action-button-delete"
-                            >
-                              <HiOutlineTrash />
-                            </button>
-                          </Tooltip>
-                        )}
-                      </div>
-                    </td>
                   </tr>
                 ))
               )}

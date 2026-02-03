@@ -1,13 +1,12 @@
 .metric-card {
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
-  border-radius: 16px;
+  border-radius: 12px;
   padding: 24px;
   box-shadow: var(--shadow-sm);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
-  backdrop-filter: blur(10px);
 }
 
 .metric-card::before {
@@ -16,20 +15,20 @@
   top: 0;
   left: 0;
   right: 0;
-  height: 4px;
+  height: 3px;
   background: linear-gradient(90deg, var(--primary-color) 0%, var(--primary-hover) 100%);
   opacity: 0;
   transition: opacity 0.3s ease;
 }
 
 .metric-card:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-lg);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
   border-color: var(--border-color-strong);
 }
 
 .metric-card:hover::before {
-  opacity: 1;
+  opacity: 0.8;
 }
 
 .metric-card-primary::before {
@@ -60,11 +59,12 @@
 }
 
 .metric-card-title {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  line-height: 1.4;
 }
 
 .metric-card-icon {
@@ -79,12 +79,33 @@
 }
 
 .metric-card-value {
-  font-size: 32px;
+  font-size: 36px;
   font-weight: 700;
   color: var(--text-primary);
   margin-bottom: 8px;
   line-height: 1.2;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.025em;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.metric-card-value.metric-value-updated {
+  animation: valueUpdate 0.5s ease-out;
+}
+
+@keyframes valueUpdate {
+  0% {
+    transform: scale(1);
+    color: var(--text-primary);
+  }
+  50% {
+    transform: scale(1.08);
+    color: var(--primary-color);
+  }
+  100% {
+    transform: scale(1);
+    color: var(--text-primary);
+  }
 }
 
 .metric-card-subtitle {

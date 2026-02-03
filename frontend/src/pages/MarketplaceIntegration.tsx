@@ -7,6 +7,7 @@ import Modal from '../components/Modal'
 import { format, subDays } from 'date-fns'
 import { HiOutlinePencil, HiOutlineTrash, HiOutlineArrowPath, HiOutlineLink, HiOutlinePlus } from 'react-icons/hi2'
 import { Button, Input, Select } from '../components/ui'
+import Tooltip from '../components/Tooltip'
 
 const MarketplaceIntegration = () => {
   const { selectedCompanyId, companies } = useAuth()
@@ -329,13 +330,45 @@ const MarketplaceIntegration = () => {
               )}
             </div>
 
-            <div style={{ display: 'flex', gap: '12px', marginTop: '20px', justifyContent: 'flex-end' }}>
-              <Button type="button" variant="secondary" onClick={handleClose}>
-                Отмена
-              </Button>
-              <Button type="submit" variant="primary">
-                Сохранить
-              </Button>
+            <div style={{ display: 'flex', gap: '12px', marginTop: '20px', justifyContent: 'space-between' }}>
+              <div>
+                {editingIntegration && (
+                  <Button 
+                    type="button" 
+                    variant="danger" 
+                    onClick={async () => {
+                      const confirmed = await confirm({
+                        title: 'Удаление интеграции',
+                        message: 'Вы уверены, что хотите удалить эту интеграцию?',
+                        confirmText: 'Удалить',
+                        cancelText: 'Отмена',
+                        type: 'danger',
+                      })
+                      if (confirmed) {
+                        try {
+                          await marketplaceIntegrationService.deleteIntegration(editingIntegration.id)
+                          showSuccess('Интеграция успешно удалена')
+                          handleClose()
+                          loadData()
+                        } catch (error: any) {
+                          showError(error.response?.data?.detail || 'Ошибка удаления интеграции')
+                        }
+                      }
+                    }}
+                    icon={<HiOutlineTrash />}
+                  >
+                    Удалить
+                  </Button>
+                )}
+              </div>
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <Button type="button" variant="secondary" onClick={handleClose}>
+                  Отмена
+                </Button>
+                <Button type="submit" variant="primary">
+                  Сохранить
+                </Button>
+              </div>
             </div>
           </form>
       </Modal>
@@ -373,7 +406,7 @@ const MarketplaceIntegration = () => {
               <th>Статус</th>
               <th>Последняя синхронизация</th>
               <th>Автосинхронизация</th>
-              <th style={{ width: 'auto', minWidth: '200px' }}>Действия</th>
+              <th>Действия</th>
             </tr>
           </thead>
           <tbody>
@@ -383,7 +416,20 @@ const MarketplaceIntegration = () => {
               </tr>
             ) : (
               integrations.map((integration) => (
-                <tr key={integration.id}>
+                <tr 
+                  key={integration.id}
+                  onClick={() => handleEdit(integration)}
+                  style={{ 
+                    cursor: 'pointer',
+                    transition: 'background-color 0.2s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#f5f5f5'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = ''
+                  }}
+                >
                   <td>{integration.marketplace_name}</td>
                   <td>{getCompanyName(integration.company_id)}</td>
                   <td>
@@ -414,7 +460,7 @@ const MarketplaceIntegration = () => {
                   <td>
                     {integration.auto_sync ? `Каждые ${integration.sync_interval_hours} ч.` : 'Нет'}
                   </td>
-                  <td>
+                  <td onClick={(e) => e.stopPropagation()}>
                     <div className="action-buttons-group" style={{ flexWrap: 'nowrap' }}>
                       <Button
                         variant="secondary"
@@ -436,20 +482,6 @@ const MarketplaceIntegration = () => {
                       >
                         {syncLoading === integration.id ? '⏳' : ''}
                       </Button>
-                      <Button
-                        variant="primary"
-                        size="small"
-                        onClick={() => handleEdit(integration)}
-                        icon={<HiOutlinePencil />}
-                        title="Редактировать настройки интеграции"
-                      />
-                      <Button
-                        variant="danger"
-                        size="small"
-                        onClick={() => handleDelete(integration.id)}
-                        icon={<HiOutlineTrash />}
-                        title="Удалить интеграцию"
-                      />
                     </div>
                   </td>
                 </tr>

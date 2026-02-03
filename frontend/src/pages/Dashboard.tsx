@@ -15,6 +15,7 @@ const Dashboard = () => {
   const [accountBalances, setAccountBalances] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [loadingBalances, setLoadingBalances] = useState(true)
+  const [isRefreshing, setIsRefreshing] = useState(false)
   const { selectedCompanyId } = useAuth()
 
   useEffect(() => {
@@ -22,8 +23,11 @@ const Dashboard = () => {
     loadAccountBalances()
   }, [selectedCompanyId])
 
-  const loadData = async () => {
+  const loadData = async (isRefresh = false) => {
     try {
+      if (isRefresh) {
+        setIsRefreshing(true)
+      }
       const endDate = new Date()
       const startDate = new Date()
       startDate.setMonth(startDate.getMonth() - 3)
@@ -37,6 +41,9 @@ const Dashboard = () => {
       console.error('Error loading dashboard:', error)
     } finally {
       setLoading(false)
+      if (isRefresh) {
+        setIsRefreshing(false)
+      }
     }
   }
 
@@ -133,11 +140,11 @@ const Dashboard = () => {
 
   return (
     <div>
-      <div className="dashboard-metrics-grid">
+      <div className={`dashboard-metrics-grid ${isRefreshing ? 'metrics-refreshing' : ''}`}>
         {accountBalances && !loadingBalances && accountBalances.accounts && accountBalances.accounts.length > 0 && (
           <MetricCard
             title="Остатки на счетах"
-            value={`${accountBalances.total_balance.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽`}
+            value={`${Math.round(accountBalances.total_balance).toLocaleString('ru-RU')} ₽`}
             icon="💳"
             color={accountBalances.total_balance >= 0 ? 'success' : 'danger'}
             subtitle={getAccountBalancesSubtitle() || undefined}
@@ -148,25 +155,25 @@ const Dashboard = () => {
         )}
         <MetricCard
           title="Выручка"
-          value={`${indicators.revenue.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽`}
+          value={`${Math.round(indicators.revenue).toLocaleString('ru-RU')} ₽`}
           icon="💰"
           color="primary"
         />
         <MetricCard
           title="Себестоимость"
-          value={`${indicators.cost_of_goods.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽`}
+          value={`${Math.round(indicators.cost_of_goods).toLocaleString('ru-RU')} ₽`}
           icon="📦"
           color="info"
         />
         <MetricCard
           title="Расходы"
-          value={`${indicators.expenses.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽`}
+          value={`${Math.round(indicators.expenses).toLocaleString('ru-RU')} ₽`}
           icon="💸"
           color="warning"
         />
         <MetricCard
           title="Валовая прибыль"
-          value={`${indicators.gross_profit.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽`}
+          value={`${Math.round(indicators.gross_profit).toLocaleString('ru-RU')} ₽`}
           icon="📈"
           color={isGrossProfitPositive ? 'success' : 'danger'}
           subtitle={`Рентабельность: ${indicators.gross_margin}%`}
@@ -179,7 +186,7 @@ const Dashboard = () => {
         />
         <MetricCard
           title="Чистая прибыль"
-          value={`${indicators.net_profit.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽`}
+          value={`${Math.round(indicators.net_profit).toLocaleString('ru-RU')} ₽`}
           icon="💵"
           color={isProfitPositive ? 'success' : 'danger'}
           subtitle={`Рентабельность: ${indicators.net_margin}%`}

@@ -9,8 +9,9 @@ import FormField from '../components/FormField'
 import Modal from '../components/Modal'
 import Pagination from '../components/Pagination'
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
-import { HiOutlinePencil, HiOutlineTrash, HiOutlinePlus } from 'react-icons/hi2'
+import { HiOutlinePencil, HiOutlineTrash, HiOutlinePlus, HiOutlineArrowPath } from 'react-icons/hi2'
 import { Button, Input, SearchInput, Select } from '../components/ui'
+import Tooltip from '../components/Tooltip'
 import '../components/CompactForm.css'
 
 const Customers = () => {
@@ -304,12 +305,15 @@ const Customers = () => {
                   <th>Сумма покупок</th>
                   <th>Средний чек</th>
                   <th>LTV</th>
-                  <th>Действия</th>
                 </tr>
               </thead>
               <tbody>
                 {paginatedCustomers.map((customer) => (
-                  <tr key={customer.id}>
+                  <tr 
+                    key={customer.id}
+                    className="clickable"
+                    onClick={() => handleEdit(customer)}
+                  >
                     <td>{customer.name}</td>
                     <td>{customer.phone || '-'}</td>
                     <td>{customer.email || '-'}</td>
@@ -317,36 +321,6 @@ const Customers = () => {
                     <td>{customer.total_purchases ? `${parseFloat(customer.total_purchases).toLocaleString('ru-RU')} ₽` : '0 ₽'}</td>
                     <td>{customer.average_check ? `${parseFloat(customer.average_check).toLocaleString('ru-RU')} ₽` : '-'}</td>
                     <td>{customer.ltv ? `${parseFloat(customer.ltv).toLocaleString('ru-RU')} ₽` : '-'}</td>
-                    <td>
-                      <div className="action-buttons-group">
-                        <Button
-                          variant="primary"
-                          size="small"
-                          onClick={() => handleEdit(customer)}
-                          icon={<HiOutlinePencil />}
-                          title="Редактировать"
-                        >
-                          <span style={{ display: 'none' }}></span>
-                        </Button>
-                        <Button
-                          variant="secondary"
-                          size="small"
-                          onClick={() => handleUpdateMetrics(customer.id)}
-                          title="Обновить метрики"
-                        >
-                          ↻
-                        </Button>
-                        <Button
-                          variant="danger"
-                          size="small"
-                          onClick={() => handleDelete(customer.id)}
-                          icon={<HiOutlineTrash />}
-                          title="Удалить"
-                        >
-                          <span style={{ display: 'none' }}></span>
-                        </Button>
-                      </div>
-                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -481,23 +455,56 @@ const Customers = () => {
               </div>
             </div>
 
-            <div className="compact-form-actions">
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => {
-                  setShowForm(false)
-                  setEditingItem(null)
-                }}
-              >
-                Отмена
-              </Button>
-              <Button
-                type="submit"
-                variant="primary"
-              >
-                Сохранить
-              </Button>
+            <div className="compact-form-actions" style={{ justifyContent: 'space-between' }}>
+              <div>
+                {editingItem && (
+                  <Button
+                    type="button"
+                    variant="danger"
+                    onClick={async () => {
+                      const confirmed = await confirm({
+                        title: 'Удаление клиента',
+                        message: 'Вы уверены, что хотите удалить этого клиента?',
+                        confirmText: 'Удалить',
+                        cancelText: 'Отмена',
+                        type: 'danger',
+                      })
+                      if (confirmed) {
+                        try {
+                          await customersService.deleteCustomer(editingItem.id)
+                          showSuccess('Клиент удален')
+                          setShowForm(false)
+                          setEditingItem(null)
+                          loadData()
+                        } catch (error: any) {
+                          showError(error.response?.data?.detail || 'Ошибка удаления клиента')
+                        }
+                      }
+                    }}
+                    icon={<HiOutlineTrash />}
+                  >
+                    Удалить
+                  </Button>
+                )}
+              </div>
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => {
+                    setShowForm(false)
+                    setEditingItem(null)
+                  }}
+                >
+                  Отмена
+                </Button>
+                <Button
+                  type="submit"
+                  variant="primary"
+                >
+                  Сохранить
+                </Button>
+              </div>
             </div>
           </form>
         </Modal>

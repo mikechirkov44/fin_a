@@ -14,7 +14,7 @@ import CompanySelectField from '../components/CompanySelectField'
 import { useFormValidation } from '../hooks/useFormValidation'
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
 import { format } from 'date-fns'
-import { HiOutlineTrash, HiOutlinePlus } from 'react-icons/hi2'
+import { HiOutlineTrash, HiOutlinePlus, HiOutlineArrowDownTray } from 'react-icons/hi2'
 import { Button, Input, Select, SearchInput } from '../components/ui'
 
 const Input2 = () => {
@@ -419,13 +419,49 @@ const Input2 = () => {
                 rows={2}
               />
             </div>
-            <div style={{ display: 'flex', gap: '12px', marginTop: '20px', justifyContent: 'flex-end' }}>
-              <Button type="button" variant="secondary" onClick={handleClose}>
-                Отмена
-              </Button>
-              <Button type="submit" variant="primary">
-                Сохранить
-              </Button>
+            <div style={{ display: 'flex', gap: '12px', marginTop: '20px', justifyContent: 'space-between' }}>
+              <div>
+                {editingItem && (
+                  <Button 
+                    type="button" 
+                    variant="danger" 
+                    onClick={async () => {
+                      const confirmed = await confirm({
+                        title: 'Удаление записи',
+                        message: `Вы уверены, что хотите удалить эту запись о ${activeTab === 'assets' ? 'активе' : 'обязательстве'}?`,
+                        confirmText: 'Удалить',
+                        cancelText: 'Отмена',
+                        type: 'danger',
+                      })
+                      if (confirmed) {
+                        try {
+                          if (activeTab === 'assets') {
+                            await input2Service.deleteAsset(editingItem.id)
+                          } else {
+                            await input2Service.deleteLiability(editingItem.id)
+                          }
+                          showSuccess('Запись успешно удалена')
+                          handleClose()
+                          loadData()
+                        } catch (error: any) {
+                          showError(error.response?.data?.detail || 'Ошибка удаления записи')
+                        }
+                      }
+                    }}
+                    icon={<HiOutlineTrash />}
+                  >
+                    Удалить
+                  </Button>
+                )}
+              </div>
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <Button type="button" variant="secondary" onClick={handleClose}>
+                  Отмена
+                </Button>
+                <Button type="submit" variant="primary">
+                  Сохранить
+                </Button>
+              </div>
             </div>
           </form>
       </Modal>
@@ -446,6 +482,7 @@ const Input2 = () => {
                   ? exportService.exportAssets({ format: 'xlsx' })
                   : exportService.exportLiabilities({ format: 'xlsx' })
                 }
+                icon={<HiOutlineArrowDownTray />}
               >
                 Экспорт Excel
               </Button>
@@ -548,19 +585,18 @@ const Input2 = () => {
               >
                 Описание {sortColumn === 'description' && (sortDirection === 'asc' ? '▲' : '▼')}
               </th>
-              <th style={{ width: '100px' }}>Действия</th>
             </tr>
           </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={7}>
+                  <td colSpan={6}>
                     <LoadingSpinner message={`Загрузка ${title.toLowerCase()}...`} />
                   </td>
                 </tr>
               ) : paginatedItems.length === 0 ? (
                 <tr>
-                  <td colSpan={7}>
+                  <td colSpan={6}>
                     <EmptyState
                       icon={activeTab === 'assets' ? '💼' : '📋'}
                       title={`Нет ${title.toLowerCase()}`}
@@ -585,16 +621,6 @@ const Input2 = () => {
                     <td>{getCompanyName(item.company_id)}</td>
                     <td className="text-right">{parseFloat(item.value).toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽</td>
                     <td>{item.description || '-'}</td>
-                    <td onClick={(e) => e.stopPropagation()}>
-                      <Tooltip content="Удалить запись">
-                        <Button 
-                          variant="danger"
-                          size="small"
-                          onClick={() => handleDelete(item.id)} 
-                          icon={<HiOutlineTrash />}
-                        />
-                      </Tooltip>
-                    </td>
                   </tr>
                 ))
               )}

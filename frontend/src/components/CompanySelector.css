@@ -6,6 +6,45 @@
   width: 100%;
 }
 
+/* Компактная версия для заголовка */
+.top-bar-company-selector .company-selector {
+  width: 100%;
+}
+
+.top-bar-company-selector .company-selector-button {
+  height: 36px !important;
+  min-height: 36px !important;
+  padding: 6px 12px !important;
+  padding-right: 32px !important;
+}
+
+.top-bar-company-selector .company-selector-button-text {
+  flex-direction: row;
+  align-items: center;
+  gap: 0;
+}
+
+.top-bar-company-selector .company-selector-value {
+  font-size: 14px;
+  font-weight: 500;
+  max-width: 200px;
+}
+
+.top-bar-company-selector .company-selector-icon {
+  font-size: 14px;
+}
+
+.top-bar-company-selector .company-selector-arrow {
+  right: 10px;
+  width: 10px;
+  height: 10px;
+}
+
+.top-bar-company-selector .company-selector-arrow svg {
+  width: 10px;
+  height: 10px;
+}
+
 .company-selector-button {
   display: flex !important;
   align-items: center;

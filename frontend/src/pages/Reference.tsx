@@ -8,6 +8,7 @@ import IncomeExpenseHierarchy from '../components/IncomeExpenseHierarchy'
 import { HiOutlinePencil, HiOutlineTrash, HiOutlinePlus } from 'react-icons/hi2'
 import { format, subMonths } from 'date-fns'
 import { Button, Input, Select, SearchInput } from '../components/ui'
+import Tooltip from '../components/Tooltip'
 
 type TabType = 'incomeExpense' | 'expenseAnalysis' | 'payment' | 'company' | 'expenseCategory' | 'salesChannel' | 'product' | 'customerSegment'
 
@@ -618,13 +619,50 @@ const Reference = () => {
                 rows={3}
               />
             </div>
-            <div style={{ display: 'flex', gap: '12px', marginTop: '20px', justifyContent: 'flex-end' }}>
-              <Button type="button" variant="secondary" onClick={handleClose}>
-                Отмена
-              </Button>
-              <Button type="submit" variant="primary">
-                Сохранить
-              </Button>
+            <div style={{ display: 'flex', gap: '12px', marginTop: '20px', justifyContent: 'space-between' }}>
+              <div>
+                {editingItem && (
+                  <Button 
+                    type="button" 
+                    variant="danger" 
+                    onClick={async () => {
+                      const confirmed = await confirm({
+                        title: 'Удаление записи',
+                        message: 'Вы уверены, что хотите удалить эту запись?',
+                        confirmText: 'Удалить',
+                        cancelText: 'Отмена',
+                        type: 'danger',
+                      })
+                      if (confirmed) {
+                        try {
+                          if (activeTab === 'payment') await referenceService.deletePaymentPlace(editingItem.id)
+                          else if (activeTab === 'company') await referenceService.deleteCompany(editingItem.id)
+                          else if (activeTab === 'expenseCategory') await referenceService.deleteExpenseCategory(editingItem.id)
+                          else if (activeTab === 'salesChannel') await referenceService.deleteSalesChannel(editingItem.id)
+                          else if (activeTab === 'product') await productsService.deleteProduct(editingItem.id)
+                          else if (activeTab === 'customerSegment') await customersService.deleteSegment(editingItem.id)
+                          showSuccess('Запись успешно удалена')
+                          handleClose()
+                          loadData()
+                        } catch (error: any) {
+                          showError(error.response?.data?.detail || 'Ошибка удаления записи')
+                        }
+                      }
+                    }}
+                    icon={<HiOutlineTrash />}
+                  >
+                    Удалить
+                  </Button>
+                )}
+              </div>
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <Button type="button" variant="secondary" onClick={handleClose}>
+                  Отмена
+                </Button>
+                <Button type="submit" variant="primary">
+                  Сохранить
+                </Button>
+              </div>
             </div>
           </form>
       </Modal>
@@ -713,7 +751,6 @@ const Reference = () => {
               >
                 Описание {sortColumn === 'description' && (sortDirection === 'asc' ? '▲' : '▼')}
               </th>
-              <th style={{ width: '150px' }}>Действия</th>
             </tr>
           </thead>
           <tbody>
@@ -735,7 +772,11 @@ const Reference = () => {
                   ? ((activeTab === 'incomeGroup' ? allIncomeGroups : allExpenseGroups).find((g: any) => g.id === item.parent_group_id)?.name || '-')
                   : null
                 return (
-                  <tr key={item.id}>
+                  <tr 
+                    key={item.id}
+                    className="clickable"
+                    onClick={() => handleEdit(item)}
+                  >
                     <td>{item.parent_group_id ? '  └ ' : ''}{item.name}</td>
                     {(activeTab === 'income' || activeTab === 'expense') && <td>{groupName || '-'}</td>}
                     {(activeTab === 'incomeGroup' || activeTab === 'expenseGroup') && <td>{parentGroupName || '-'}</td>}
@@ -753,24 +794,6 @@ const Reference = () => {
                       </>
                     )}
                     <td>{item.description || '-'}</td>
-                    <td>
-                      <div className="action-buttons-group">
-                        <Button 
-                          variant="primary"
-                          size="small"
-                          onClick={() => handleEdit(item)} 
-                          icon={<HiOutlinePencil />}
-                          title="Изменить"
-                        />
-                        <Button 
-                          variant="danger"
-                          size="small"
-                          onClick={() => handleDelete(item.id)} 
-                          icon={<HiOutlineTrash />}
-                          title="Удалить"
-                        />
-                      </div>
-                    </td>
                   </tr>
                 )
               })

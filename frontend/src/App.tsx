@@ -28,7 +28,8 @@ import Users from './pages/Users'
 import Warehouses from './pages/Warehouses'
 import Inventory from './pages/Inventory'
 import InventoryTransactions from './pages/InventoryTransactions'
-import WarehouseReports from './pages/WarehouseReports'
+import WarehouseTurnoverReport from './pages/WarehouseTurnoverReport'
+import WarehouseStockReport from './pages/WarehouseStockReport'
 import Customers from './pages/Customers'
 import Suppliers from './pages/Suppliers'
 import Settings from './pages/Settings'
@@ -107,7 +108,9 @@ function App() {
                     <Route path="warehouses" element={<Warehouses />} />
                     <Route path="inventory" element={<Inventory />} />
                     <Route path="inventory-transactions" element={<InventoryTransactions />} />
-                    <Route path="warehouse-reports" element={<WarehouseReports />} />
+                    <Route path="warehouse-reports" element={<Navigate to="/warehouse-turnover-report" replace />} />
+                    <Route path="warehouse-turnover-report" element={<WarehouseTurnoverReport />} />
+                    <Route path="warehouse-stock-report" element={<WarehouseStockReport />} />
                     <Route path="customers" element={<Customers />} />
                     <Route path="suppliers" element={<Suppliers />} />
                     <Route path="recommendations" element={<Recommendations />} />

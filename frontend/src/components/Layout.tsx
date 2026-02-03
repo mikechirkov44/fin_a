@@ -47,7 +47,7 @@ const Layout = () => {
   const getInitialExpanded = () => {
     const financePaths = ['/cash-flow', '/profit-loss', '/balance', '/cash-flow-analysis', '/profit-loss-analysis']
     const bankCashPaths = ['/bank-cash', '/account-balances']
-    const warehousePaths = ['/inventory-transactions', '/warehouse-reports']
+    const warehousePaths = ['/inventory-transactions', '/warehouse-turnover-report', '/warehouse-stock-report']
     const referencePaths = ['/reference', '/warehouses', '/customers', '/suppliers']
     if (financePaths.includes(location.pathname)) {
       return ['/cash-flow']
@@ -93,7 +93,7 @@ const Layout = () => {
   useEffect(() => {
     const financePaths = ['/cash-flow', '/profit-loss', '/balance', '/cash-flow-analysis', '/profit-loss-analysis']
     const bankCashPaths = ['/bank-cash', '/account-balances']
-    const warehousePaths = ['/inventory-transactions', '/warehouse-reports']
+    const warehousePaths = ['/inventory-transactions', '/warehouse-turnover-report', '/warehouse-stock-report']
     const referencePaths = ['/reference', '/warehouses', '/customers', '/suppliers']
     const settingsPaths = ['/settings', '/marketplace-integration', '/audit-log', '/users']
     
@@ -149,7 +149,8 @@ const Layout = () => {
       icon: <HiOutlineBuildingOffice2 />,
       children: [
         { path: '/inventory-transactions', label: 'Отгрузки и поступления товаров' },
-        { path: '/warehouse-reports', label: 'Отчеты по складам' },
+        { path: '/warehouse-turnover-report', label: 'Отчет по оборачиваемости' },
+        { path: '/warehouse-stock-report', label: 'Остатки по складам' },
       ]
     },
     { 
@@ -230,7 +231,8 @@ const Layout = () => {
     '/warehouses': 'Склады',
     '/inventory': 'Остатки',
     '/inventory-transactions': 'Отгрузки и поступления товаров',
-    '/warehouse-reports': 'Отчеты по складам',
+    '/warehouse-turnover-report': 'Отчет по оборачиваемости',
+    '/warehouse-stock-report': 'Остатки по складам',
     '/customers': 'Клиенты',
     '/suppliers': 'Поставщики',
     '/reference': 'Предприятие',
@@ -246,12 +248,38 @@ const Layout = () => {
     return pageTitles[location.pathname] || 'Главное'
   }
 
+  const getPageIcon = () => {
+    // Сначала проверяем, есть ли прямой путь в menuItems
+    const directItem = menuItems.find(item => item.path === location.pathname)
+    if (directItem) {
+      return directItem.icon
+    }
+    
+    // Если нет, ищем в дочерних элементах
+    for (const item of menuItems) {
+      if (item.children) {
+        const childItem = item.children.find(child => child.path === location.pathname)
+        if (childItem) {
+          return item.icon
+        }
+      }
+    }
+    
+    // Если ничего не найдено, возвращаем иконку главной страницы
+    return <HiOutlineHome />
+  }
+
   return (
     <div className="layout">
       {/* Верхняя панель */}
       <header className="top-bar">
         <div className="top-bar-left">
           <div className="app-title">Управление предприятием v.1.0</div>
+          {companies.length > 0 && (
+            <div className="top-bar-company-selector">
+              <CompanySelector />
+            </div>
+          )}
         </div>
         <div className="top-bar-right" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <Notifications />
@@ -299,11 +327,6 @@ const Layout = () => {
       <div className="layout-body">
         {/* Боковая панель навигации */}
         <aside className="sidebar">
-          {companies.length > 0 && (
-            <div className="sidebar-company-selector">
-              <CompanySelector />
-            </div>
-          )}
           <nav className="sidebar-nav">
             <ul>
               {menuItems.map((item) => {
@@ -368,7 +391,10 @@ const Layout = () => {
         {/* Основная область контента */}
         <main className="main-content">
           <div className="content-header">
-            <h1 className="page-title">{getPageTitle()}</h1>
+            <h1 className="page-title">
+              <span className="page-title-icon">{getPageIcon()}</span>
+              {getPageTitle()}
+            </h1>
           </div>
           <Breadcrumbs />
           <div className="content-body">

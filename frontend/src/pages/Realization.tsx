@@ -14,10 +14,11 @@ import CompanySelectField from '../components/CompanySelectField'
 import { useFormValidation } from '../hooks/useFormValidation'
 import { useDebounce } from '../hooks/useDebounce'
 import { useTableData, TableColumn } from '../hooks/useTableData'
-import { HiOutlineTrash, HiOutlinePlus } from 'react-icons/hi2'
+import { HiOutlineTrash, HiOutlinePlus, HiOutlineArrowDownTray, HiOutlineDocumentText } from 'react-icons/hi2'
 import { useDraftSave } from '../hooks/useDraftSave'
 import { format } from 'date-fns'
 import { Button, Input, Select, SearchInput } from '../components/ui'
+import Tooltip from '../components/Tooltip'
 
 interface RealizationItem {
   product_id: string
@@ -235,7 +236,7 @@ const Realization = () => {
       sortable: true,
       getValue: (item) => item.description || '',
     },
-  ], [salesChannels, companies])
+  ], [salesChannels, companies, customers, warehouses])
 
   // Фильтрация данных
   const filteredData = useMemo(() => {
@@ -485,8 +486,8 @@ const Realization = () => {
         onClose={handleClose}
         title={editingItem ? 'Редактировать реализацию' : 'Добавить реализацию'}
       >
-        <form onSubmit={handleSubmit}>
-          <div className="form-row">
+        <form onSubmit={handleSubmit} className="compact-form compact-form-large">
+          <div className="compact-form-grid">
             <FormField label="Дата" required error={validation.errors.date}>
               <Input
                 type="date"
@@ -522,7 +523,7 @@ const Realization = () => {
               />
             </FormField>
           </div>
-          <div className="form-row">
+          <div className="compact-form-grid">
             <FormField label="Клиент" required error={validation.errors.customer_id}>
               <Select
                 value={formData.customer_id}
@@ -552,19 +553,20 @@ const Realization = () => {
               />
             </FormField>
           </div>
-          <FormField label="Товары" required>
-            <div style={{ marginBottom: '8px' }}>
+          <div className="compact-form-grid full-width">
+            <FormField label="Товары" required>
+              <div style={{ marginBottom: '6px' }}>
               <Button type="button" variant="secondary" size="small" icon={<HiOutlinePlus />} onClick={addItem}>
                 Добавить товар
               </Button>
             </div>
             {formData.items.length === 0 ? (
-              <div style={{ padding: '12px', textAlign: 'center', color: '#666', border: '1px dashed #ccc', borderRadius: '4px' }}>
+              <div style={{ padding: '10px', textAlign: 'center', color: '#666', border: '1px dashed #ccc', borderRadius: '4px', fontSize: '13px' }}>
                 Нет товаров. Нажмите "Добавить товар" для начала.
               </div>
             ) : (
               <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', marginBottom: '8px' }}>
+                <table style={{ width: '100%', marginBottom: '6px' }}>
                   <thead>
                     <tr>
                       <th style={{ padding: '8px', fontSize: '12px', textAlign: 'left' }}>Товар</th>
@@ -625,25 +627,48 @@ const Realization = () => {
                         <td style={{ padding: '4px', textAlign: 'right' }}>
                           {(parseFloat(item.price) * parseInt(item.quantity)).toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽
                         </td>
-                        <td style={{ padding: '4px', textAlign: 'center' }}>
-                          <Button
-                            type="button"
-                            variant="danger"
-                            size="small"
-                            onClick={() => removeItem(index)}
-                            icon={<HiOutlineTrash />}
-                            title="Удалить"
-                          />
+                        <td style={{ padding: '4px', textAlign: 'center', width: '40px' }}>
+                          <Tooltip content="Удалить товар">
+                            <button
+                              type="button"
+                              onClick={() => removeItem(index)}
+                              style={{
+                                background: 'none',
+                                border: 'none',
+                                color: 'var(--text-secondary, #666)',
+                                cursor: 'pointer',
+                                padding: '4px 8px',
+                                borderRadius: '4px',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                transition: 'all 0.2s',
+                                fontSize: '18px',
+                                lineHeight: 1
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.color = 'var(--danger-color, #dc3545)'
+                                e.currentTarget.style.backgroundColor = 'var(--danger-lighter, #fee)'
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.color = 'var(--text-secondary, #666)'
+                                e.currentTarget.style.backgroundColor = 'transparent'
+                              }}
+                            >
+                              ×
+                            </button>
+                          </Tooltip>
                         </td>
                       </tr>
                     ))}
                   </tbody>
                   <tfoot>
                     <tr style={{ borderTop: '2px solid #ccc', fontWeight: 'bold' }}>
-                      <td colSpan={2} style={{ padding: '8px' }}>Итого:</td>
+                      <td style={{ padding: '8px' }}>Итого:</td>
                       <td style={{ padding: '8px', textAlign: 'right' }}>
                         {calculateTotalQuantity()}
                       </td>
+                      <td style={{ padding: '8px' }}></td>
                       <td style={{ padding: '8px' }}></td>
                       <td style={{ padding: '8px', textAlign: 'right' }}>
                         {calculateTotalRevenue().toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽
@@ -654,21 +679,57 @@ const Realization = () => {
                 </table>
               </div>
             )}
-          </FormField>
-          <FormField label="Описание">
+            </FormField>
+          </div>
+          <div className="compact-form-grid full-width">
+            <FormField label="Описание">
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               rows={2}
             />
-          </FormField>
-          <div style={{ display: 'flex', gap: '12px', marginTop: '20px', justifyContent: 'flex-end' }}>
-            <Button type="button" variant="secondary" onClick={handleClose}>
-              Отмена
-            </Button>
-            <Button type="submit" variant="primary">
-              Сохранить
-            </Button>
+            </FormField>
+          </div>
+          <div className="compact-form-actions" style={{ justifyContent: 'space-between' }}>
+            <div>
+              {editingItem && (
+                <Button
+                  type="button"
+                  variant="danger"
+                  onClick={async () => {
+                    const confirmed = await confirm({
+                      title: 'Удаление реализации',
+                      message: 'Вы уверены, что хотите удалить эту реализацию?',
+                      confirmText: 'Удалить',
+                      cancelText: 'Отмена',
+                      type: 'danger',
+                    })
+                    if (confirmed) {
+                      try {
+                        await realizationService.deleteRealization(editingItem.id)
+                        showSuccess('Реализация успешно удалена')
+                        handleClose()
+                        loadData()
+                        clearSelection()
+                      } catch (error: any) {
+                        showError(error.response?.data?.detail || 'Ошибка удаления реализации')
+                      }
+                    }
+                  }}
+                  icon={<HiOutlineTrash />}
+                >
+                  Удалить
+                </Button>
+              )}
+            </div>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <Button type="button" variant="secondary" onClick={handleClose}>
+                Отмена
+              </Button>
+              <Button type="submit" variant="primary">
+                Сохранить
+              </Button>
+            </div>
           </div>
         </form>
       </Modal>
@@ -679,10 +740,10 @@ const Realization = () => {
             <Button variant="primary" icon={<HiOutlinePlus />} onClick={() => { setShowForm(true); setEditingItem(null); resetForm() }}>
               Добавить
             </Button>
-            <Button variant="secondary" onClick={() => exportService.exportRealizations({ format: 'xlsx' })}>
+            <Button variant="secondary" onClick={() => exportService.exportRealizations({ format: 'xlsx' })} icon={<HiOutlineArrowDownTray />}>
               Экспорт Excel
             </Button>
-            <Button variant="secondary" onClick={() => exportService.exportRealizations({ format: 'csv' })}>
+            <Button variant="secondary" onClick={() => exportService.exportRealizations({ format: 'csv' })} icon={<HiOutlineDocumentText />}>
               Экспорт CSV
             </Button>
           </div>
@@ -765,19 +826,18 @@ const Realization = () => {
                     {col.label} {sortColumn === col.key && (sortDirection === 'asc' ? '▲' : '▼')}
                   </th>
                 ))}
-                <th style={{ width: '100px' }}>Действия</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={columns.length + 2}>
+                  <td colSpan={columns.length + 1}>
                     <LoadingSpinner message="Загрузка реализаций..." />
                   </td>
                 </tr>
               ) : paginatedData.length === 0 ? (
                 <tr>
-                  <td colSpan={columns.length + 2}>
+                  <td colSpan={columns.length + 1}>
                     <EmptyState
                       icon="📊"
                       title="Нет реализаций"
@@ -807,6 +867,8 @@ const Realization = () => {
                     <td style={{ whiteSpace: 'nowrap' }}>{realization.date}</td>
                     <td>{getCompanyName(realization.company_id)}</td>
                     <td>{salesChannels.find(sc => sc.id === realization.sales_channel_id)?.name || '-'}</td>
+                    <td>{realization.customer_name || customers.find(c => c.id === realization.customer_id)?.name || '-'}</td>
+                    <td>{realization.warehouse_name || warehouses.find(w => w.id === realization.warehouse_id)?.name || '-'}</td>
                     <td 
                       className="text-right"
                       style={{ whiteSpace: 'nowrap' }}
@@ -822,15 +884,6 @@ const Realization = () => {
                       )}
                     </td>
                     <td>{realization.description || '-'}</td>
-                    <td onClick={(e) => e.stopPropagation()}>
-                      <Button
-                        variant="danger"
-                        size="small"
-                        onClick={() => handleDelete(realization.id)}
-                        icon={<HiOutlineTrash />}
-                        title="Удалить"
-                      />
-                    </td>
                   </tr>
                 ))
               )}

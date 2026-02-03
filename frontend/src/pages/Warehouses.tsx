@@ -229,13 +229,45 @@ const Warehouses = () => {
                 placeholder="Выберите организацию..."
               />
             </FormField>
-            <div style={{ display: 'flex', gap: '12px', marginTop: '20px', justifyContent: 'flex-end' }}>
-              <Button type="button" variant="secondary" onClick={handleClose}>
-                Отмена
-              </Button>
-              <Button type="submit" variant="primary">
-                Сохранить
-              </Button>
+            <div style={{ display: 'flex', gap: '12px', marginTop: '20px', justifyContent: 'space-between' }}>
+              <div>
+                {editingWarehouse && (
+                  <Button 
+                    type="button" 
+                    variant="danger" 
+                    onClick={async () => {
+                      const confirmed = await confirm({
+                        title: 'Удаление склада',
+                        message: 'Вы уверены, что хотите удалить этот склад?',
+                        confirmText: 'Удалить',
+                        cancelText: 'Отмена',
+                        type: 'danger',
+                      })
+                      if (confirmed) {
+                        try {
+                          await warehousesService.deleteWarehouse(editingWarehouse.id)
+                          showSuccess('Склад удален')
+                          handleClose()
+                          loadData()
+                        } catch (error: any) {
+                          showError(error.response?.data?.detail || 'Ошибка удаления склада')
+                        }
+                      }
+                    }}
+                    icon={<HiOutlineTrash />}
+                  >
+                    Удалить
+                  </Button>
+                )}
+              </div>
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <Button type="button" variant="secondary" onClick={handleClose}>
+                  Отмена
+                </Button>
+                <Button type="submit" variant="primary">
+                  Сохранить
+                </Button>
+              </div>
             </div>
           </form>
       </Modal>
@@ -249,7 +281,6 @@ const Warehouses = () => {
                 <th>Адрес</th>
                 <th>Описание</th>
                 <th>Организация</th>
-                <th>Действия</th>
               </tr>
             </thead>
             <tbody>
@@ -279,34 +310,16 @@ const Warehouses = () => {
                 </tr>
               ) : (
                 warehouses.map((warehouse) => (
-                  <tr key={warehouse.id}>
+                  <tr 
+                    key={warehouse.id}
+                    className="clickable"
+                    onClick={() => canEdit(warehouse) && handleEdit(warehouse)}
+                  >
                     <td>{warehouse.name}</td>
                     <td>{warehouse.address || '-'}</td>
                     <td>{warehouse.description || '-'}</td>
                     <td>
                       {companies.find(c => c.id === warehouse.company_id)?.name || warehouse.company_id}
-                    </td>
-                    <td>
-                      {canEdit(warehouse) && (
-                        <div className="action-buttons-group">
-                          <Tooltip content="Редактировать склад">
-                            <Button 
-                              variant="primary"
-                              size="small"
-                              onClick={() => handleEdit(warehouse)} 
-                              icon={<HiOutlinePencil />}
-                            />
-                          </Tooltip>
-                          <Tooltip content="Удалить склад">
-                            <Button 
-                              variant="danger"
-                              size="small"
-                              onClick={() => handleDelete(warehouse.id)} 
-                              icon={<HiOutlineTrash />}
-                            />
-                          </Tooltip>
-                        </div>
-                      )}
                     </td>
                   </tr>
                 ))

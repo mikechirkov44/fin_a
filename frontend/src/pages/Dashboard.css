@@ -5,6 +5,45 @@
   margin-bottom: 32px;
 }
 
+.dashboard-metrics-grid .metric-card {
+  animation: metricFadeIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+
+.dashboard-metrics-grid .metric-card:nth-child(1) { animation-delay: 0.05s; }
+.dashboard-metrics-grid .metric-card:nth-child(2) { animation-delay: 0.1s; }
+.dashboard-metrics-grid .metric-card:nth-child(3) { animation-delay: 0.15s; }
+.dashboard-metrics-grid .metric-card:nth-child(4) { animation-delay: 0.2s; }
+.dashboard-metrics-grid .metric-card:nth-child(5) { animation-delay: 0.25s; }
+.dashboard-metrics-grid .metric-card:nth-child(6) { animation-delay: 0.3s; }
+.dashboard-metrics-grid .metric-card:nth-child(7) { animation-delay: 0.35s; }
+.dashboard-metrics-grid .metric-card:nth-child(8) { animation-delay: 0.4s; }
+
+.dashboard-metrics-grid.metrics-refreshing .metric-card {
+  animation: metricRefresh 0.8s ease-in-out;
+}
+
+@keyframes metricFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes metricRefresh {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(0.97);
+  }
+}
+
 @media (max-width: 768px) {
   .dashboard-metrics-grid {
     grid-template-columns: 1fr;

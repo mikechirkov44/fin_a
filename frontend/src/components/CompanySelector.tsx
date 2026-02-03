@@ -203,7 +203,6 @@ const CompanySelector: React.FC = () => {
           <div className="company-selector-button-content">
             <HiOutlineBuildingOffice className="company-selector-icon" />
             <div className="company-selector-button-text">
-              <span className="company-selector-label">Организация</span>
               <span className="company-selector-value">{getSelectedCompanyName()}</span>
             </div>
           </div>

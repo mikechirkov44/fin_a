@@ -493,13 +493,48 @@ const Budget = () => {
                 rows={3}
               />
             </FormField>
-            <div style={{ display: 'flex', gap: '12px', marginTop: '20px', justifyContent: 'flex-end' }}>
-              <Button type="button" variant="secondary" onClick={handleClose}>
-                Отмена
-              </Button>
-              <Button type="submit" variant="primary">
-                Сохранить
-              </Button>
+            <div style={{ display: 'flex', gap: '12px', marginTop: '20px', justifyContent: 'space-between' }}>
+              <div>
+                {editingBudget && (
+                  <Button 
+                    type="button" 
+                    variant="danger" 
+                    onClick={async () => {
+                      const confirmed = await confirm({
+                        title: 'Удаление бюджета',
+                        message: 'Вы уверены, что хотите удалить этот бюджет?',
+                        confirmText: 'Удалить',
+                        cancelText: 'Отмена',
+                        type: 'danger',
+                      })
+                      if (confirmed) {
+                        try {
+                          await budgetService.deleteBudget(editingBudget.id)
+                          showSuccess('Бюджет успешно удален')
+                          handleClose()
+                          loadData()
+                          if (activeTab === 'comparison') {
+                            loadComparison()
+                          }
+                        } catch (error: any) {
+                          showError(error.response?.data?.detail || 'Ошибка удаления бюджета')
+                        }
+                      }
+                    }}
+                    icon={<HiOutlineTrash />}
+                  >
+                    Удалить
+                  </Button>
+                )}
+              </div>
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <Button type="button" variant="secondary" onClick={handleClose}>
+                  Отмена
+                </Button>
+                <Button type="submit" variant="primary">
+                  Сохранить
+                </Button>
+              </div>
             </div>
           </form>
       </Modal>
@@ -517,7 +552,6 @@ const Budget = () => {
                   <th>Статья</th>
                   <th>Плановая сумма</th>
                   <th>Организация</th>
-                  <th>Действия</th>
                 </tr>
               </thead>
               <tbody>
@@ -543,32 +577,16 @@ const Budget = () => {
                   </tr>
                 ) : (
                   budgets.map((budget) => (
-                    <tr key={budget.id}>
+                    <tr 
+                      key={budget.id}
+                      className="clickable"
+                      onClick={() => handleEdit(budget)}
+                    >
                       <td>{getPeriodLabel(budget.period_type, budget.period_value)}</td>
                       <td>{budget.budget_type === 'income' ? 'Доходы' : 'Расходы'}</td>
                       <td>{budget.item_name || '-'}</td>
                       <td className="text-right">{budget.planned_amount.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽</td>
                       <td>{budget.company_name || '-'}</td>
-                      <td>
-                        <div className="action-buttons-group">
-                          <Tooltip content="Редактировать бюджет">
-                            <Button 
-                              variant="primary"
-                              size="small"
-                              onClick={() => handleEdit(budget)} 
-                              icon={<HiOutlinePencil />}
-                            />
-                          </Tooltip>
-                          <Tooltip content="Удалить бюджет">
-                            <Button 
-                              variant="danger"
-                              size="small"
-                              onClick={() => handleDelete(budget.id)} 
-                              icon={<HiOutlineTrash />}
-                            />
-                          </Tooltip>
-                        </div>
-                      </td>
                     </tr>
                   ))
                 )}

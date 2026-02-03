@@ -15,9 +15,9 @@ const themeOptions = [
   },
   { 
     value: 'light-2', 
-    label: 'Мягкий современный', 
-    description: 'Более светлые тона, приятная для глаз',
-    colors: { bg: '#F0F8FF', accent: '#0099FF', secondary: '#E6F5FF' }
+    label: 'Элегантная фиолетовая', 
+    description: 'Премиальная палитра с фиолетовым акцентом',
+    colors: { bg: '#FAF5FF', accent: '#8B5CF6', secondary: '#F3E8FF' }
   },
   { 
     value: 'light-4', 

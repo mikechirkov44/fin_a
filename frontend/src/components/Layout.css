@@ -26,7 +26,13 @@
 .top-bar-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 20px;
+  flex: 1;
+}
+
+.top-bar-company-selector {
+  max-width: 280px;
+  min-width: 200px;
 }
 
 .app-title {
@@ -34,7 +40,8 @@
   font-weight: 600;
   color: var(--text-primary);
   transition: color 0.3s ease;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.015em;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
 /* Тело layout */
@@ -48,7 +55,7 @@
 
 /* Боковая панель */
 .sidebar {
-  width: 260px;
+  width: 300px;
   background-color: var(--sidebar-bg, var(--bg-secondary));
   border-right: 1px solid var(--border-color);
   display: flex;
@@ -118,6 +125,7 @@
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
+  padding: 12px 0;
 }
 
 .sidebar-nav ul {
@@ -126,43 +134,63 @@
   margin: 0;
 }
 
+.sidebar-nav > ul > li:not(:last-child) {
+  margin-bottom: 4px;
+}
+
+/* Разделитель между группами меню */
+.sidebar-nav > ul > li:has(+ li[data-menu-group])::after {
+  content: '';
+  display: block;
+  height: 1px;
+  background: var(--border-color);
+  margin: 12px 20px;
+}
+
 .sidebar-item {
   display: flex;
   align-items: center;
   padding: 12px 20px;
   text-decoration: none;
-  color: var(--text-primary);
+  color: var(--text-secondary);
   border-left: 3px solid transparent;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
-  border-radius: 0 10px 10px 0;
+  border-radius: 0 8px 8px 0;
   margin-right: 12px;
   margin-bottom: 4px;
+  font-weight: 500;
 }
 
 .sidebar-item:hover {
   background-color: var(--hover-bg);
-  transform: translateX(4px);
+  color: var(--text-primary);
+  transform: translateX(2px);
   border-left-color: var(--primary-color);
-}
-
-[data-theme="light-1"] .sidebar-item.active,
-[data-theme="light-2"] .sidebar-item.active,
-[data-theme="light-4"] .sidebar-item.active,
-[data-theme="light-5"] .sidebar-item.active {
-  background: linear-gradient(90deg, var(--bg-secondary) 0%, var(--hover-bg) 100%);
-}
-
-[data-theme="dark"] .sidebar-item.active {
-  background: linear-gradient(90deg, var(--bg-secondary) 0%, var(--hover-bg) 100%);
 }
 
 .sidebar-item.active {
   border-left-color: var(--primary-color);
   font-weight: 600;
   color: var(--primary-color);
-  background: linear-gradient(90deg, var(--primary-light) 0%, transparent 100%);
-  box-shadow: var(--shadow-sm);
+  background: var(--primary-lighter, var(--hover-bg));
+  box-shadow: none;
+}
+
+.sidebar-item.active:hover {
+  background: var(--primary-lighter, var(--hover-bg-strong));
+  color: var(--primary-hover);
+}
+
+[data-theme="dark"] .sidebar-item.active {
+  background: rgba(59, 130, 246, 0.15);
+  color: #93C5FD;
+  border-left-color: #60A5FA;
+}
+
+[data-theme="dark"] .sidebar-item.active:hover {
+  background: rgba(59, 130, 246, 0.2);
+  color: #60A5FA;
 }
 
 .sidebar-icon {
@@ -178,23 +206,25 @@
   flex-shrink: 0;
 }
 
+.sidebar-item.active .sidebar-icon {
+  color: var(--primary-color);
+}
+
 .sidebar-icon svg {
   width: 100%;
   height: 100%;
 }
 
-.sidebar-item:hover .sidebar-icon:not(.active) {
+.sidebar-item:hover .sidebar-icon {
   color: var(--text-primary);
-  transform: scale(1.1);
-}
-
-.sidebar-icon.active {
-  color: var(--primary-color);
+  transform: scale(1.05);
 }
 
 .sidebar-label {
   flex: 1;
-  font-size: 15px;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
 }
 
 .sidebar-arrow {
@@ -211,24 +241,30 @@
 /* Подменю */
 .sidebar-submenu {
   list-style: none;
-  padding: 0;
+  padding: 8px 0;
   margin: 0;
-  background-color: var(--bg-tertiary);
-  border-left: 4px solid var(--border-color-strong);
-  margin-left: 16px;
+  background-color: transparent;
+  border-left: 2px solid var(--border-color);
+  margin-left: 24px;
+  margin-top: 4px;
+  margin-bottom: 8px;
   transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
 .sidebar-submenu-item {
   display: block;
-  padding: 10px 16px 10px 40px;
+  padding: 8px 16px 8px 32px;
   text-decoration: none;
   color: var(--text-secondary);
-  font-size: 14px;
+  font-size: 13px;
   transition: all 0.2s ease;
   border-left: 2px solid transparent;
   border-radius: 0 6px 6px 0;
   margin-right: 8px;
+  margin-bottom: 2px;
+  font-weight: 400;
+  position: relative;
+  white-space: nowrap;
 }
 
 .sidebar-submenu-item:hover {
@@ -238,11 +274,36 @@
 }
 
 .sidebar-submenu-item.active {
-  background-color: var(--bg-secondary);
+  background-color: var(--primary-lighter, var(--hover-bg));
   color: var(--primary-color);
   font-weight: 600;
   border-left-color: var(--primary-color);
-  box-shadow: 0 1px 3px var(--shadow);
+  box-shadow: none;
+  white-space: nowrap;
+}
+
+[data-theme="dark"] .sidebar-submenu-item.active {
+  background-color: rgba(59, 130, 246, 0.15);
+  color: #93C5FD;
+  border-left-color: #60A5FA;
+}
+
+[data-theme="dark"] .sidebar-submenu-item.active:hover {
+  background-color: rgba(59, 130, 246, 0.2);
+  color: #60A5FA;
+}
+
+.sidebar-submenu-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 4px;
+  background: var(--primary-color);
+  border-radius: 50%;
+  margin-left: -6px;
 }
 
 /* Основная область контента */
@@ -257,30 +318,48 @@
 }
 
 .content-header {
-  padding: 20px 32px;
-  background: var(--header-gradient, linear-gradient(135deg, #3B82F6 0%, #2563EB 100%));
-  border-bottom: none;
+  padding: 24px 40px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
   flex-shrink: 0;
   position: relative;
   z-index: 1;
-  box-shadow: var(--shadow-md);
-  transition: background 0.3s ease;
+  box-shadow: var(--shadow-sm);
+  transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
 .page-title {
   font-size: 24px;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-primary);
   margin: 0;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  letter-spacing: -0.02em;
+  letter-spacing: -0.025em;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  line-height: 1.2;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.page-title-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  color: var(--primary-color);
+  flex-shrink: 0;
+}
+
+.page-title-icon svg {
+  width: 24px;
+  height: 24px;
 }
 
 .content-body {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 32px;
+  padding: 40px;
   background-color: var(--bg-primary);
   min-height: 0;
   -webkit-overflow-scrolling: touch;

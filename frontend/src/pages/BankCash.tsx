@@ -14,12 +14,13 @@ import EmptyState from '../components/EmptyState'
 import SkeletonLoader from '../components/SkeletonLoader'
 import CompanySelectField from '../components/CompanySelectField'
 import { useFormValidation } from '../hooks/useFormValidation'
-import { HiOutlineTrash, HiOutlineArrowDownCircle, HiOutlineArrowUpCircle } from 'react-icons/hi2'
+import { HiOutlineTrash, HiOutlineArrowDownCircle, HiOutlineArrowUpCircle, HiOutlineArrowDownTray, HiOutlineDocumentText } from 'react-icons/hi2'
 import { useDebounce } from '../hooks/useDebounce'
 import { useTableData, TableColumn } from '../hooks/useTableData'
 import { useDraftSave } from '../hooks/useDraftSave'
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
 import { format } from 'date-fns'
+import { Button } from '../components/ui'
 
 const BankCash = () => {
   const { selectedCompanyId, companies } = useAuth()
@@ -556,13 +557,46 @@ const BankCash = () => {
                 rows={2}
               />
             </FormField>
-            <div style={{ display: 'flex', gap: '12px', marginTop: '20px', justifyContent: 'flex-end' }}>
-              <button type="button" onClick={handleClose}>
-                Отмена
-              </button>
-              <button type="submit" className="primary">
-                Сохранить
-              </button>
+            <div style={{ display: 'flex', gap: '12px', marginTop: '20px', justifyContent: 'space-between' }}>
+              <div>
+                {editingItem && (
+                  <Button 
+                    type="button" 
+                    variant="danger" 
+                    onClick={async () => {
+                      const confirmed = await confirm({
+                        title: 'Удаление записи',
+                        message: 'Вы уверены, что хотите удалить эту запись о движении денег?',
+                        confirmText: 'Удалить',
+                        cancelText: 'Отмена',
+                        type: 'danger',
+                      })
+                      if (confirmed) {
+                        try {
+                          await bankCashService.deleteMovement(editingItem.id)
+                          showSuccess('Запись успешно удалена')
+                          handleClose()
+                          loadData()
+                          clearSelection()
+                        } catch (error: any) {
+                          showError(error.response?.data?.detail || 'Ошибка удаления записи')
+                        }
+                      }
+                    }}
+                    icon={<HiOutlineTrash />}
+                  >
+                    Удалить
+                  </Button>
+                )}
+              </div>
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <Button type="button" variant="secondary" onClick={handleClose}>
+                  Отмена
+                </Button>
+                <Button type="submit" variant="primary">
+                  Сохранить
+                </Button>
+              </div>
             </div>
           </form>
       </Modal>
@@ -576,14 +610,14 @@ const BankCash = () => {
               </button>
             </Tooltip>
             <Tooltip content="Экспортировать в Excel">
-              <button onClick={() => exportService.exportMoneyMovements({ format: 'xlsx' })}>
+              <Button variant="secondary" onClick={() => exportService.exportMoneyMovements({ format: 'xlsx' })} icon={<HiOutlineArrowDownTray />}>
                 Экспорт Excel
-              </button>
+              </Button>
             </Tooltip>
             <Tooltip content="Экспортировать в CSV">
-              <button onClick={() => exportService.exportMoneyMovements({ format: 'csv' })}>
+              <Button variant="secondary" onClick={() => exportService.exportMoneyMovements({ format: 'csv' })} icon={<HiOutlineDocumentText />}>
                 Экспорт CSV
-              </button>
+              </Button>
             </Tooltip>
             <Tooltip content="Импортировать из файла">
               <label style={{ display: 'inline-block' }}>
@@ -691,19 +725,18 @@ const BankCash = () => {
                     {col.label} {sortColumn === col.key && (sortDirection === 'asc' ? '▲' : '▼')}
                   </th>
                 ))}
-                <th style={{ width: '100px' }}>Действия</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={columns.length + 2}>
+                  <td colSpan={columns.length + 1}>
                     <LoadingSpinner message="Загрузка движений..." />
                   </td>
                 </tr>
               ) : paginatedData.length === 0 ? (
                 <tr>
-                  <td colSpan={columns.length + 2}>
+                  <td colSpan={columns.length + 1}>
                     <EmptyState
                       icon="💰"
                       title="Нет движений"
@@ -755,16 +788,6 @@ const BankCash = () => {
                     </td>
                     <td>{movement.is_business ? 'Да' : 'Нет'}</td>
                     <td>{movement.description || '-'}</td>
-                    <td onClick={(e) => e.stopPropagation()}>
-                      <Tooltip content="Удалить движение">
-                        <button
-                          onClick={() => handleDelete(movement.id)}
-                          className="action-button action-button-compact action-button-delete"
-                        >
-                          <HiOutlineTrash />
-                        </button>
-                      </Tooltip>
-                    </td>
                   </tr>
                 ))
               )}

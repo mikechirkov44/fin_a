@@ -23,7 +23,7 @@ const MetricCard = ({
 }: MetricCardProps) => {
   const formatValue = (val: string | number) => {
     if (typeof val === 'number') {
-      return val.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+      return Math.round(val).toLocaleString('ru-RU')
     }
     return val
   }

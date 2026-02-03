@@ -11,7 +11,7 @@ import Modal from '../components/Modal'
 import Pagination from '../components/Pagination'
 import Tooltip from '../components/Tooltip'
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
-import { HiOutlineTrash, HiOutlinePlus } from 'react-icons/hi2'
+import { HiOutlineTrash, HiOutlinePlus, HiOutlineArrowDownTray, HiOutlineDocumentText } from 'react-icons/hi2'
 import { Button, Input, SearchInput } from '../components/ui'
 
 const Products = () => {
@@ -358,13 +358,45 @@ const Products = () => {
               rows={3}
             />
           </FormField>
-          <div style={{ display: 'flex', gap: '12px', marginTop: '20px', justifyContent: 'flex-end' }}>
-            <Button type="button" variant="secondary" onClick={handleClose}>
-              Отмена
-            </Button>
-            <Button type="submit" variant="primary">
-              Сохранить
-            </Button>
+          <div style={{ display: 'flex', gap: '12px', marginTop: '20px', justifyContent: 'space-between' }}>
+            <div>
+              {editingItem && (
+                <Button 
+                  type="button" 
+                  variant="danger" 
+                  onClick={async () => {
+                    const confirmed = await confirm({
+                      title: 'Удаление товара',
+                      message: 'Вы уверены, что хотите удалить этот товар?',
+                      confirmText: 'Удалить',
+                      cancelText: 'Отмена',
+                      type: 'danger',
+                    })
+                    if (confirmed) {
+                      try {
+                        await productsService.deleteProduct(editingItem.id)
+                        showSuccess('Товар успешно удален')
+                        handleClose()
+                        loadData()
+                      } catch (error: any) {
+                        showError(error.response?.data?.detail || 'Ошибка удаления товара')
+                      }
+                    }
+                  }}
+                  icon={<HiOutlineTrash />}
+                >
+                  Удалить
+                </Button>
+              )}
+            </div>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <Button type="button" variant="secondary" onClick={handleClose}>
+                Отмена
+              </Button>
+              <Button type="submit" variant="primary">
+                Сохранить
+              </Button>
+            </div>
           </div>
         </form>
       </Modal>
@@ -382,12 +414,12 @@ const Products = () => {
               </Button>
             </Tooltip>
             <Tooltip content="Экспортировать в Excel">
-              <Button variant="secondary" onClick={() => exportService.exportProducts({ format: 'xlsx' })}>
+              <Button variant="secondary" onClick={() => exportService.exportProducts({ format: 'xlsx' })} icon={<HiOutlineArrowDownTray />}>
                 Экспорт Excel
               </Button>
             </Tooltip>
             <Tooltip content="Экспортировать в CSV">
-              <Button variant="secondary" onClick={() => exportService.exportProducts({ format: 'csv' })}>
+              <Button variant="secondary" onClick={() => exportService.exportProducts({ format: 'csv' })} icon={<HiOutlineDocumentText />}>
                 Экспорт CSV
               </Button>
             </Tooltip>
@@ -477,19 +509,18 @@ const Products = () => {
               >
                 Описание {sortColumn === 'description' && (sortDirection === 'asc' ? '▲' : '▼')}
               </th>
-              <th style={{ width: '100px' }}>Действия</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={7}>
+                <td colSpan={6}>
                   <LoadingSpinner message="Загрузка товаров..." />
                 </td>
               </tr>
             ) : products.length === 0 ? (
               <tr>
-                <td colSpan={7}>
+                <td colSpan={6}>
                   <EmptyState
                     icon="📦"
                     title="Нет товаров"
@@ -520,16 +551,6 @@ const Products = () => {
                     </td>
                     <td className="text-right">{margin !== '-' ? margin + '%' : '-'}</td>
                     <td>{product.description || '-'}</td>
-                    <td onClick={(e) => e.stopPropagation()}>
-                      <Tooltip content="Удалить товар">
-                        <Button 
-                          variant="danger"
-                          size="small"
-                          onClick={() => handleDelete(product.id)}
-                          icon={<HiOutlineTrash />}
-                        />
-                      </Tooltip>
-                    </td>
                   </tr>
                 )
               })

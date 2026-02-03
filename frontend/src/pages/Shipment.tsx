@@ -14,7 +14,7 @@ import EmptyState from '../components/EmptyState'
 import CompanySelectField from '../components/CompanySelectField'
 import { useFormValidation } from '../hooks/useFormValidation'
 import { useDebounce } from '../hooks/useDebounce'
-import { HiOutlineTrash, HiOutlinePlus } from 'react-icons/hi2'
+import { HiOutlineTrash, HiOutlinePlus, HiOutlineArrowDownTray } from 'react-icons/hi2'
 import { useTableData, TableColumn } from '../hooks/useTableData'
 import { useDraftSave } from '../hooks/useDraftSave'
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
@@ -462,13 +462,46 @@ const Shipment = () => {
                 rows={2}
               />
             </FormField>
-            <div style={{ display: 'flex', gap: '12px', marginTop: '20px', justifyContent: 'flex-end' }}>
-              <Button type="button" variant="secondary" onClick={handleClose}>
-                Отмена
-              </Button>
-              <Button type="submit" variant="primary">
-                Сохранить
-              </Button>
+            <div style={{ display: 'flex', gap: '12px', marginTop: '20px', justifyContent: 'space-between' }}>
+              <div>
+                {editingItem && (
+                  <Button 
+                    type="button" 
+                    variant="danger" 
+                    onClick={async () => {
+                      const confirmed = await confirm({
+                        title: 'Удаление записи',
+                        message: 'Вы уверены, что хотите удалить эту отгрузку?',
+                        confirmText: 'Удалить',
+                        cancelText: 'Отмена',
+                        type: 'danger',
+                      })
+                      if (confirmed) {
+                        try {
+                          await shipmentService.deleteShipment(editingItem.id)
+                          showSuccess('Запись успешно удалена')
+                          handleClose()
+                          loadData()
+                          clearSelection()
+                        } catch (error: any) {
+                          showError(error.response?.data?.detail || 'Ошибка удаления записи')
+                        }
+                      }
+                    }}
+                    icon={<HiOutlineTrash />}
+                  >
+                    Удалить
+                  </Button>
+                )}
+              </div>
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <Button type="button" variant="secondary" onClick={handleClose}>
+                  Отмена
+                </Button>
+                <Button type="submit" variant="primary">
+                  Сохранить
+                </Button>
+              </div>
             </div>
           </form>
       </Modal>
@@ -481,7 +514,7 @@ const Shipment = () => {
               </Button>
             </Tooltip>
             <Tooltip content="Экспортировать в Excel">
-              <Button variant="secondary" onClick={() => exportService.exportShipments({ format: 'xlsx' })}>
+              <Button variant="secondary" onClick={() => exportService.exportShipments({ format: 'xlsx' })} icon={<HiOutlineArrowDownTray />}>
                 Экспорт Excel
               </Button>
             </Tooltip>
@@ -574,19 +607,18 @@ const Shipment = () => {
                     {col.label} {sortColumn === col.key && (sortDirection === 'asc' ? '▲' : '▼')}
                   </th>
                 ))}
-                <th style={{ width: '100px' }}>Действия</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={columns.length + 2}>
+                  <td colSpan={columns.length + 1}>
                     <LoadingSpinner message="Загрузка отгрузок..." />
                   </td>
                 </tr>
               ) : paginatedData.length === 0 ? (
                 <tr>
-                  <td colSpan={columns.length + 2}>
+                  <td colSpan={columns.length + 1}>
                     <EmptyState
                       icon="📦"
                       title="Нет отгрузок"
@@ -623,16 +655,6 @@ const Shipment = () => {
                       <td className="text-right">{parseFloat(shipment.cost_price).toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽</td>
                       <td className="text-right">{total.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽</td>
                       <td>{shipment.description || '-'}</td>
-                      <td onClick={(e) => e.stopPropagation()}>
-                        <Tooltip content="Удалить отгрузку">
-                          <Button
-                            variant="danger"
-                            size="small"
-                            onClick={() => handleDelete(shipment.id)}
-                            icon={<HiOutlineTrash />}
-                          />
-                        </Tooltip>
-                      </td>
                     </tr>
                   )
                 })

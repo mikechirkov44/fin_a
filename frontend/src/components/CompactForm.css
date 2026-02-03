@@ -5,8 +5,37 @@
 .compact-form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+/* Более компактная версия для больших форм */
+.compact-form.compact-form-large .compact-form-grid {
+  gap: 12px;
   margin-bottom: 12px;
+}
+
+.compact-form.compact-form-large .form-field {
+  margin-bottom: 0;
+}
+
+.compact-form.compact-form-large .form-field label {
+  margin-bottom: 6px;
+}
+
+.compact-form.compact-form-large .compact-form-section {
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+}
+
+.compact-form.compact-form-large .compact-form-section-title {
+  margin-bottom: 10px;
+  padding-bottom: 6px;
+}
+
+.compact-form.compact-form-large .compact-form-actions {
+  margin-top: 16px;
+  padding-top: 16px;
 }
 
 .compact-form-grid.full-width {
@@ -14,9 +43,9 @@
 }
 
 .compact-form-section {
-  margin-bottom: 12px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid var(--input-border);
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .compact-form-section:last-child {
@@ -25,12 +54,14 @@
 }
 
 .compact-form-section-title {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--text-primary);
-  margin-bottom: 8px;
-  padding-bottom: 4px;
-  border-bottom: 1px solid var(--input-border);
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-color);
+  letter-spacing: -0.01em;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
 .compact-form .form-field {
@@ -38,60 +69,76 @@
 }
 
 .compact-form .form-field label {
-  font-size: 11px;
-  margin-bottom: 3px;
+  font-size: 14px;
+  margin-bottom: 8px;
+  font-weight: 600;
 }
 
 .compact-form .form-field input,
 .compact-form .form-field select,
 .compact-form .form-field textarea {
-  padding: 5px 8px;
-  font-size: 12px;
+  padding: 10px 14px;
+  font-size: 14px;
+  height: 40px;
+  border-radius: 8px;
 }
 
 .compact-form .form-field textarea {
   resize: vertical;
-  min-height: 50px;
+  min-height: 80px;
+  height: auto;
 }
 
 .compact-form-actions {
   display: flex;
-  gap: 8px;
+  gap: 12px;
   justify-content: flex-end;
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid var(--input-border);
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-color);
 }
 
 .compact-form-actions button {
-  padding: 6px 12px;
-  font-size: 12px;
-  min-width: 80px;
-  border-radius: 4px;
-  cursor: pointer;
-  border: none;
+  padding: 10px 20px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 14px;
   font-weight: 500;
-  transition: all 0.2s ease;
+  line-height: 1.5;
+  letter-spacing: -0.01em;
+  min-width: 88px;
+  height: 40px;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 1px solid var(--border-color);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: var(--shadow-sm);
 }
 
 .compact-form-button-cancel {
   background-color: var(--bg-secondary);
   color: var(--text-primary);
-  border: 1px solid var(--input-border) !important;
+  border: 1px solid var(--border-color) !important;
 }
 
 .compact-form-button-cancel:hover {
   background-color: var(--hover-bg);
+  box-shadow: var(--shadow);
+  transform: translateY(-1px);
 }
 
 .compact-form-button-submit {
   background-color: var(--primary-color);
   color: white;
   font-weight: 600;
+  border-color: var(--primary-color);
 }
 
 .compact-form-button-submit:hover {
-  opacity: 0.9;
+  background-color: var(--primary-hover);
+  border-color: var(--primary-hover);
+  box-shadow: var(--shadow-md);
   transform: translateY(-1px);
 }
 

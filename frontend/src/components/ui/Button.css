@@ -5,9 +5,11 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  font-family: inherit;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-size: 14px;
   font-weight: 500;
+  line-height: 1.5;
+  letter-spacing: -0.01em;
   border: 1.5px solid transparent;
   border-radius: 8px;
   cursor: pointer;
@@ -17,25 +19,33 @@
   white-space: nowrap;
   user-select: none;
   outline: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* Размеры */
 .ui-button--small {
   padding: 6px 12px;
-  font-size: 12px;
+  font-size: 13px;
+  font-weight: 500;
   min-height: 32px;
+  letter-spacing: -0.005em;
 }
 
 .ui-button--medium {
   padding: 10px 20px;
   font-size: 14px;
+  font-weight: 500;
   min-height: 40px;
+  letter-spacing: -0.01em;
 }
 
 .ui-button--large {
   padding: 12px 24px;
   font-size: 16px;
+  font-weight: 500;
   min-height: 48px;
+  letter-spacing: -0.015em;
 }
 
 /* Варианты */
@@ -44,6 +54,7 @@
   color: #ffffff;
   border-color: var(--primary-color);
   box-shadow: var(--shadow-sm);
+  font-weight: 500;
 }
 
 .ui-button--primary:hover:not(:disabled) {
@@ -92,6 +103,7 @@
   color: #ffffff;
   border-color: var(--danger-color);
   box-shadow: var(--shadow-sm);
+  font-weight: 500;
 }
 
 .ui-button--danger:hover:not(:disabled) {

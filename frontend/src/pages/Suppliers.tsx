@@ -11,6 +11,7 @@ import Pagination from '../components/Pagination'
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
 import { HiOutlinePencil, HiOutlineTrash, HiOutlinePlus } from 'react-icons/hi2'
 import { Button, Input, SearchInput, Select } from '../components/ui'
+import Tooltip from '../components/Tooltip'
 import '../components/CompactForm.css'
 
 const Suppliers = () => {
@@ -319,35 +320,20 @@ const Suppliers = () => {
                   <th>Телефон</th>
                   <th>Email</th>
                   <th>Рейтинг</th>
-                  <th>Действия</th>
                 </tr>
               </thead>
               <tbody>
                 {paginatedSuppliers.map((supplier) => (
-                  <tr key={supplier.id}>
+                  <tr 
+                    key={supplier.id}
+                    className="clickable"
+                    onClick={() => handleEdit(supplier)}
+                  >
                     <td>{supplier.name}</td>
                     <td>{supplier.contact_person || '-'}</td>
                     <td>{supplier.phone || '-'}</td>
                     <td>{supplier.email || '-'}</td>
                     <td>{supplier.rating ? `${supplier.rating}/5` : '-'}</td>
-                    <td>
-                      <div className="action-buttons-group">
-                        <Button
-                          variant="primary"
-                          size="small"
-                          onClick={() => handleEdit(supplier)}
-                          icon={<HiOutlinePencil />}
-                          title="Редактировать"
-                        />
-                        <Button
-                          variant="danger"
-                          size="small"
-                          onClick={() => handleDelete(supplier.id)}
-                          icon={<HiOutlineTrash />}
-                          title="Удалить"
-                        />
-                      </div>
-                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -520,23 +506,56 @@ const Suppliers = () => {
               </div>
             </div>
 
-            <div className="compact-form-actions">
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => {
-                  setShowForm(false)
-                  setEditingItem(null)
-                }}
-              >
-                Отмена
-              </Button>
-              <Button
-                type="submit"
-                variant="primary"
-              >
-                Сохранить
-              </Button>
+            <div className="compact-form-actions" style={{ justifyContent: 'space-between' }}>
+              <div>
+                {editingItem && (
+                  <Button
+                    type="button"
+                    variant="danger"
+                    onClick={async () => {
+                      const confirmed = await confirm({
+                        title: 'Удаление поставщика',
+                        message: 'Вы уверены, что хотите удалить этого поставщика?',
+                        confirmText: 'Удалить',
+                        cancelText: 'Отмена',
+                        type: 'danger',
+                      })
+                      if (confirmed) {
+                        try {
+                          await suppliersService.deleteSupplier(editingItem.id)
+                          showSuccess('Поставщик удален')
+                          setShowForm(false)
+                          setEditingItem(null)
+                          loadData()
+                        } catch (error: any) {
+                          showError(error.response?.data?.detail || 'Ошибка удаления поставщика')
+                        }
+                      }
+                    }}
+                    icon={<HiOutlineTrash />}
+                  >
+                    Удалить
+                  </Button>
+                )}
+              </div>
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => {
+                    setShowForm(false)
+                    setEditingItem(null)
+                  }}
+                >
+                  Отмена
+                </Button>
+                <Button
+                  type="submit"
+                  variant="primary"
+                >
+                  Сохранить
+                </Button>
+              </div>
             </div>
           </form>
         </Modal>

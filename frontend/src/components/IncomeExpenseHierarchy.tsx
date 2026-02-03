@@ -5,6 +5,8 @@ import { useConfirm } from '../contexts/ConfirmContext'
 import Modal from './Modal'
 import FormField from './FormField'
 import { HiOutlinePencil, HiOutlineTrash, HiOutlineChevronRight, HiOutlineChevronDown, HiOutlinePlus } from 'react-icons/hi2'
+import { Button } from './ui'
+import './IncomeExpenseHierarchy.css'
 
 interface TreeNode {
   id: number
@@ -298,20 +300,11 @@ const IncomeExpenseHierarchy = () => {
 
   const renderNode = (node: TreeNode, level: number = 0) => {
     const hasChildren = node.children && node.children.length > 0
-    const indent = level * 24
 
     return (
-      <div key={node.id} style={{ marginLeft: `${indent}px` }}>
+      <div key={node.id} className="hierarchy-node" data-level={level}>
         <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            padding: '8px',
-            backgroundColor: node.type === 'group' ? 'var(--card-bg, #f9f9f9)' : 'transparent',
-            borderBottom: '1px solid var(--border-color, #e0e0e0)',
-            cursor: 'pointer',
-            userSelect: 'none'
-          }}
+          className={`hierarchy-node-row ${node.type === 'group' ? 'group' : 'item'}`}
           onDragStart={(e) => {
             setDraggedNode(node)
             e.dataTransfer.effectAllowed = 'move'
@@ -330,82 +323,56 @@ const IncomeExpenseHierarchy = () => {
           }}
           draggable
         >
-          <div style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
+          <div className="hierarchy-node-content">
             {hasChildren ? (
               <button
+                className="hierarchy-expand-button"
                 onClick={() => handleToggleExpand(node.id)}
-                style={{
-                  border: 'none',
-                  background: 'transparent',
-                  cursor: 'pointer',
-                  padding: '4px',
-                  marginRight: '8px'
-                }}
+                aria-label={node.expanded ? 'Свернуть' : 'Развернуть'}
               >
                 {node.expanded ? <HiOutlineChevronDown /> : <HiOutlineChevronRight />}
               </button>
             ) : (
-              <span style={{ width: '24px', marginRight: '8px' }} />
+              <span className="hierarchy-expand-placeholder" />
             )}
-            <span style={{ fontWeight: node.type === 'group' ? 'bold' : 'normal', flex: 1 }}>
+            <span className={`hierarchy-node-name ${node.type === 'group' ? 'group' : ''}`}>
               {node.name}
             </span>
             {node.description && (
-              <span style={{ color: '#666', fontSize: '12px', marginRight: '8px' }}>
+              <span className="hierarchy-node-description">
                 {node.description}
               </span>
             )}
-            <div style={{ display: 'flex', gap: '4px' }}>
-              <button
-                onClick={() => handleAdd(node.id, node.type === 'group')}
-                style={{
-                  padding: '4px 8px',
-                  fontSize: '12px',
-                  border: 'none',
-                  background: 'var(--primary-color, #4a90e2)',
-                  color: 'white',
-                  borderRadius: '4px',
-                  cursor: 'pointer'
-                }}
-                title={node.type === 'group' ? 'Добавить подгруппу' : 'Добавить статью'}
-              >
-                <HiOutlinePlus />
-              </button>
-              <button
-                onClick={() => handleEdit(node)}
-                style={{
-                  padding: '4px 8px',
-                  fontSize: '12px',
-                  border: 'none',
-                  background: 'var(--primary-color, #4a90e2)',
-                  color: 'white',
-                  borderRadius: '4px',
-                  cursor: 'pointer'
-                }}
-                title="Редактировать"
-              >
-                <HiOutlinePencil />
-              </button>
-              <button
-                onClick={() => handleDelete(node)}
-                style={{
-                  padding: '4px 8px',
-                  fontSize: '12px',
-                  border: 'none',
-                  background: 'var(--danger-color, #dc3545)',
-                  color: 'white',
-                  borderRadius: '4px',
-                  cursor: 'pointer'
-                }}
-                title="Удалить"
-              >
-                <HiOutlineTrash />
-              </button>
-            </div>
+          </div>
+          <div className="hierarchy-node-actions">
+            <button
+              className="hierarchy-action-button add"
+              onClick={() => handleAdd(node.id, node.type === 'group')}
+              title={node.type === 'group' ? 'Добавить подгруппу' : 'Добавить статью'}
+              aria-label={node.type === 'group' ? 'Добавить подгруппу' : 'Добавить статью'}
+            >
+              <HiOutlinePlus />
+            </button>
+            <button
+              className="hierarchy-action-button edit"
+              onClick={() => handleEdit(node)}
+              title="Редактировать"
+              aria-label="Редактировать"
+            >
+              <HiOutlinePencil />
+            </button>
+            <button
+              className="hierarchy-action-button delete"
+              onClick={() => handleDelete(node)}
+              title="Удалить"
+              aria-label="Удалить"
+            >
+              <HiOutlineTrash />
+            </button>
           </div>
         </div>
         {hasChildren && node.expanded && (
-          <div>
+          <div className="hierarchy-children">
             {node.children!.map(child => renderNode(child, level + 1))}
           </div>
         )}
@@ -414,48 +381,38 @@ const IncomeExpenseHierarchy = () => {
   }
 
   return (
-    <div>
-      <div style={{ marginBottom: '16px', borderBottom: '1px solid #ddd' }}>
+    <div className="hierarchy-container">
+      <div className="hierarchy-tabs">
         <button
+          className={`hierarchy-tab ${activeTab === 'income' ? 'active' : ''}`}
           onClick={() => setActiveTab('income')}
-          style={{
-            padding: '10px 20px',
-            marginRight: '10px',
-            border: 'none',
-            backgroundColor: activeTab === 'income' ? '#4a90e2' : '#f0f0f0',
-            color: activeTab === 'income' ? 'white' : 'black',
-            cursor: 'pointer',
-          }}
         >
           Доходы
         </button>
         <button
+          className={`hierarchy-tab ${activeTab === 'expense' ? 'active' : ''}`}
           onClick={() => setActiveTab('expense')}
-          style={{
-            padding: '10px 20px',
-            border: 'none',
-            backgroundColor: activeTab === 'expense' ? '#4a90e2' : '#f0f0f0',
-            color: activeTab === 'expense' ? 'white' : 'black',
-            cursor: 'pointer',
-          }}
         >
           Расходы
         </button>
       </div>
 
       <div className="card">
-        <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span>Группы и статьи {activeTab === 'income' ? 'доходов' : 'расходов'}</span>
-          <button
+        <div className="hierarchy-card-header">
+          <span className="hierarchy-card-title">
+            Группы и статьи {activeTab === 'income' ? 'доходов' : 'расходов'}
+          </span>
+          <Button
+            variant="primary"
             onClick={() => handleAdd(null, true)}
-            className="primary"
+            icon={<HiOutlinePlus />}
           >
             Добавить группу
-          </button>
+          </Button>
         </div>
-        <div style={{ maxHeight: '600px', overflowY: 'auto' }}>
+        <div className="hierarchy-scroll-container">
           {tree.length === 0 ? (
-            <div style={{ padding: '20px', textAlign: 'center' }}>
+            <div className="hierarchy-empty-state">
               Нет данных. Создайте группу или статью, используя кнопку "Добавить группу" выше.
             </div>
           ) : (
@@ -525,13 +482,13 @@ const IncomeExpenseHierarchy = () => {
               rows={3}
             />
           </FormField>
-          <div style={{ display: 'flex', gap: '12px', marginTop: '20px', justifyContent: 'flex-end' }}>
-            <button type="button" onClick={handleClose}>
+          <div className="compact-form-actions">
+            <Button type="button" variant="secondary" onClick={handleClose}>
               Отмена
-            </button>
-            <button type="submit" className="primary">
+            </Button>
+            <Button type="submit" variant="primary">
               Сохранить
-            </button>
+            </Button>
           </div>
         </form>
       </Modal>

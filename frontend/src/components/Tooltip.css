@@ -1,20 +1,33 @@
 .tooltip-trigger {
-  display: inline-block;
+  display: inline-flex;
   position: relative;
+  align-items: center;
+  justify-content: center;
 }
 
 .tooltip {
-  position: absolute;
-  background-color: rgba(0, 0, 0, 0.9);
+  position: fixed;
+  background-color: rgba(15, 23, 42, 0.95);
   color: white;
-  padding: 6px 12px;
-  border-radius: 6px;
+  padding: 8px 12px;
+  border-radius: 8px;
   font-size: 12px;
   white-space: nowrap;
   z-index: 10000;
   pointer-events: none;
   animation: tooltipFadeIn 0.2s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-weight: 500;
+  line-height: 1.4;
+  max-width: 300px;
+  word-wrap: break-word;
+  white-space: normal;
+}
+
+[data-theme="dark"] .tooltip {
+  background-color: rgba(30, 41, 59, 0.98);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
 }
 
 .tooltip::before {
@@ -29,28 +42,44 @@
   bottom: -12px;
   left: 50%;
   transform: translateX(-50%);
-  border-top-color: rgba(0, 0, 0, 0.9);
+  border-top-color: rgba(15, 23, 42, 0.95);
+}
+
+[data-theme="dark"] .tooltip-top::before {
+  border-top-color: rgba(30, 41, 59, 0.98);
 }
 
 .tooltip-bottom::before {
   top: -12px;
   left: 50%;
   transform: translateX(-50%);
-  border-bottom-color: rgba(0, 0, 0, 0.9);
+  border-bottom-color: rgba(15, 23, 42, 0.95);
+}
+
+[data-theme="dark"] .tooltip-bottom::before {
+  border-bottom-color: rgba(30, 41, 59, 0.98);
 }
 
 .tooltip-left::before {
   right: -12px;
   top: 50%;
   transform: translateY(-50%);
-  border-left-color: rgba(0, 0, 0, 0.9);
+  border-left-color: rgba(15, 23, 42, 0.95);
+}
+
+[data-theme="dark"] .tooltip-left::before {
+  border-left-color: rgba(30, 41, 59, 0.98);
 }
 
 .tooltip-right::before {
   left: -12px;
   top: 50%;
   transform: translateY(-50%);
-  border-right-color: rgba(0, 0, 0, 0.9);
+  border-right-color: rgba(15, 23, 42, 0.95);
+}
+
+[data-theme="dark"] .tooltip-right::before {
+  border-right-color: rgba(30, 41, 59, 0.98);
 }
 
 @keyframes tooltipFadeIn {

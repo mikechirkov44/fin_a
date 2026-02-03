@@ -1,18 +1,20 @@
 .form-field {
-  margin-bottom: 16px;
+  margin-bottom: 20px;
 }
 
 .form-field-label {
   display: block;
-  margin-bottom: 6px;
-  font-weight: 500;
+  margin-bottom: 8px;
+  font-weight: 600;
   color: var(--text-primary);
-  font-size: 13px;
+  font-size: 14px;
+  letter-spacing: -0.01em;
 }
 
 .form-field-required {
-  color: #e74c3c;
+  color: var(--danger-color);
   margin-left: 4px;
+  font-weight: 600;
 }
 
 .form-field-input-wrapper {
@@ -22,40 +24,37 @@
 .form-field-error input,
 .form-field-error select,
 .form-field-error textarea {
-  border-color: #e74c3c;
-  background-color: rgba(231, 76, 60, 0.05);
+  border-color: var(--danger-color);
+  background-color: var(--danger-lighter);
 }
 
 .form-field-error input:focus,
 .form-field-error select:focus,
 .form-field-error textarea:focus {
-  border-color: #e74c3c;
-  box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.1);
+  border-color: var(--danger-color);
+  box-shadow: 0 0 0 3px var(--danger-lighter);
 }
 
 .form-field-error-message {
-  color: #e74c3c;
+  color: var(--danger-text, var(--danger-color));
   font-size: 12px;
-  margin-top: 4px;
+  margin-top: 6px;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
+  font-weight: 500;
 }
 
 .form-field-error-message::before {
   content: '⚠';
   font-size: 14px;
+  flex-shrink: 0;
 }
 
 .form-field-hint {
   color: var(--text-secondary);
   font-size: 12px;
-  margin-top: 4px;
-}
-
-[data-theme="dark"] .form-field-error input,
-[data-theme="dark"] .form-field-error select,
-[data-theme="dark"] .form-field-error textarea {
-  background-color: rgba(231, 76, 60, 0.1);
+  margin-top: 6px;
+  line-height: 1.5;
 }
 
